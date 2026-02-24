@@ -1,14 +1,16 @@
 jQuery(document).ready(function($) {
     var taskList = $('#tasks-list');
 
-    // Add new task
-    $('#add-task-button').click(function() {
-        var taskName = $('#new-task').val();
-        if (taskName) {
-            var timestamp = Math.floor(Date.now() / 1000); // Get current timestamp in seconds
-            addTaskToList(taskName, timestamp);
-            $('#new-task').val('');
-            saveTasks();
+    // Add new task via button
+    $('#add-task-button').on('click', function() {
+        addTaskFromInput();
+    });
+
+    // Add new task via Enter key in the input
+    $('#new-task').on('keypress', function(e) {
+        if (e.which === 13) { // Enter key
+            e.preventDefault();
+            addTaskFromInput();
         }
     });
 
@@ -17,6 +19,17 @@ jQuery(document).ready(function($) {
         $(this).closest('tr').remove();
         saveTasks();
     });
+
+    function addTaskFromInput() {
+        var taskName = $('#new-task').val();
+        if (!taskName) {
+            return;
+        }
+        var timestamp = Math.floor(Date.now() / 1000); // Get current timestamp in seconds
+        addTaskToList(taskName, timestamp);
+        $('#new-task').val('');
+        saveTasks();
+    }
 
     function addTaskToList(taskName, timestamp) {
         var timeAgo = calculateTimeAgo(timestamp);
@@ -31,8 +44,9 @@ jQuery(document).ready(function($) {
             tasks.push({ name: taskName, timestamp: timestamp });
         });
 
-        $.post(ajax_object.ajax_url, {
-            action: 'save_tasks',
+        $.post(cdw_ajax.ajax_url, {
+            action: 'cdw_save_tasks',
+            nonce: cdw_ajax.nonce,
             tasks: tasks
         });
     }
@@ -49,4 +63,17 @@ jQuery(document).ready(function($) {
             return Math.floor(timeDiff / 86400) + ' days';
         }
     }
+
+    // Periodically refresh the "time ago" labels so they stay accurate
+    setInterval(function() {
+        $('.task-time').each(function() {
+            var $el = $(this);
+            var timestamp = parseInt($el.data('timestamp'), 10);
+            if (!timestamp) {
+                return;
+            }
+            var timeAgo = calculateTimeAgo(timestamp);
+            $el.text(timeAgo + ' ago');
+        });
+    }, 60000); // every 60 seconds
 });

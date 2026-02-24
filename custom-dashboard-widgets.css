@@ -7,19 +7,19 @@
     padding: 10px;
 }
 
-#tasks-list {
-    list-style-type: none;
-    padding-left: 0;
+/* Tasks widget table styling */
+#tasks-table {
+    width: 100%;
+    border-collapse: collapse;
 }
 
-#tasks-list li {
-    padding: 5px 0;
-    display: flex;
-    justify-content: space-between;
+#tasks-table th,
+#tasks-table td {
+    padding: 5px 8px;
     border-bottom: 1px solid #ddd;
 }
 
-#tasks-list li:last-child {
+#tasks-table tr:last-child td {
     border-bottom: none;
 }
 
@@ -33,17 +33,6 @@
     padding: 5px 10px;
     margin-top: 15px; /* Adjusted margin from 10px to 15px for more spacing */
 }
-.custom-widget-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 10px;
-}
-
-.custom-widget-buttons .button {
-    margin: 0;
-}
-
 .custom-widget-buttons {
     display: flex;
     flex-wrap: wrap;
@@ -95,32 +84,6 @@
 .custom-widget-buttons.settings-widget .button:nth-child(6),
 .custom-widget-buttons.settings-widget .button:nth-child(7) {
     flex: 1 1 45%; /* Wrap these buttons to the next line */
-}
-
-/* Admin Dashboard Background Image */
-body.wp-admin {
-    background-image: url('http://vue1.local/wp-content/uploads/2024/08/pexels-pixabay-531880.jpg');
-    background-size: cover; /* Ensures the image covers the entire background */
-    background-repeat: no-repeat; /* Prevents the image from repeating */
-    background-attachment: fixed; /* Keeps the background fixed during scrolling */
-    background-position: center center; /* Centers the image in the background */
-}
-
-/* Optional: Adjust the dashboard content area for better readability */
-.wrap {
-    background-color: transparent; /* Semi-transparent background for content area */
-}
-
-.wrap h1 {
-	color: white;
-}
-
-#footer-thankyou {
-	color: white;
-}
-
-#footer-upgrade {
-	color: white;
 }
 
 .postbox-header {
