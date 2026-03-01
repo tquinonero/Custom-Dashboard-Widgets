@@ -1,7 +1,6 @@
 # Custom Dashboard Widgets (v2)
 
-**Contributors:** toniquinonero  
-**Donate link:** https://example.com/donate  
+**Contributors:** toniquinonero
 **Tags:** dashboard, admin, widgets, customization  
 **Requires at least:** 5.0  
 **Tested up to:** 6.7  
@@ -154,14 +153,7 @@ Examples:
   option get blogname
   transient flush
   post publish 42";
-
-## Screenshots
-
-1. Dashboard overview with custom widgets
-2. Settings page for configuration
-3. Command Line widget in action
-4. Tasks widget for personal todo management
-
+  
 ## Changelog
 
 ### 2.0.0
