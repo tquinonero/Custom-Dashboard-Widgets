@@ -1,0 +1,137 @@
+import { useState, useEffect } from '@wordpress/element';
+import { useSelect, useDispatch } from '@wordpress/data';
+
+function calculateTimeAgo(timestamp) {
+    const now = Math.floor(Date.now() / 1000);
+    const diff = now - timestamp;
+    
+    if (diff < 60) return `${diff} seconds`;
+    if (diff < 3600) return `${Math.floor(diff / 60)} minutes`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} hours`;
+    return `${Math.floor(diff / 86400)} days`;
+}
+
+export default function TasksWidget() {
+    const tasks = useSelect((select) => select('cdw/store').getTasks());
+    const users = useSelect((select) => select('cdw/store').getUsers());
+    const isLoading = useSelect((select) => select('cdw/store').isLoading('tasks'));
+    const error = useSelect((select) => select('cdw/store').getError('tasks'));
+    const { fetchTasks, fetchUsers, addTask, removeTask } = useDispatch('cdw/store');
+    const [newTask, setNewTask] = useState('');
+    const [assigneeId, setAssigneeId] = useState('');
+
+    useEffect(() => {
+        fetchTasks();
+    }, []);
+
+    const handleAddTask = async () => {
+        if (!newTask.trim()) return;
+        const newTasks = [...tasks, { name: newTask.trim(), timestamp: Date.now() / 1000 }];
+        try {
+            await addTask(newTasks, assigneeId || null);
+            setNewTask('');
+            setAssigneeId('');
+        } catch (e) {
+            console.error('Failed to add task:', e);
+        }
+    };
+
+    const handleRemoveTask = async (index) => {
+        const newTasks = tasks.filter((_, i) => i !== index);
+        try {
+            await removeTask(newTasks, assigneeId || null);
+        } catch (e) {
+            console.error('Failed to remove task:', e);
+        }
+    };
+
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            handleAddTask();
+        }
+    };
+
+    if (isLoading && tasks.length === 0) {
+        return <div className="cdw-loading">Loading tasks...</div>;
+    }
+
+    if (error) {
+        console.log('Tasks error:', error);
+    }
+
+    return (
+        <div className="cdw-tasks-widget">
+            <table className="cdw-tasks-table">
+                <thead>
+                    <tr>
+                        <th>Task</th>
+                        <th>Assigned To</th>
+                        <th>Added</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {tasks.length === 0 ? (
+                        <tr>
+                            <td colSpan="4" className="cdw-no-tasks">No tasks yet</td>
+                        </tr>
+                    ) : (
+                        tasks.map((task, index) => (
+                            <tr key={index}>
+                                <td>{task.name}</td>
+                                <td className="cdw-task-assignee">
+                                    {task.created_by ? (
+                                        users.find(u => u.id === task.created_by)?.name || 'Unknown'
+                                    ) : (
+                                        'Me'
+                                    )}
+                                </td>
+                                <td className="cdw-task-time">{calculateTimeAgo(task.timestamp)} ago</td>
+                                <td>
+                                    <button 
+                                        className="cdw-remove-task" 
+                                        onClick={() => handleRemoveTask(index)}
+                                        aria-label="Remove task"
+                                    >
+                                        ×
+                                    </button>
+                                </td>
+                            </tr>
+                        ))
+                    )}
+                </tbody>
+            </table>
+            <div className="cdw-task-input">
+                <input
+                    type="text"
+                    value={newTask}
+                    onChange={(e) => setNewTask(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Add new task"
+                    className="cdw-task-input-field"
+                />
+                <div className="cdw-task-input-actions">
+                    {users.length > 0 && (
+                        <select
+                            value={assigneeId}
+                            onChange={(e) => setAssigneeId(e.target.value)}
+                            className="cdw-task-assignee-select"
+                        >
+                            <option value="">My Tasks</option>
+                            {users.map(user => (
+                                <option key={user.id} value={user.id}>{user.name}</option>
+                            ))}
+                        </select>
+                    )}
+                    <button 
+                        onClick={handleAddTask}
+                        disabled={!newTask.trim()}
+                        className="cdw-task-add-btn"
+                    >
+                        Add
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}

@@ -1,128 +1,207 @@
-Custom admin dashboard for WordPress
-Author: Toni Quiñonero
-License: GPLv3
+# Custom Dashboard Widgets (v2)
 
-## Overview
+**Contributors:** toniquinonero  
+**Donate link:** https://example.com/donate  
+**Tags:** dashboard, admin, widgets, customization  
+**Requires at least:** 5.0  
+**Tested up to:** 6.7  
+**Stable tag:** 2.0.0  
+**License:** GPLv3 or later  
+**License URI:** https://www.gnu.org/licenses/gpl-3.0.html
 
-This plugin customizes the WordPress admin dashboard by:
+Modernize your WordPress admin dashboard with custom React-powered widgets and a sleek design.
 
-- Removing several core dashboard widgets.
-- Adding custom widgets (Help & Support, Site Statistics, Media, Posts, Tasks, Updates, Appearance, Users, Tools, Settings).
-- Adding a simple settings page to configure the support email and documentation URL.
-- Styling dashboard widgets for a more modern look.
+## Description
+
+Custom Dashboard Widgets replaces the default WordPress dashboard with a modern, customizable interface featuring:
+
+- **8 Custom Widgets** - Help & Support, Site Statistics, Latest Media, Latest Posts, Tasks, Updates, Quick Links, and Command Line
+- **React-Powered** - Fast, interactive widgets built with React
+- **Modern Design** - Clean, professional styling that matches WordPress admin
+- **CLI Terminal** - Built-in command line interface for managing plugins, themes, users, and more
+- **Fully Customizable** - Configure widget appearance with colors and font sizes
+
+### Widgets
+
+- **Help & Support** - Display support email and documentation link
+- **Site Statistics** - View post, page, comment, user, and media counts at a glance
+- **Latest Media** - Quick access to recent uploaded files
+- **Latest Posts** - See your most recent published content
+- **Pending Tasks** - Personal todo list (stored per user)
+- **Updates** - View available plugin and theme updates (admin only)
+- **Quick Links** - Fast access to common admin pages (admin only)
+- **Command Line** - WP-CLI-like terminal for site management (admin only)
+
+### Features
+
+- Drag-and-drop widget reordering (native WordPress)
+- Per-user task management
+- Configurable appearance (colors, fonts)
+- Support email and documentation URL settings
+- Enable/disable individual widgets
+- Remove default WordPress widgets option
 
 ## Installation
 
 1. Upload the plugin folder to your WordPress installation:
-	- Via FTP/SFTP: copy this folder into `wp-content/plugins/`.
-	- Via Git (for development): clone into `wp-content/plugins/CDW`.
-2. In the WordPress admin, go to **Plugins → Installed Plugins**.
-3. Activate **Custom Dashboard Widgets**.
+   - Via FTP/SFTP: copy this folder into `wp-content/plugins/`
+   - Via Git (for development): clone into `wp-content/plugins/CDW`
+2. In the WordPress admin, go to **Plugins → Installed Plugins**
+3. Activate **Custom Dashboard Widgets**
 
-> Note: This plugin is designed for the admin area only. It does not affect the public front‑end of your site.
+> Note: This plugin is designed for the admin area only. It does not affect the public front-end of your site.
 
-## Usage
+## Frequently Asked Questions
 
-### Dashboard widgets
+### Does this plugin work with multisite?
 
-Once activated, visit **Dashboard → Home**. You will see:
+Currently, multisite support is limited. The plugin works on individual sites within a network but network-wide activation is not fully tested.
 
-- **Help & Support** – shows a support email and documentation link.
-- **Site Statistics** – basic counts for posts, pages, and comments.
-- **Latest Media** – links to the most recent media items.
-- **Latest Posts** – a list of recent posts plus quick links to posts, categories, and tags.
-- **Pending Tasks** (administrators only) – a personal to‑do list stored per user.
-- **Updates** (administrators only) – a list of plugins with available updates, plus shortcuts to plugin management.
-- **Appearance, Users, Tools, Settings** (administrators only) – quick‑access panels to common admin screens.
+### Can I choose which widgets to display?
 
-### Configuring Help & Support widget
+Yes! Use the **Settings → Dashboard Widgets** page to configure:
+- Enable/disable the Command Line widget
+- Choose whether to remove default WordPress widgets
 
-1. Go to **Settings → Dashboard Widget Settings**.
-2. Set:
-	- **Support Email** – email address shown in the Help & Support widget.
-	- **Documentation URL** – link used for the “documentation” button.
-3. Save changes. The widget will immediately reflect the new values on the Dashboard.
+### Can I customize the widget appearance?
 
-### Using the Tasks widget
+Absolutely. Go to **Settings → Dashboard Widgets → Widget Appearance** to adjust:
+- Widget text size
+- Widget background color
+- Widget header background color
+- Widget header text color
 
-- Add a task by typing into the input and either clicking **Add Task** or pressing **Enter**.
-- Remove a task by clicking the **×** icon in the row.
-- Timestamps are stored per task so you can see how long ago each task was added; the “time ago” text refreshes automatically while you keep the dashboard open.
+### Where is my data stored?
 
-### Customizing widget appearance
+- **Tasks** - Stored in user meta (`cdw_tasks`)
+- **Settings** - Stored in WordPress options
+- **CLI History** - Stored in user meta (`cdw_cli_history`)
+- **Audit Logs** - Stored in custom database table (`wp_cdw_cli_logs`)
 
-In **Settings → Dashboard Widget Settings → Widget Appearance** you can globally adjust how the dashboard widgets look:
+### Does the CLI widget really run WP-CLI commands?
 
-- **Widget Text Size (px)** – changes the font size inside widget content areas.
-- **Widget Background Color** – sets the background color for widget boxes.
-- **Widget Header Background** – sets a solid background color for widget headers (overrides the default gradient when used).
-- **Widget Header Text Color** – sets the text color for widget header titles.
+The CLI widget simulates WP-CLI commands through WordPress APIs. It provides a subset of common commands:
+help                                  - Show this help message
 
-Leave any field empty to fall back to the default WordPress admin styles.
+  plugin list                           - List all plugins (with update status)
+  plugin status <slug>                  - Show version, status, update info
+  plugin install <slug>                 - Install a plugin from wordpress.org
+  plugin activate <slug>                - Activate a plugin
+  plugin deactivate <slug>              - Deactivate a plugin
+  plugin update <slug>                  - Update a specific plugin
+  plugin update --all                   - Update all plugins
+  plugin delete <slug>                  - Delete a plugin (requires --force)
 
-## Security and stability notes
+  theme list                            - List all themes (with update status)
+  theme status <slug>                   - Show version, status, update info
+  theme install <slug>                  - Install a theme from wordpress.org
+  theme activate <slug>                 - Activate a theme
+  theme deactivate [slug]               - Switch to another theme
+  theme update <slug>                   - Update a specific theme
+  theme update --all                    - Update all themes
 
-This plugin has undergone security and robustness improvements compared to the initial version. It is important to be transparent about what was fixed.
+  user list                             - List all users
+  user get <id|username>                - Get details for a user
+  user create <user> <email> <role>     - Create a user (password emailed)
+  user update <id|user> --role <role>   - Change a user's role
+  user delete <id|username>             - Delete a user (requires --force)
 
-### Fixed security issues
+  post list                             - List recent posts
+  post get <id>                         - Get details for a post
+  post create <title>                   - Create a draft post
+  post publish <id>                     - Publish a post
+  post unpublish <id>                   - Set a post back to draft
+  post delete <id>                      - Permanently delete a post (requires --force)
 
-1. **Insecure AJAX endpoint for Tasks widget**  
-	**Issue (pre-1.3):** The AJAX action used to save tasks (`save_tasks`) did not validate a nonce and had no capability checks. This meant that any logged-in user could be tricked (via CSRF) into sending unintended task data to their own account.  
-	**Fix (1.3+):**
-	- The action is now `cdw_save_tasks` and is handled by `cdw_save_tasks_callback()`.
-	- A nonce (`cdw_tasks_nonce`) is generated server-side and passed to JavaScript via `wp_localize_script()`.
-	- The AJAX callback now calls `check_ajax_referer( 'cdw_tasks_nonce', 'nonce' )` and verifies `current_user_can( 'read' )` before processing.
-	- Incoming task data is sanitized (`sanitize_text_field`) and validated before being stored in user meta.
+  db optimize                           - Optimize all WordPress database tables
+  db repair                             - Repair all WordPress database tables
 
-2. **Timestamp integrity in Tasks widget**  
-	**Issue (pre-1.3):** Every time tasks were saved, the server code overwrote all timestamps with the current time. This was not a direct security issue but affected data integrity and could confuse users (tasks always looked “just added”).  
-	**Fix (1.3+):** The backend now preserves the original `timestamp` sent from the client (if valid) and only falls back to `time()` when no valid timestamp is present.
+  option get <key>                      - Get an option value
+  option set <key> <value>              - Set an option value
+  option delete <key>                   - Delete an option (requires --force)
 
-3. **Function name collisions and direct access**  
-	**Issue (pre-1.3):** Most functions in the plugin were in the global namespace without a prefix and the main file lacked an `ABSPATH` guard. This increased the risk of function name collisions with other themes/plugins and of direct execution of the file outside of WordPress.  
-	**Fix (1.3+):**
-	- All public functions are now prefixed with `cdw_`.
-	- The main plugin file includes an `if ( ! defined( 'ABSPATH' ) ) exit;` guard.
+  transient get <key>                   - Get a transient value
+  transient delete <key>                - Delete a specific transient
+  transient flush                       - Delete ALL transients
 
-### Behavioral changes
+  cron list                             - List all scheduled cron events
+  cron run <hook>                       - Manually trigger a cron hook
 
-1. **Scoped asset loading**  
-	CSS and JS assets are now only enqueued on:
-	- The main Dashboard screen (`index.php`).
-	- This plugin’s settings page (`settings_page_custom-dashboard-widget-settings`).
+  maintenance on                        - Enable maintenance mode
+  maintenance off                       - Disable maintenance mode
+  maintenance status                    - Check maintenance mode status
 
-	This reduces the plugin’s footprint on other admin screens and avoids unintended styling/JS side effects.
+  search-replace <old> <new> --dry-run  - Preview matches without making changes
+  search-replace <old> <new> --force    - Replace a string sitewide
 
-2. **Removed invasive admin layout changes**  
-	Previous versions:
-	- Hid the entire left admin menu on the Dashboard via inline CSS.
-	- Applied a hard-coded background image and global color changes to `body.wp-admin` and `.wrap` across the admin.
+  cache flush                           - Flush the object cache
+  site info                             - Show site information
+  site status                           - Show site status
 
-	Current version:
-	- Does **not** hide the admin menu.
-	- Does **not** apply a site-specific background image or global color overrides.
-	- Limits styling to dashboard widgets (e.g., rounded postboxes and gradient headers).
+Security notes:
+  - Destructive commands require --force
+  - search-replace supports --dry-run to safely preview before committing
+  - Critical options (siteurl, admin_email, auth keys, etc.) are protected
+  - user delete cannot target your own account
 
-3. **Tasks widget structure and UX**  
-	- CSS now matches the actual markup (which uses a `<table>` for tasks), fixing earlier mismatched `li` styling.
-	- The “time ago” labels update automatically every 60 seconds while the dashboard is open.
-	- You can add tasks by clicking the button or pressing Enter in the input.
+Examples:
+  plugin update --all
+  theme install twentytwentyfive
+  user update john --role editor
+  search-replace https://old.com https://new.com --dry-run
+  maintenance on
+  cron list
+  option get blogname
+  transient flush
+  post publish 42";
 
-### Backwards compatibility notes
+## Screenshots
 
-- The AJAX action name changed from `save_tasks` to `cdw_save_tasks`, and the localized JS object changed from `ajax_object` to `cdw_ajax`. If you had custom code hooking into the old action or relying on the old JS object name, you will need to update it.
-- The removal of global background and menu-hiding CSS means the dashboard may look different compared to earlier versions, but should now be more consistent with WordPress core and other plugins.
+1. Dashboard overview with custom widgets
+2. Settings page for configuration
+3. Command Line widget in action
+4. Tasks widget for personal todo management
 
 ## Changelog
 
-- **1.3**
-	- Hardened AJAX handling for the Tasks widget (nonce + capability checks, sanitized input) and preserved task timestamps.
-	- Added `ABSPATH` guard and `cdw_` prefix to all plugin functions to reduce collision risk.
-	- Scoped CSS/JS loading to the Dashboard and plugin settings page only.
-	- Removed invasive admin UI changes (hidden menu, hard‑coded background image, global color overrides).
-	- Fixed Tasks widget CSS to match table markup and improved UX (auto‑updating “time ago”, Enter key to add tasks).
-	- Added configurable appearance options for widget font size and colors.
-	- Updated README with explicit documentation of past issues and their fixes.
+### 2.0.0
+- Complete rewrite with React and REST API
+- Added Command Line widget for site management
+- New modern settings page with React
+- Improved security with proper nonce verification
+- Added audit logging for CLI commands
+- Rate limiting on CLI endpoints
+- New appearance customization options
+- Fixed various database query issues
+- Added widget visibility controls
 
-- **1.0 – 1.2**
-	- Initial releases of the custom dashboard with core widget removal, custom widgets, and basic styling.
+### 1.3
+- Hardened AJAX handling (nonce + capability checks)
+- Added ABSPATH guard and function prefixing
+- Scoped CSS/JS loading to dashboard only
+- Removed invasive admin UI changes
+- Fixed Tasks widget CSS and improved UX
+
+### 1.0 - 1.2
+- Initial releases
+
+## Upgrade Notice
+
+### 2.0.0
+This is a major update with significant changes:
+- New React-based interface
+- CLI widget added (can be disabled in settings)
+- Settings moved to new REST API endpoints
+- Database schema changes (new audit log table)
+
+## Credits
+
+- Built with [WordPress](https://wordpress.org/)
+- React integration via [@wordpress/scripts](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-scripts/)
+- Styled with modern CSS
+
+## License
+
+This plugin is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.

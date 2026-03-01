@@ -1,0 +1,893 @@
+// CDW Settings & Dashboard Styles
+
+// Variables
+$cdw-primary: #1d2327;
+$cdw-secondary: #3c434a;
+$cdw-text: #3c434a;
+$cdw-text-muted: #646970;
+$cdw-accent: #2271b1;
+$cdw-accent-hover: #135e96;
+$cdw-success: #1e3a5f;
+$cdw-danger: #d63638;
+$cdw-border: #e2e2e2;
+$cdw-border-dark: #c3c4c7;
+$cdw-bg: #f6f7f7;
+$cdw-white: #ffffff;
+$cdw-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+$cdw-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.12);
+$cdw-radius: 12px;
+$cdw-radius-sm: 6px;
+$cdw-transition: all 0.2s ease;
+
+// Settings Panel
+.cdw-settings-panel {
+    max-width: 720px;
+    padding: 2rem 0;
+
+    .cdw-settings-header {
+        margin-bottom: 2rem;
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: $cdw-primary;
+            margin: 0 0 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        p {
+            color: $cdw-text-muted;
+            margin: 0;
+            font-size: 0.95rem;
+        }
+    }
+
+    .cdw-settings-section {
+        background: $cdw-white;
+        border: 1px solid $cdw-border;
+        border-radius: $cdw-radius;
+        padding: 1.75rem;
+        margin-bottom: 1.5rem;
+        box-shadow: $cdw-shadow;
+        transition: $cdw-transition;
+
+        &:hover {
+            box-shadow: $cdw-shadow-hover;
+        }
+
+        .cdw-section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid $cdw-border;
+
+            .cdw-section-icon {
+                width: 36px;
+                height: 36px;
+                border-radius: $cdw-radius-sm;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.25rem;
+            }
+
+            h2 {
+                margin: 0;
+                font-size: 1.1rem;
+                font-weight: 600;
+                color: $cdw-primary;
+            }
+        }
+
+        &.cdw-contact-section .cdw-section-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        &.cdw-appearance-section .cdw-section-icon {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        &.cdw-cli-section .cdw-section-icon {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+        }
+    }
+
+    .cdw-field {
+        margin-bottom: 1.25rem;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            color: $cdw-secondary;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="url"],
+        input[type="number"] {
+            width: 100%;
+            max-width: 400px;
+            padding: 0.75rem 1rem;
+            border: 2px solid $cdw-border;
+            border-radius: $cdw-radius-sm;
+            font-size: 0.95rem;
+            color: $cdw-text;
+            background: $cdw-bg;
+            transition: $cdw-transition;
+
+            &:focus {
+                border-color: $cdw-accent;
+                outline: none;
+                background: $cdw-white;
+                box-shadow: 0 0 0 4px rgba($cdw-accent, 0.1);
+            }
+
+            &::placeholder {
+                color: $cdw-text-muted;
+            }
+        }
+
+        .description {
+            display: block;
+            margin-top: 0.4rem;
+            color: $cdw-text-muted;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .cdw-checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+
+            input[type="checkbox"] {
+                width: 20px;
+                height: 20px;
+                accent-color: $cdw-accent;
+                cursor: pointer;
+            }
+
+            span {
+                font-weight: 500;
+                color: $cdw-text;
+            }
+        }
+    }
+
+    .cdw-settings-actions {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding-top: 1rem;
+
+        .button-primary {
+            background: $cdw-accent !important;
+            border-color: $cdw-accent !important;
+            color: white !important;
+            padding: 0.65rem 1.5rem !important;
+            font-weight: 600 !important;
+            border-radius: $cdw-radius-sm !important;
+            transition: $cdw-transition !important;
+            box-shadow: 0 2px 4px rgba($cdw-accent, 0.3) !important;
+
+            &:hover {
+                background: $cdw-accent-hover !important;
+                border-color: $cdw-accent-hover !important;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 8px rgba($cdw-accent, 0.4) !important;
+            }
+
+            &:disabled {
+                opacity: 0.6;
+                transform: none;
+            }
+        }
+
+        .cdw-saved-message {
+            color: $cdw-success;
+            font-weight: 600;
+            font-size: 0.9rem;
+            animation: cdw-fade-in 0.3s ease;
+        }
+    }
+}
+
+@keyframes cdw-fade-in {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+// Dashboard Widgets
+.cdw-dashboard {
+    display: grid;
+    gap: 1rem;
+}
+
+.cdw-loading {
+    padding: 2rem;
+    text-align: center;
+    color: $cdw-text-muted;
+    font-size: 0.95rem;
+
+    &::before {
+        content: '';
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid $cdw-border;
+        border-top-color: $cdw-accent;
+        border-radius: 50%;
+        animation: cdw-spin 0.8s linear infinite;
+        margin-right: 0.5rem;
+        vertical-align: middle;
+    }
+}
+
+@keyframes cdw-spin {
+    to { transform: rotate(360deg); }
+}
+
+.cdw-stats-widget {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+
+    @media (min-width: 768px) {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .cdw-stats-chart {
+        width: 180px;
+        height: 180px;
+        margin: 0 auto;
+
+        @media (min-width: 768px) {
+            margin: 0;
+            width: 200px;
+            height: 200px;
+        }
+    }
+
+    .cdw-stats-list {
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+
+        @media (min-width: 768px) {
+            grid-template-columns: repeat(1, 1fr);
+        }
+    }
+
+    .cdw-stat-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.85rem 1rem;
+        background: $cdw-bg;
+        border-radius: $cdw-radius-sm;
+        transition: $cdw-transition;
+
+        &:hover {
+            background: darken($cdw-bg, 2%);
+            transform: translateX(4px);
+        }
+
+        .cdw-stat-label {
+            font-weight: 500;
+            color: $cdw-secondary;
+            font-size: 0.9rem;
+        }
+
+        .cdw-stat-value {
+            color: $cdw-accent;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+    }
+}
+
+.cdw-tasks-widget {
+    .cdw-tasks-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 0.5rem;
+
+        th {
+            padding: 0.5rem 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            color: $cdw-secondary;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 0.85rem 0.75rem;
+            background: $cdw-white;
+            border-top: 1px solid $cdw-border;
+            border-bottom: 1px solid $cdw-border;
+
+            &:first-child {
+                border-left: 1px solid $cdw-border;
+                border-radius: $cdw-radius-sm 0 0 $cdw-radius-sm;
+            }
+
+            &:last-child {
+                border-right: 1px solid $cdw-border;
+                border-radius: 0 $cdw-radius-sm $cdw-radius-sm 0;
+                text-align: right;
+            }
+        }
+
+        tbody tr {
+            transition: $cdw-transition;
+
+            &:hover td {
+                background: $cdw-bg;
+            }
+        }
+
+        .cdw-no-tasks {
+            text-align: center;
+            color: $cdw-text-muted;
+            font-style: italic;
+        }
+
+        .cdw-task-time {
+            color: $cdw-text-muted;
+            font-size: 0.85rem;
+        }
+
+        .cdw-remove-task {
+            background: none;
+            border: none;
+            color: $cdw-danger;
+            cursor: pointer;
+            font-size: 1.25rem;
+            padding: 0.25rem 0.5rem;
+            line-height: 1;
+            border-radius: 4px;
+            transition: $cdw-transition;
+
+            &:hover {
+                background: rgba($cdw-danger, 0.1);
+                transform: scale(1.1);
+            }
+        }
+    }
+
+    .cdw-task-input {
+        margin-top: 1.25rem;
+        padding: 1rem;
+        background: $cdw-bg;
+        border-radius: $cdw-radius-sm;
+
+        .cdw-task-input-field {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid transparent;
+            border-radius: $cdw-radius-sm;
+            font-size: 0.95rem;
+            background: $cdw-white;
+            transition: $cdw-transition;
+            box-sizing: border-box;
+
+            &:focus {
+                border-color: $cdw-accent;
+                outline: none;
+            }
+        }
+
+        .cdw-task-input-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+
+            .cdw-task-assignee-select {
+                flex: 1;
+                padding: 0.5rem;
+                border: 1px solid #ddd;
+                border-radius: $cdw-radius-sm;
+                background: $cdw-white;
+                font-size: 0.875rem;
+            }
+
+            .cdw-task-add-btn {
+                padding: 0.5rem 1rem;
+                background: $cdw-accent;
+                color: white;
+                border: none;
+                border-radius: $cdw-radius-sm;
+                font-weight: 600;
+                cursor: pointer;
+                transition: $cdw-transition;
+
+                &:hover:not(:disabled) {
+                    background: $cdw-accent-hover;
+                }
+
+                &:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+            }
+        }
+    }
+}
+
+.cdw-posts-widget,
+.cdw-media-widget,
+.cdw-updates-widget,
+.cdw-help-widget,
+.cdw-quicklinks-widget {
+    .cdw-posts-list,
+    .cdw-media-list,
+    .cdw-updates-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 1rem;
+
+        li {
+            padding: 0.65rem 0;
+            border-bottom: 1px solid $cdw-border;
+            transition: $cdw-transition;
+
+            &:last-child {
+                border-bottom: none;
+            }
+
+            &:hover {
+                padding-left: 0.5rem;
+            }
+
+            a {
+                color: $cdw-accent;
+                text-decoration: none;
+                font-weight: 500;
+                transition: $cdw-transition;
+
+                &:hover {
+                    color: $cdw-accent-hover;
+                }
+            }
+        }
+    }
+
+    .cdw-posts-links,
+    .cdw-updates-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid $cdw-border;
+    }
+
+    .button {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+        border-radius: $cdw-radius-sm;
+        transition: $cdw-transition;
+
+        &:hover {
+            transform: translateY(-1px);
+        }
+    }
+
+    .button-primary {
+        background: $cdw-accent;
+        border-color: $cdw-accent;
+
+        &:hover {
+            background: $cdw-accent-hover;
+            border-color: $cdw-accent-hover;
+        }
+    }
+}
+
+.cdw-help-widget {
+    p {
+        margin: 0 0 0.75rem;
+        line-height: 1.5;
+
+        &:last-of-type {
+            margin-bottom: 0;
+        }
+
+        a {
+            color: $cdw-accent;
+            font-weight: 500;
+
+            &:hover {
+                text-decoration: underline;
+            }
+        }
+    }
+
+    .button {
+        margin-top: 0.75rem;
+    }
+}
+
+.cdw-quicklinks-widget {
+    .cdw-quicklinks-section {
+        margin-bottom: 1.25rem;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+
+        h4 {
+            margin: 0 0 0.75rem;
+            color: $cdw-secondary;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .cdw-quicklinks-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+
+            .button {
+                padding: 0.5rem 0.85rem;
+                font-size: 0.85rem;
+            }
+
+            .button-primary {
+                background: $cdw-accent;
+                border-color: $cdw-accent;
+
+                &:hover {
+                    background: $cdw-accent-hover;
+                    border-color: $cdw-accent-hover;
+                }
+            }
+        }
+    }
+}
+
+.cdw-updates-widget {
+    .cdw-updates-list li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+
+        strong {
+            color: $cdw-secondary;
+        }
+    }
+}
+
+// Command Widget - Terminal Style
+$cdw-term-bg: #1a1a2e;
+$cdw-term-text: #eaeaea;
+$cdw-term-prompt: #50fa7b;
+$cdw-term-success: #50fa7b;
+$cdw-term-error: #ff5555;
+$cdw-term-accent: #bd93f9;
+$cdw-term-comment: #6272a4;
+
+.cdw-command-widget {
+    background: $cdw-term-bg;
+    border-radius: $cdw-radius;
+    overflow: hidden;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    color: $cdw-term-text;
+
+    .cdw-command-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.6rem 1rem;
+        background: darken($cdw-term-bg, 3%);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+        .cdw-command-title {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: $cdw-term-accent;
+            letter-spacing: 0.5px;
+        }
+
+        .cdw-command-btn {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: $cdw-term-text;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 12px;
+            transition: $cdw-transition;
+
+            &:hover {
+                background: rgba(255, 255, 255, 0.1);
+                border-color: $cdw-term-accent;
+            }
+        }
+    }
+
+    .cdw-command-help {
+        padding: 0.75rem 1rem;
+        background: rgba($cdw-term-accent, 0.1);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+        .cdw-help-title {
+            color: $cdw-term-comment;
+            font-size: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .cdw-help-commands {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+
+            .cdw-help-cmd {
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                color: $cdw-term-accent;
+                padding: 0.25rem 0.5rem;
+                border-radius: 3px;
+                font-size: 0.75rem;
+                cursor: pointer;
+                font-family: inherit;
+                transition: $cdw-transition;
+
+                &:hover {
+                    background: rgba($cdw-term-accent, 0.2);
+                    border-color: $cdw-term-accent;
+                }
+            }
+        }
+    }
+
+    .cdw-command-output {
+        height: 250px;
+        overflow-y: auto;
+        padding: 1rem;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+
+        &::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        &::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+    }
+
+    .cdw-command-welcome {
+        text-align: center;
+        padding: 2rem 1rem;
+
+        .cdw-welcome-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: $cdw-term-prompt;
+            margin-bottom: 0.75rem;
+            letter-spacing: 1px;
+        }
+
+        .cdw-welcome-text {
+            color: $cdw-term-comment;
+            margin-bottom: 1rem;
+
+            code {
+                background: rgba(255, 255, 255, 0.1);
+                padding: 0.15rem 0.4rem;
+                border-radius: 3px;
+                color: $cdw-term-accent;
+            }
+        }
+
+        .cdw-welcome-examples {
+            text-align: left;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: $cdw-radius-sm;
+            font-size: 0.8rem;
+
+            div {
+                color: $cdw-term-comment;
+                margin-bottom: 0.5rem;
+            }
+
+            code {
+                display: block;
+                color: $cdw-term-text;
+                padding: 0.2rem 0;
+                font-family: inherit;
+
+                &::before {
+                    content: '$ ';
+                    color: $cdw-term-prompt;
+                }
+            }
+        }
+    }
+
+    .cdw-command-entry {
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+        &:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .cdw-entry-prompt {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.35rem;
+
+            .cdw-prompt-symbol {
+                color: $cdw-term-prompt;
+                font-weight: bold;
+            }
+
+            .cdw-entry-command {
+                color: $cdw-term-text;
+            }
+        }
+
+        .cdw-entry-output {
+            white-space: pre-wrap;
+            word-break: break-word;
+            padding-left: 1.25rem;
+            color: rgba($cdw-term-text, 0.85);
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        &.success .cdw-entry-output {
+            color: rgba($cdw-term-success, 0.9);
+        }
+
+        &.error .cdw-entry-output {
+            color: $cdw-term-error;
+        }
+    }
+
+    .cdw-command-loading {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: $cdw-term-comment;
+        padding-left: 1.25rem;
+
+        .cdw-loading-spinner {
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-top-color: $cdw-term-accent;
+            border-radius: 50%;
+            animation: cdw-term-spin 0.8s linear infinite;
+        }
+    }
+
+    .cdw-command-input {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: darken($cdw-term-bg, 5%);
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+
+        .cdw-input-prompt {
+            color: $cdw-term-prompt;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .cdw-command-field {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: $cdw-term-text;
+            font-family: inherit;
+            font-size: inherit;
+            outline: none;
+
+            &::placeholder {
+                color: rgba(255, 255, 255, 0.3);
+            }
+
+            &:focus {
+                outline: none;
+            }
+
+            &:disabled {
+                opacity: 0.5;
+            }
+        }
+
+        .cdw-submit-btn {
+            background: transparent;
+            border: none;
+            color: $cdw-term-accent;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 0.25rem 0.5rem;
+            opacity: 0.7;
+            transition: $cdw-transition;
+
+            &:hover:not(:disabled) {
+                opacity: 1;
+                transform: scale(1.1);
+            }
+
+            &:disabled {
+                opacity: 0.3;
+                cursor: not-allowed;
+            }
+        }
+    }
+
+    .cdw-command-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        background: darken($cdw-term-bg, 3%);
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        font-size: 0.75rem;
+
+        .cdw-clear-btn {
+            background: transparent;
+            border: none;
+            color: $cdw-term-comment;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: inherit;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            transition: $cdw-transition;
+
+            &:hover {
+                color: $cdw-term-error;
+                background: rgba($cdw-term-error, 0.1);
+            }
+        }
+
+        .cdw-history-count {
+            color: $cdw-term-comment;
+        }
+    }
+}
+
+@keyframes cdw-term-spin {
+    to { transform: rotate(360deg); }
+}

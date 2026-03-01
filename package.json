@@ -1,0 +1,25 @@
+{
+  "name": "cdw-custom-dashboard-widgets",
+  "version": "2.0.0",
+  "description": "Custom Dashboard Widgets - Modernized with React and REST API",
+  "author": "Toni Quiñonero",
+  "license": "GPL-3.0",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "wp-scripts start",
+    "build": "wp-scripts build",
+    "dev": "wp-scripts start"
+  },
+  "dependencies": {
+    "@wordpress/api-fetch": "^7.16.0",
+    "@wordpress/components": "^28.8.0",
+    "@wordpress/data": "^10.16.0",
+    "@wordpress/element": "^6.16.0",
+    "@wordpress/i18n": "^5.16.0",
+    "chart.js": "^4.4.1",
+    "react-chartjs-2": "^5.2.0"
+  },
+  "devDependencies": {
+    "@wordpress/scripts": "^30.5.0"
+  }
+}
