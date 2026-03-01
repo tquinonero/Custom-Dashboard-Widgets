@@ -108,27 +108,28 @@ class CDW_REST_API {
     }
 
     private function check_rate_limit( $user_id ) {
-        try {
-            $key   = 'cdw_cli_rate_' . $user_id;
-            $count = get_transient( $key );
+        $key   = 'cdw_cli_rate_' . $user_id;
+        $group = 'cdw';
 
-            if ( false === $count ) {
-                $count = 0;
-            }
+        // wp_cache_add only sets the key when it does not already exist, giving
+        // a race-free initialisation on caches that support atomic operations.
+        wp_cache_add( $key, 0, $group, $this->rate_limit_window );
 
+        // wp_cache_incr is atomic on persistent caches (Memcached, Redis),
+        // eliminating the read-check-write race of the previous transient approach.
+        $count = wp_cache_incr( $key, 1, $group );
+
+        if ( false === $count ) {
+            // Object cache backend does not support incr; fall back to transient.
+            $count = (int) get_transient( $key );
             if ( $count >= $this->rate_limit_count ) {
                 return false;
             }
-
             set_transient( $key, $count + 1, $this->rate_limit_window );
             return true;
-        } catch ( Exception $e ) {
-            error_log( sprintf(
-                '[CDW Plugin] Rate limit check failed: %s',
-                $e->getMessage()
-            ) );
-            return false;
         }
+
+        return $count <= $this->rate_limit_count;
     }
 
     private function command_requires_force( $cmd, $subcmd ) {
@@ -363,8 +364,8 @@ class CDW_REST_API {
             'comments'   => wp_count_comments()->approved,
             'users'      => count_users()['total_users'],
             'media'      => wp_count_posts( 'attachment' )->inherit,
-            'categories' => wp_count_terms( 'category' ),
-            'tags'       => wp_count_terms( 'post_tag' ),
+            'categories' => wp_count_terms( array( 'taxonomy' => 'category' ) ),
+            'tags'       => wp_count_terms( array( 'taxonomy' => 'post_tag' ) ),
             'plugins'    => count( get_plugins() ),
             'themes'     => count( wp_get_themes() ),
         );
@@ -542,6 +543,16 @@ class CDW_REST_API {
                 'timestamp'  => $timestamp,
                 'created_by' => $current_user_id,
             );
+        }
+
+        if ( $target_user_id !== $current_user_id ) {
+            // Appending to another user's task list — merge with their existing tasks
+            // so we never overwrite work that belongs to them.
+            $existing_json  = get_user_meta( $target_user_id, 'cdw_tasks', true );
+            $existing_tasks = $existing_json ? json_decode( $existing_json, true ) : array();
+            if ( is_array( $existing_tasks ) && ! empty( $existing_tasks ) ) {
+                $sanitized_tasks = array_merge( $existing_tasks, $sanitized_tasks );
+            }
         }
 
         update_user_meta( $target_user_id, 'cdw_tasks', wp_json_encode( $sanitized_tasks ) );
@@ -1929,10 +1940,14 @@ class CDW_REST_API {
         }
 
         if ( is_array( $value ) ) {
+            $new_array = array();
             foreach ( $value as $k => $v ) {
-                $value[ $k ] = $this->recursive_replace( $search, $replace, $v );
+                // Replace in keys too — WordPress option arrays can store URLs in keys
+                // (e.g. widget configs, redirect maps) and those must also be updated.
+                $new_key               = is_string( $k ) ? str_replace( $search, $replace, $k ) : $k;
+                $new_array[ $new_key ] = $this->recursive_replace( $search, $replace, $v );
             }
-            return $value;
+            return $new_array;
         }
 
         if ( is_object( $value ) ) {

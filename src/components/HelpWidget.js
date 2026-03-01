@@ -3,12 +3,11 @@ import { useSelect, useDispatch } from '@wordpress/data';
 
 export default function HelpWidget() {
     const settings = useSelect((select) => select('cdw/store').getSettings());
+    const isLoadingSettings = useSelect((select) => select('cdw/store').isLoading('settings'));
     const { fetchSettings } = useDispatch('cdw/store');
 
     useEffect(() => {
-        if (!settings.email) {
-            fetchSettings();
-        }
+        fetchSettings();
     }, []);
 
     const adminUrl = window.cdwData?.adminUrl || '';
@@ -28,7 +27,7 @@ export default function HelpWidget() {
                     Visit our <a href={docsUrl}>documentation</a> for more information.
                 </p>
             )}
-            {!email && !docsUrl && (
+            {!isLoadingSettings && !email && !docsUrl && (
                 <p>
                     No support information configured.{' '}
                     <a href={adminUrl + 'options-general.php?page=cdw-settings'}>Configure settings</a>

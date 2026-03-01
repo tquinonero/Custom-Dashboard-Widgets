@@ -41,6 +41,7 @@ if ( $remove_all_data ) {
 		'cdw_header_text_color',
 		'cdw_cli_enabled',
 		'cdw_remove_default_widgets',
+		'cdw_db_version',
 		// Legacy option names (for backwards compatibility)
 		'custom_dashboard_widget_email',
 		'custom_dashboard_widget_docs_url',

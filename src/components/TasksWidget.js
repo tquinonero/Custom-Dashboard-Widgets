@@ -27,9 +27,16 @@ export default function TasksWidget() {
 
     const handleAddTask = async () => {
         if (!newTask.trim()) return;
-        const newTasks = [...tasks, { name: newTask.trim(), timestamp: Date.now() / 1000 }];
+        const newTaskObj = { name: newTask.trim(), timestamp: Date.now() / 1000 };
         try {
-            await addTask(newTasks, assigneeId || null);
+            if (assigneeId) {
+                // Assigning to another user: send only the new task so the server
+                // can append it to that user's existing list without overwriting it.
+                await addTask([newTaskObj], assigneeId);
+            } else {
+                // Own tasks: send the full updated list; server replaces in full.
+                await addTask([...tasks, newTaskObj], null);
+            }
             setNewTask('');
             setAssigneeId('');
         } catch (e) {
@@ -40,13 +47,15 @@ export default function TasksWidget() {
     const handleRemoveTask = async (index) => {
         const newTasks = tasks.filter((_, i) => i !== index);
         try {
-            await removeTask(newTasks, assigneeId || null);
+            // Always save to the current user's list — never to the assignee
+            // selected in the "add task" dropdown, which is unrelated to removal.
+            await removeTask(newTasks, null);
         } catch (e) {
             console.error('Failed to remove task:', e);
         }
     };
 
-    const handleKeyPress = (e) => {
+    const handleKeyDown = (e) => {
         if (e.key === 'Enter') {
             handleAddTask();
         }
@@ -107,7 +116,7 @@ export default function TasksWidget() {
                     type="text"
                     value={newTask}
                     onChange={(e) => setNewTask(e.target.value)}
-                    onKeyPress={handleKeyPress}
+                    onKeyDown={handleKeyDown}
                     placeholder="Add new task"
                     className="cdw-task-input-field"
                 />

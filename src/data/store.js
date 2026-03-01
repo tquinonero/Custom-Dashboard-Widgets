@@ -70,24 +70,6 @@ const actions = {
         }
     },
 
-    saveTasks: (tasks) => async ({ dispatch }) => {
-        dispatch(actions.setLoading('tasks', true));
-        try {
-            const result = await apiFetch({
-                path: '/cdw/v1/tasks',
-                method: 'POST',
-                data: { tasks },
-            });
-            dispatch(actions.setTasks(result.tasks));
-            return result;
-        } catch (error) {
-            dispatch(actions.setError('tasks', error.message));
-            throw error;
-        } finally {
-            dispatch(actions.setLoading('tasks', false));
-        }
-    },
-
     addTask: (task, assigneeId = null) => async ({ dispatch }) => {
         dispatch(actions.setLoading('tasks', true));
         try {
