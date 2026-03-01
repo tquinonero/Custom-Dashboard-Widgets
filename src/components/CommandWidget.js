@@ -1,15 +1,20 @@
 import { useState, useEffect, useRef } from '@wordpress/element';
+import apiFetch from '@wordpress/api-fetch';
 
 export default function CommandWidget() {
     const [history, setHistory] = useState([]);
     const [command, setCommand] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
+    const [commandDefinitions, setCommandDefinitions] = useState([]);
+    const [suggestions, setSuggestions] = useState([]);
+    const [highlightedIndex, setHighlightedIndex] = useState(-1);
     const inputRef = useRef(null);
     const outputRef = useRef(null);
 
     useEffect(() => {
         loadHistory();
+        loadCommandDefinitions();
     }, []);
 
     useEffect(() => {
@@ -20,10 +25,10 @@ export default function CommandWidget() {
 
     const loadHistory = async () => {
         try {
-            const result = await wp.apiFetch({ 
+            const result = await apiFetch({ 
                 path: `/cdw/v1/cli/history?t=${Date.now()}`,
                 headers: {
-                    'X-WP-Nonce': cdwData.nonce
+                    'X-WP-Nonce': window.cdwData?.nonce
                 }
             });
             if (Array.isArray(result)) {
@@ -37,6 +42,60 @@ export default function CommandWidget() {
         }
     };
 
+    const loadCommandDefinitions = async () => {
+        try {
+            const result = await apiFetch({
+                path: `/cdw/v1/cli/commands?t=${Date.now()}`,
+                headers: {
+                    'X-WP-Nonce': window.cdwData?.nonce
+                }
+            });
+
+            if (Array.isArray(result)) {
+                setCommandDefinitions(result);
+                if (command.trim()) {
+                    updateSuggestions(command, result);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load CLI commands:', e);
+        }
+    };
+
+    const updateSuggestions = (value, availableCommands = commandDefinitions) => {
+        const normalized = value.trim().toLowerCase();
+
+        if (!normalized || availableCommands.length === 0) {
+            setSuggestions([]);
+            setHighlightedIndex(-1);
+            return;
+        }
+
+        const matches = availableCommands.filter((cmd) => {
+            const usage = cmd.usage.toLowerCase();
+            return usage.startsWith(normalized) || usage.includes(` ${normalized}`) || usage.includes(normalized);
+        });
+
+        setSuggestions(matches.slice(0, 6));
+        setHighlightedIndex(-1);
+    };
+
+    const selectSuggestion = (suggestion) => {
+        if (!suggestion) {
+            return;
+        }
+
+        const normalized = suggestion.usage.endsWith(' ') ? suggestion.usage : `${suggestion.usage} `;
+        setCommand(normalized);
+        updateSuggestions(normalized);
+        setSuggestions([]);
+        setHighlightedIndex(-1);
+
+        if (inputRef.current) {
+            inputRef.current.focus();
+        }
+    };
+
     const executeCommand = async (e) => {
         e.preventDefault();
         if (!command.trim() || isLoading) return;
@@ -46,12 +105,12 @@ export default function CommandWidget() {
         setIsLoading(true);
 
         try {
-            const result = await wp.apiFetch({
+            const result = await apiFetch({
                 path: '/cdw/v1/cli/execute',
                 method: 'POST',
                 data: { command: cmd },
                 headers: {
-                    'X-WP-Nonce': cdwData.nonce
+                    'X-WP-Nonce': window.cdwData?.nonce
                 }
             });
 
@@ -93,12 +152,33 @@ export default function CommandWidget() {
         }
 
         setIsLoading(false);
+        setSuggestions([]);
+        setHighlightedIndex(-1);
         if (inputRef.current) {
             inputRef.current.focus();
         }
     };
 
     const handleKeyDown = (e) => {
+        if (suggestions.length > 0 && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+            e.preventDefault();
+            setHighlightedIndex((prev) => {
+                if (prev === -1) {
+                    return e.key === 'ArrowDown' ? 0 : suggestions.length - 1;
+                }
+                const next = prev + (e.key === 'ArrowDown' ? 1 : -1);
+                return (next + suggestions.length) % suggestions.length;
+            });
+            return;
+        }
+
+        if (suggestions.length > 0 && e.key === 'Tab') {
+            e.preventDefault();
+            const index = highlightedIndex >= 0 ? highlightedIndex : 0;
+            selectSuggestion(suggestions[index]);
+            return;
+        }
+
         if (e.key === 'Enter' && !e.shiftKey) {
             executeCommand(e);
         }
@@ -106,14 +186,16 @@ export default function CommandWidget() {
 
     const clearHistory = async () => {
         try {
-            await wp.apiFetch({
+            await apiFetch({
                 path: '/cdw/v1/cli/history',
                 method: 'POST',
                 headers: {
-                    'X-WP-Nonce': cdwData.nonce
+                    'X-WP-Nonce': window.cdwData?.nonce
                 }
             });
             setHistory([]);
+            setSuggestions([]);
+            setHighlightedIndex(-1);
         } catch (e) {
             console.error('Failed to clear history:', e);
             setHistory([]);
@@ -206,7 +288,11 @@ export default function CommandWidget() {
                     ref={inputRef}
                     type="text"
                     value={command}
-                    onChange={(e) => setCommand(e.target.value)}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        setCommand(value);
+                        updateSuggestions(value);
+                    }}
                     onKeyDown={handleKeyDown}
                     placeholder="Type a command..."
                     disabled={isLoading}
@@ -220,6 +306,24 @@ export default function CommandWidget() {
                     &#8629;
                 </button>
             </form>
+
+            {suggestions.length > 0 && (
+                <ul className="cdw-command-suggestions" role="listbox">
+                    {suggestions.map((suggestion, index) => (
+                        <li key={`${suggestion.usage}-${index}`}>
+                            <button
+                                type="button"
+                                className={`cdw-command-suggestion ${index === highlightedIndex ? 'is-active' : ''}`}
+                                onClick={() => selectSuggestion(suggestion)}
+                                onMouseEnter={() => setHighlightedIndex(index)}
+                            >
+                                <span className="cdw-suggestion-usage">{suggestion.usage}</span>
+                                <span className="cdw-suggestion-description">{suggestion.description}</span>
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            )}
 
             {history.length > 0 && (
                 <div className="cdw-command-footer">

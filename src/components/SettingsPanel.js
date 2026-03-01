@@ -18,6 +18,7 @@ export default function SettingsPanel() {
     });
 
     const [saved, setSaved] = useState(false);
+    const [saveError, setSaveError] = useState(null);
 
     useEffect(() => {
         fetchSettings();
@@ -49,9 +50,14 @@ export default function SettingsPanel() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        await saveSettings(formData);
-        setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
+        setSaveError(null);
+        try {
+            await saveSettings(formData);
+            setSaved(true);
+            setTimeout(() => setSaved(false), 3000);
+        } catch (err) {
+            setSaveError(err.message || 'Failed to save settings.');
+        }
     };
 
     return (
@@ -212,6 +218,7 @@ export default function SettingsPanel() {
                         {isLoading ? 'Saving...' : 'Save Changes'}
                     </button>
                     {saved && <span className="cdw-saved-message">Settings saved!</span>}
+                    {saveError && <div className="cdw-error">{saveError}</div>}
                 </div>
             </form>
         </div>

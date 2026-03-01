@@ -22,6 +22,7 @@ export default function TasksWidget() {
 
     useEffect(() => {
         fetchTasks();
+        fetchUsers();
     }, []);
 
     const handleAddTask = async () => {
@@ -56,7 +57,7 @@ export default function TasksWidget() {
     }
 
     if (error) {
-        console.log('Tasks error:', error);
+        return <div className="cdw-error">Failed to load tasks: {error}</div>;
     }
 
     return (

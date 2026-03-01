@@ -85,10 +85,7 @@ if ( $remove_all_data ) {
 	$wpdb->query( "DROP TABLE IF EXISTS {$table_name}" );
 
 	// Delete all user meta created by this plugin
-	// Get all users to clean up their meta
-	$users = get_users( array( 'fields' => 'ID' ) );
-	foreach ( $users as $user_id ) {
-		delete_user_meta( $user_id, 'cdw_tasks' );
-		delete_user_meta( $user_id, 'cdw_cli_history' );
-	}
+	// Use direct SQL deletes instead of get_users() to avoid loading all user IDs into memory.
+	$wpdb->delete( $wpdb->usermeta, array( 'meta_key' => 'cdw_tasks' ),       array( '%s' ) );
+	$wpdb->delete( $wpdb->usermeta, array( 'meta_key' => 'cdw_cli_history' ), array( '%s' ) );
 }

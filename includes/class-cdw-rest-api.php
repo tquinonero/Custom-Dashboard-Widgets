@@ -5,6 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class CDW_REST_API {
+    const DB_VERSION = '1.0';
+
     private $namespace = 'cdw/v1';
     private $rate_limit_count = 20;
     private $rate_limit_window = 60;
@@ -62,16 +64,11 @@ class CDW_REST_API {
     }
 
     public function ensure_audit_table() {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'cdw_cli_logs';
-
-        $table_exists = $wpdb->get_var(
-            "SHOW TABLES LIKE '" . $wpdb->esc_like( $table_name ) . "'"
-        );
-
-        if ( $table_exists !== $table_name ) {
-            $this->create_audit_log_table();
+        if ( get_option( 'cdw_db_version' ) === self::DB_VERSION ) {
+            return;
         }
+        $this->create_audit_log_table();
+        update_option( 'cdw_db_version', self::DB_VERSION );
     }
 
     private function log_cli_command( $user_id, $command, $success ) {
@@ -144,6 +141,7 @@ class CDW_REST_API {
             'user delete',
             'option delete',
             'post delete',
+            'transient flush',
         );
         return in_array( $cmd . ' ' . $subcmd, $dangerous_commands );
     }
@@ -316,12 +314,18 @@ class CDW_REST_API {
                 'permission_callback' => array( $this, 'check_admin_permission' ),
             ),
         ) );
+
+        register_rest_route( $this->namespace, '/cli/commands', array(
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => array( $this, 'get_cli_commands' ),
+            'permission_callback' => array( $this, 'check_admin_permission' ),
+        ) );
     }
 
     public function check_read_permission( $request = null ) {
         if ( $request instanceof WP_REST_Request ) {
             $nonce = $request->get_header( 'X-WP-Nonce' );
-            if ( empty( $nonce ) || ! wp_verify_nonce( $nonce, 'wp_rest' ) ) {
+            if ( ! empty( $nonce ) && ! wp_verify_nonce( $nonce, 'wp_rest' ) ) {
                 return false;
             }
         }
@@ -331,7 +335,7 @@ class CDW_REST_API {
     public function check_admin_permission( $request = null ) {
         if ( $request instanceof WP_REST_Request ) {
             $nonce = $request->get_header( 'X-WP-Nonce' );
-            if ( empty( $nonce ) || ! wp_verify_nonce( $nonce, 'wp_rest' ) ) {
+            if ( ! empty( $nonce ) && ! wp_verify_nonce( $nonce, 'wp_rest' ) ) {
                 return false;
             }
         }
@@ -428,15 +432,15 @@ class CDW_REST_API {
             return rest_ensure_response( $cached );
         }
 
-        $posts     = wp_get_recent_posts( array( 'numberposts' => $per_page, 'post_status' => 'publish' ) );
+        $posts     = get_posts( array( 'numberposts' => $per_page, 'post_status' => 'publish', 'post_type' => 'post', 'suppress_filters' => true ) );
         $formatted = array();
 
         foreach ( $posts as $post ) {
             $formatted[] = array(
-                'id'    => $post['ID'],
-                'title' => $post['post_title'],
-                'date'  => $post['post_date'],
-                'link'  => get_permalink( $post['ID'] ),
+                'id'    => $post->ID,
+                'title' => $post->post_title,
+                'date'  => $post->post_date,
+                'link'  => get_permalink( $post->ID ),
             );
         }
 
@@ -446,7 +450,7 @@ class CDW_REST_API {
     }
 
     public function get_users() {
-        $users              = get_users();
+        $users              = get_users( array( 'number' => 100 ) );
         $formatted          = array();
         $can_manage_options = current_user_can( 'manage_options' );
 
@@ -573,19 +577,30 @@ class CDW_REST_API {
     public function save_settings( WP_REST_Request $request ) {
         $settings = $request->get_json_params();
 
-        if ( isset( $settings['email'] ) && ! empty( $settings['email'] ) ) {
-            $email = $this->validate_email( $settings['email'] );
-            if ( $email ) {
-                update_option( 'cdw_support_email', $email );
-                update_option( 'custom_dashboard_widget_email', $email );
+        if ( isset( $settings['email'] ) ) {
+            if ( ! empty( $settings['email'] ) ) {
+                $email = $this->validate_email( $settings['email'] );
+                if ( $email ) {
+                    $email = sanitize_email( $email );
+                    update_option( 'cdw_support_email', $email );
+                    update_option( 'custom_dashboard_widget_email', $email );
+                }
+            } else {
+                delete_option( 'cdw_support_email' );
+                delete_option( 'custom_dashboard_widget_email' );
             }
         }
 
-        if ( isset( $settings['docs_url'] ) && ! empty( $settings['docs_url'] ) ) {
-            $url = $this->validate_url( $settings['docs_url'] );
-            if ( $url ) {
-                update_option( 'cdw_docs_url', $url );
-                update_option( 'custom_dashboard_widget_docs_url', $url );
+        if ( isset( $settings['docs_url'] ) ) {
+            if ( ! empty( $settings['docs_url'] ) ) {
+                $url = $this->validate_url( $settings['docs_url'] );
+                if ( $url ) {
+                    update_option( 'cdw_docs_url', $url );
+                    update_option( 'custom_dashboard_widget_docs_url', $url );
+                }
+            } else {
+                delete_option( 'cdw_docs_url' );
+                delete_option( 'custom_dashboard_widget_docs_url' );
             }
         }
 
@@ -594,6 +609,9 @@ class CDW_REST_API {
             if ( $size >= 10 && $size <= 40 ) {
                 update_option( 'cdw_font_size', $size );
                 update_option( 'custom_dashboard_widget_font_size', $size );
+            } elseif ( $size === 0 ) {
+                delete_option( 'cdw_font_size' );
+                delete_option( 'custom_dashboard_widget_font_size' );
             }
         }
 
@@ -602,6 +620,9 @@ class CDW_REST_API {
             if ( $color !== '' ) {
                 update_option( 'cdw_bg_color', $color );
                 update_option( 'custom_dashboard_widget_background_color', $color );
+            } elseif ( '' === $settings['bg_color'] ) {
+                delete_option( 'cdw_bg_color' );
+                delete_option( 'custom_dashboard_widget_background_color' );
             }
         }
 
@@ -610,6 +631,9 @@ class CDW_REST_API {
             if ( $color !== '' ) {
                 update_option( 'cdw_header_bg_color', $color );
                 update_option( 'custom_dashboard_widget_header_background_color', $color );
+            } elseif ( '' === $settings['header_bg_color'] ) {
+                delete_option( 'cdw_header_bg_color' );
+                delete_option( 'custom_dashboard_widget_header_background_color' );
             }
         }
 
@@ -618,6 +642,9 @@ class CDW_REST_API {
             if ( $color !== '' ) {
                 update_option( 'cdw_header_text_color', $color );
                 update_option( 'custom_dashboard_widget_header_text_color', $color );
+            } elseif ( '' === $settings['header_text_color'] ) {
+                delete_option( 'cdw_header_text_color' );
+                delete_option( 'custom_dashboard_widget_header_text_color' );
             }
         }
 
@@ -637,45 +664,25 @@ class CDW_REST_API {
 
         delete_transient( 'cdw_stats_cache' );
 
-        global $wpdb;
-        $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '" . $wpdb->esc_like( '_transient_cdw_media_cache_' ) . "%'" );
-        $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '" . $wpdb->esc_like( '_transient_cdw_posts_cache_' ) . "%'" );
-        $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '" . $wpdb->esc_like( '_transient_timeout_cdw_media_cache_' ) . "%'" );
-        $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '" . $wpdb->esc_like( '_transient_timeout_cdw_posts_cache_' ) . "%'" );
+        for ( $i = 1; $i <= 50; $i++ ) {
+            delete_transient( 'cdw_media_cache_' . $i );
+            delete_transient( 'cdw_posts_cache_' . $i );
+        }
 
         return rest_ensure_response( array( 'success' => true ) );
     }
 
     public function get_cli_history() {
-        global $wpdb;
+        $user_id      = get_current_user_id();
+        $history_json = get_user_meta( $user_id, 'cdw_cli_history', true );
+        $history      = $history_json ? json_decode( $history_json, true ) : array();
 
-        $user_id = get_current_user_id();
-
-        $results = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = 'cdw_cli_history'",
-                $user_id
-            )
-        );
-
-        if ( ! empty( $results ) && ! empty( $results[0]->meta_value ) ) {
-            return rest_ensure_response( json_decode( $results[0]->meta_value, true ) );
-        }
-
-        return rest_ensure_response( array() );
+        return rest_ensure_response( is_array( $history ) ? $history : array() );
     }
 
     public function clear_cli_history() {
-        global $wpdb;
-
         $user_id = get_current_user_id();
-
-        $wpdb->query(
-            $wpdb->prepare(
-                "DELETE FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = 'cdw_cli_history'",
-                $user_id
-            )
-        );
+        delete_user_meta( $user_id, 'cdw_cli_history' );
 
         return rest_ensure_response( array( 'success' => true, 'cleared' => true ) );
     }
@@ -1258,7 +1265,7 @@ class CDW_REST_API {
     private function handle_user_command( $subcmd, $args ) {
         switch ( $subcmd ) {
             case 'list':
-                $users  = get_users();
+                $users  = get_users( array( 'number' => 100 ) );
                 $output = "Users:\n";
                 foreach ( $users as $user ) {
                     $roles   = implode( ', ', $user->roles );
@@ -1383,7 +1390,7 @@ class CDW_REST_API {
                     $message    = "A new user account has been created on " . get_bloginfo( 'name' ) . ".\n\n";
                     $message   .= "Username: $username\nPassword: $password\nEmail: $email\n\n";
                     $message   .= "Login URL: " . wp_login_url() . "\n";
-                    $email_sent = @wp_mail( $email, 'Your new account on ' . get_bloginfo( 'name' ), $message );
+                    $email_sent = wp_mail( $email, 'Your new account on ' . get_bloginfo( 'name' ), $message );
                     if ( $email_sent ) {
                         return array( 'output' => "User created: $username (ID: $user_id) - Password sent to user's email", 'success' => true );
                     } else {
@@ -1408,10 +1415,10 @@ class CDW_REST_API {
     private function handle_post_command( $subcmd, $args ) {
         switch ( $subcmd ) {
             case 'list':
-                $posts  = wp_get_recent_posts( array( 'numberposts' => 10, 'post_status' => 'any' ) );
+                $posts  = get_posts( array( 'numberposts' => 10, 'post_status' => 'any', 'post_type' => 'any', 'suppress_filters' => true ) );
                 $output = "Recent Posts:\n";
                 foreach ( $posts as $post ) {
-                    $output .= "[{$post['post_status']}] #{$post['ID']} {$post['post_title']}\n";
+                    $output .= "[{$post->post_status}] #{$post->ID} {$post->post_title}\n";
                 }
                 return array( 'output' => $output, 'success' => true );
 
@@ -1504,12 +1511,12 @@ class CDW_REST_API {
         switch ( $subcmd ) {
             case 'info':
                 global $wpdb;
-                $db_size = $wpdb->get_var( "SELECT SUM(ROUND((data_length + index_length) / 1024 / 1024, 2)) FROM information_schema.tables WHERE table_schema = DATABASE()" );
+                $db_size = $wpdb->get_var( "SELECT SUM(data_length + index_length) FROM information_schema.tables WHERE table_schema = DATABASE()" );
                 $output  = "Site Information:\n";
                 $output .= "URL:     " . get_site_url() . "\n";
                 $output .= "Admin:   " . admin_url() . "\n";
                 $output .= "Version: " . get_bloginfo( 'version' ) . "\n";
-                $output .= "DB Size: " . size_format( $db_size ) . "\n";
+                $output .= "DB Size: " . size_format( (int) $db_size ) . "\n";
                 return array( 'output' => $output, 'success' => true );
 
             case 'status':
@@ -1557,7 +1564,7 @@ class CDW_REST_API {
 
         switch ( $subcmd ) {
             case 'optimize':
-                $tables  = $wpdb->get_col( "SHOW TABLES LIKE '{$wpdb->prefix}%'" );
+                $tables  = $wpdb->get_col( "SHOW TABLES LIKE '" . $wpdb->esc_like( $wpdb->prefix ) . "%'" );
                 $output  = "Optimizing tables:\n";
                 foreach ( $tables as $table ) {
                     $result  = $wpdb->query( "OPTIMIZE TABLE `$table`" );
@@ -1566,7 +1573,7 @@ class CDW_REST_API {
                 return array( 'output' => rtrim( $output ), 'success' => true );
 
             case 'repair':
-                $tables  = $wpdb->get_col( "SHOW TABLES LIKE '{$wpdb->prefix}%'" );
+                $tables  = $wpdb->get_col( "SHOW TABLES LIKE '" . $wpdb->esc_like( $wpdb->prefix ) . "%'" );
                 $output  = "Repairing tables:\n";
                 foreach ( $tables as $table ) {
                     $result  = $wpdb->query( "REPAIR TABLE `$table`" );
@@ -1669,14 +1676,17 @@ class CDW_REST_API {
 
             case 'flush':
                 global $wpdb;
+                // Flush the object cache first so persistent caches (Redis/Memcached)
+                // do not serve stale values after the DB rows are removed.
+                wp_cache_flush();
+                // Remove DB-stored transients for sites without a persistent object cache.
                 $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_%'" );
                 $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_site_transient_%'" );
-                wp_cache_flush();
                 return array( 'output' => 'All transients flushed.', 'success' => true );
 
             default:
                 return array(
-                    'output'  => "Available transient commands:\n  transient get <key>    - Get a transient value\n  transient delete <key> - Delete a specific transient\n  transient flush        - Delete all transients",
+                    'output'  => "Available transient commands:\n  transient get <key>    - Get a transient value\n  transient delete <key> - Delete a specific transient\n  transient flush        - Delete ALL transients (requires --force)",
                     'success' => true,
                 );
         }
@@ -1696,7 +1706,7 @@ class CDW_REST_API {
                 $output = "Scheduled Cron Events:\n";
                 $now    = time();
                 foreach ( $crons as $timestamp => $hooks ) {
-                    $time = date( 'Y-m-d H:i:s', $timestamp );
+                    $time = gmdate( 'Y-m-d H:i:s', $timestamp );
                     $due  = $timestamp <= $now ? '(overdue)' : 'in ' . human_time_diff( $now, $timestamp );
                     foreach ( $hooks as $hook => $events ) {
                         foreach ( $events as $event ) {
@@ -1833,7 +1843,10 @@ class CDW_REST_API {
                 }
 
                 // Detect the primary key so we can update row by row (serialized-safe).
-                $pk_col = $wpdb->get_var( "SHOW KEYS FROM `$table` WHERE Key_name = 'PRIMARY'" );
+                $pk_col = $wpdb->get_var( $wpdb->prepare(
+                    "SELECT COLUMN_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND INDEX_NAME = 'PRIMARY' AND SEQ_IN_INDEX = 1",
+                    $table
+                ) );
 
                 if ( ! $pk_col ) {
                     // No PK: simple SQL replace, no serialized handling.
@@ -1901,7 +1914,11 @@ class CDW_REST_API {
      */
     private function recursive_replace( $search, $replace, $value ) {
         if ( is_string( $value ) && is_serialized( $value ) ) {
-            $unserialized = @unserialize( $value );
+            try {
+                $unserialized = unserialize( $value, array( 'allowed_classes' => false ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize
+            } catch ( \Throwable $e ) {
+                $unserialized = false;
+            }
             if ( false !== $unserialized || $value === 'b:0;' ) {
                 return serialize( $this->recursive_replace( $search, $replace, $unserialized ) );
             }
@@ -1939,6 +1956,10 @@ class CDW_REST_API {
         );
     }
 
+    public function get_cli_commands() {
+        return rest_ensure_response( $this->get_cli_command_definitions() );
+    }
+
     // =========================================================================
     // Helpers
     // =========================================================================
@@ -1967,79 +1988,408 @@ class CDW_REST_API {
     }
 
     private function get_help_text() {
-        return "Available commands:
-  help                                  - Show this help message
+        return $this->build_cli_help_text();
+    }
 
-  plugin list                           - List all plugins (with update status)
-  plugin status <slug>                  - Show version, status, update info
-  plugin install <slug>                 - Install a plugin from wordpress.org
-  plugin activate <slug>                - Activate a plugin
-  plugin deactivate <slug>              - Deactivate a plugin
-  plugin update <slug>                  - Update a specific plugin
-  plugin update --all                   - Update all plugins
-  plugin delete <slug>                  - Delete a plugin (requires --force)
+    private function build_cli_help_text() {
+        $definitions = $this->get_cli_command_definitions();
+        $grouped     = $this->group_cli_commands_by_category( $definitions );
+        $order       = $this->get_cli_command_category_order();
 
-  theme list                            - List all themes (with update status)
-  theme status <slug>                   - Show version, status, update info
-  theme install <slug>                  - Install a theme from wordpress.org
-  theme activate <slug>                 - Activate a theme
-  theme deactivate [slug]               - Switch to another theme
-  theme update <slug>                   - Update a specific theme
-  theme update --all                    - Update all themes
+        $lines = array( 'Available commands:' );
 
-  user list                             - List all users
-  user get <id|username>                - Get details for a user
-  user create <user> <email> <role>     - Create a user (password emailed)
-  user update <id|user> --role <role>   - Change a user's role
-  user delete <id|username>             - Delete a user (requires --force)
+        foreach ( $order as $category ) {
+            if ( empty( $grouped[ $category ] ) ) {
+                continue;
+            }
 
-  post list                             - List recent posts
-  post get <id>                         - Get details for a post
-  post create <title>                   - Create a draft post
-  post publish <id>                     - Publish a post
-  post unpublish <id>                   - Set a post back to draft
-  post delete <id>                      - Permanently delete a post (requires --force)
+            if ( 'general' !== $category ) {
+                $lines[] = '';
+            }
 
-  db optimize                           - Optimize all WordPress database tables
-  db repair                             - Repair all WordPress database tables
+            foreach ( $grouped[ $category ] as $command ) {
+                $lines[] = sprintf( '  %s - %s', $command['usage'], $command['description'] );
+            }
+        }
 
-  option get <key>                      - Get an option value
-  option set <key> <value>              - Set an option value
-  option delete <key>                   - Delete an option (requires --force)
+        $lines[] = '';
+        $lines[] = 'Security notes:';
+        $lines[] = '  - Destructive commands require --force';
+        $lines[] = '  - search-replace supports --dry-run to safely preview before committing';
+        $lines[] = '  - Critical options (siteurl, admin_email, auth keys, etc.) are protected';
+        $lines[] = '  - user delete cannot target your own account';
+        $lines[] = '';
+        $lines[] = 'Examples:';
+        $lines[] = '  plugin update --all';
+        $lines[] = '  theme install twentytwentyfive';
+        $lines[] = '  user update john --role editor';
+        $lines[] = '  search-replace https://old.com https://new.com --dry-run';
+        $lines[] = '  maintenance on';
+        $lines[] = '  cron list';
+        $lines[] = '  option get blogname';
+        $lines[] = '  transient flush';
+        $lines[] = '  post publish 42';
 
-  transient get <key>                   - Get a transient value
-  transient delete <key>                - Delete a specific transient
-  transient flush                       - Delete ALL transients
+        return implode( "\n", $lines );
+    }
 
-  cron list                             - List all scheduled cron events
-  cron run <hook>                       - Manually trigger a cron hook
+    private function get_cli_command_category_order() {
+        return array(
+            'general',
+            'plugin',
+            'theme',
+            'user',
+            'post',
+            'database',
+            'options',
+            'transients',
+            'cron',
+            'maintenance',
+            'search',
+            'system',
+        );
+    }
 
-  maintenance on                        - Enable maintenance mode
-  maintenance off                       - Disable maintenance mode
-  maintenance status                    - Check maintenance mode status
+    private function group_cli_commands_by_category( $commands ) {
+        $grouped = array();
+        foreach ( $commands as $command ) {
+            $category = isset( $command['category'] ) ? $command['category'] : 'general';
+            if ( ! isset( $grouped[ $category ] ) ) {
+                $grouped[ $category ] = array();
+            }
+            $grouped[ $category ][] = $command;
+        }
+        return $grouped;
+    }
 
-  search-replace <old> <new> --dry-run  - Preview matches without making changes
-  search-replace <old> <new> --force    - Replace a string sitewide
+    private function get_cli_command_definitions() {
+        return array(
+            array(
+                'usage'         => 'help',
+                'description'   => 'Show this help message',
+                'category'      => 'general',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
 
-  cache flush                           - Flush the object cache
-  site info                             - Show site information
-  site status                           - Show site status
+            array(
+                'usage'         => 'plugin list',
+                'description'   => 'List all plugins (with update status)',
+                'category'      => 'plugin',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'plugin status <slug>',
+                'description'   => 'Show version, status, update info',
+                'category'      => 'plugin',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'plugin install <slug>',
+                'description'   => 'Install a plugin from wordpress.org',
+                'category'      => 'plugin',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'plugin activate <slug>',
+                'description'   => 'Activate a plugin',
+                'category'      => 'plugin',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'plugin deactivate <slug>',
+                'description'   => 'Deactivate a plugin',
+                'category'      => 'plugin',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'plugin update <slug>',
+                'description'   => 'Update a specific plugin',
+                'category'      => 'plugin',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'plugin update --all',
+                'description'   => 'Update all plugins',
+                'category'      => 'plugin',
+                'requires_force' => false,
+                'flags'         => array( '--all' ),
+            ),
+            array(
+                'usage'         => 'plugin delete <slug>',
+                'description'   => 'Delete a plugin (requires --force)',
+                'category'      => 'plugin',
+                'requires_force' => true,
+                'flags'         => array( '--force' ),
+            ),
 
-Security notes:
-  - Destructive commands require --force
-  - search-replace supports --dry-run to safely preview before committing
-  - Critical options (siteurl, admin_email, auth keys, etc.) are protected
-  - user delete cannot target your own account
+            array(
+                'usage'         => 'theme list',
+                'description'   => 'List all themes (with update status)',
+                'category'      => 'theme',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'theme status <slug>',
+                'description'   => 'Show version, status, update info',
+                'category'      => 'theme',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'theme install <slug>',
+                'description'   => 'Install a theme from wordpress.org',
+                'category'      => 'theme',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'theme activate <slug>',
+                'description'   => 'Activate a theme',
+                'category'      => 'theme',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'theme deactivate [slug]',
+                'description'   => 'Switch to another theme',
+                'category'      => 'theme',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'theme update <slug>',
+                'description'   => 'Update a specific theme',
+                'category'      => 'theme',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'theme update --all',
+                'description'   => 'Update all themes',
+                'category'      => 'theme',
+                'requires_force' => false,
+                'flags'         => array( '--all' ),
+            ),
 
-Examples:
-  plugin update --all
-  theme install twentytwentyfive
-  user update john --role editor
-  search-replace https://old.com https://new.com --dry-run
-  maintenance on
-  cron list
-  option get blogname
-  transient flush
-  post publish 42";
+            array(
+                'usage'         => 'user list',
+                'description'   => 'List all users',
+                'category'      => 'user',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'user get <id|username>',
+                'description'   => 'Get details for a user',
+                'category'      => 'user',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'user create <user> <email> <role>',
+                'description'   => 'Create a user (password emailed)',
+                'category'      => 'user',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'user update <id|user> --role <role>',
+                'description'   => 'Change a user\'s role',
+                'category'      => 'user',
+                'requires_force' => false,
+                'flags'         => array( '--role <role>' ),
+            ),
+            array(
+                'usage'         => 'user delete <id|username>',
+                'description'   => 'Delete a user (requires --force)',
+                'category'      => 'user',
+                'requires_force' => true,
+                'flags'         => array( '--force' ),
+            ),
+
+            array(
+                'usage'         => 'post list',
+                'description'   => 'List recent posts',
+                'category'      => 'post',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'post get <id>',
+                'description'   => 'Get details for a post',
+                'category'      => 'post',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'post create <title>',
+                'description'   => 'Create a draft post',
+                'category'      => 'post',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'post publish <id>',
+                'description'   => 'Publish a post',
+                'category'      => 'post',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'post unpublish <id>',
+                'description'   => 'Set a post back to draft',
+                'category'      => 'post',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'post delete <id>',
+                'description'   => 'Permanently delete a post (requires --force)',
+                'category'      => 'post',
+                'requires_force' => true,
+                'flags'         => array( '--force' ),
+            ),
+
+            array(
+                'usage'         => 'db optimize',
+                'description'   => 'Optimize all WordPress database tables',
+                'category'      => 'database',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'db repair',
+                'description'   => 'Repair all WordPress database tables',
+                'category'      => 'database',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+
+            array(
+                'usage'         => 'option get <key>',
+                'description'   => 'Get an option value',
+                'category'      => 'options',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'option set <key> <value>',
+                'description'   => 'Set an option value',
+                'category'      => 'options',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'option delete <key>',
+                'description'   => 'Delete an option (requires --force)',
+                'category'      => 'options',
+                'requires_force' => true,
+                'flags'         => array( '--force' ),
+            ),
+
+            array(
+                'usage'         => 'transient get <key>',
+                'description'   => 'Get a transient value',
+                'category'      => 'transients',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'transient delete <key>',
+                'description'   => 'Delete a specific transient',
+                'category'      => 'transients',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'transient flush',
+                'description'   => 'Delete ALL transients (requires --force)',
+                'category'      => 'transients',
+                'requires_force' => true,
+                'flags'         => array(),
+            ),
+
+            array(
+                'usage'         => 'cron list',
+                'description'   => 'List all scheduled cron events',
+                'category'      => 'cron',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'cron run <hook>',
+                'description'   => 'Manually trigger a cron hook',
+                'category'      => 'cron',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+
+            array(
+                'usage'         => 'maintenance on',
+                'description'   => 'Enable maintenance mode',
+                'category'      => 'maintenance',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'maintenance off',
+                'description'   => 'Disable maintenance mode',
+                'category'      => 'maintenance',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'maintenance status',
+                'description'   => 'Check maintenance mode status',
+                'category'      => 'maintenance',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+
+            array(
+                'usage'         => 'search-replace <old> <new> --dry-run',
+                'description'   => 'Preview matches without making changes',
+                'category'      => 'search',
+                'requires_force' => false,
+                'flags'         => array( '--dry-run' ),
+            ),
+            array(
+                'usage'         => 'search-replace <old> <new> --force',
+                'description'   => 'Replace a string sitewide',
+                'category'      => 'search',
+                'requires_force' => true,
+                'flags'         => array( '--force' ),
+            ),
+
+            array(
+                'usage'         => 'cache flush',
+                'description'   => 'Flush the object cache',
+                'category'      => 'system',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'site info',
+                'description'   => 'Show site information',
+                'category'      => 'system',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+            array(
+                'usage'         => 'site status',
+                'description'   => 'Show site status',
+                'category'      => 'system',
+                'requires_force' => false,
+                'flags'         => array(),
+            ),
+        );
     }
 }

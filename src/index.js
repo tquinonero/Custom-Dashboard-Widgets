@@ -1,4 +1,4 @@
-import { render } from '@wordpress/element';
+import { createRoot } from '@wordpress/element';
 import StatsWidget from './components/StatsWidget';
 import TasksWidget from './components/TasksWidget';
 import PostsWidget from './components/PostsWidget';
@@ -11,21 +11,6 @@ import SettingsPanel from './components/SettingsPanel';
 import './data/store';
 import './styles/index.scss';
 
-function DashboardWidgets() {
-    return (
-        <div className="cdw-dashboard">
-            <HelpWidget />
-            <StatsWidget />
-            <MediaWidget />
-            <PostsWidget />
-            <TasksWidget />
-            <UpdatesWidget />
-            <QuickLinksWidget />
-            <CommandWidget />
-        </div>
-    );
-}
-
 function SettingsApp() {
     return (
         <div className="cdw-settings">
@@ -35,51 +20,45 @@ function SettingsApp() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('CDW: DOM loaded');
-    
     // Render dashboard widgets
     const dashboardWidgets = document.querySelectorAll('.cdw-widget[data-widget]');
-    console.log('CDW: Found dashboard widgets:', dashboardWidgets.length);
     
     dashboardWidgets.forEach(container => {
         const widgetType = container.dataset.widget;
-        console.log('CDW: Rendering widget:', widgetType);
         
         switch (widgetType) {
             case 'stats':
-                render(<StatsWidget />, container);
+                createRoot(container).render(<StatsWidget />);
                 break;
             case 'tasks':
-                render(<TasksWidget />, container);
+                createRoot(container).render(<TasksWidget />);
                 break;
             case 'posts':
-                render(<PostsWidget />, container);
+                createRoot(container).render(<PostsWidget />);
                 break;
             case 'media':
-                render(<MediaWidget />, container);
+                createRoot(container).render(<MediaWidget />);
                 break;
             case 'help':
-                render(<HelpWidget />, container);
+                createRoot(container).render(<HelpWidget />);
                 break;
             case 'updates':
-                render(<UpdatesWidget />, container);
+                createRoot(container).render(<UpdatesWidget />);
                 break;
             case 'quicklinks':
-                render(<QuickLinksWidget />, container);
+                createRoot(container).render(<QuickLinksWidget />);
                 break;
             case 'command':
-                render(<CommandWidget />, container);
+                createRoot(container).render(<CommandWidget />);
                 break;
         }
     });
 
     // Render settings page
     const settingsRoot = document.getElementById('cdw-settings-root');
-    console.log('CDW: Settings root found:', !!settingsRoot);
     if (settingsRoot) {
         try {
-            render(<SettingsApp />, settingsRoot);
-            console.log('CDW: Settings app rendered');
+            createRoot(settingsRoot).render(<SettingsApp />);
         } catch (e) {
             console.error('CDW: Error rendering settings:', e);
             settingsRoot.innerHTML = '<div class="error"><p>Error loading settings: ' + e.message + '</p></div>';

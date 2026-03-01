@@ -1,8 +1,4 @@
-import { useSelect, useDispatch } from '@wordpress/data';
-
 export default function QuickLinksWidget() {
-    const users = useSelect((select) => select('cdw/store').getUsers());
-
     const adminUrl = window.cdwData?.adminUrl || '';
     
     const quickLinks = [

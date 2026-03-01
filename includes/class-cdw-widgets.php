@@ -26,7 +26,7 @@ class CDW_Widgets {
         wp_add_dashboard_widget( 'cdw_media', __( 'Latest Media', 'cdw' ), array( $this, 'render_media_widget' ) );
         wp_add_dashboard_widget( 'cdw_posts', __( 'Latest Posts', 'cdw' ), array( $this, 'render_posts_widget' ) );
 
-        if ( current_user_can( 'administrator' ) ) {
+        if ( current_user_can( 'manage_options' ) ) {
             wp_add_dashboard_widget( 'cdw_tasks', __( 'Pending Tasks', 'cdw' ), array( $this, 'render_tasks_widget' ) );
             wp_add_dashboard_widget( 'cdw_updates', __( 'Updates', 'cdw' ), array( $this, 'render_updates_widget' ) );
             wp_add_dashboard_widget( 'cdw_quicklinks', __( 'Quick Links', 'cdw' ), array( $this, 'render_quicklinks_widget' ) );
@@ -45,17 +45,17 @@ class CDW_Widgets {
         echo '<div class="cdw-widget" data-widget="help">';
         
         if ( ! empty( $email ) ) {
-            echo '<p>Need help? Contact our support team at <a href="mailto:' . esc_attr($email) . '">' . esc_html($email) . '</a>.</p>';
+            echo '<p>' . esc_html__( 'Need help? Contact our support team at', 'cdw' ) . ' <a href="mailto:' . esc_attr( $email ) . '">' . esc_html( $email ) . '</a>.</p>';
         }
         
         if ( ! empty( $docs_url ) ) {
-            echo '<p>Visit our <a href="' . esc_url($docs_url) . '">documentation</a> for more information.</p>';
+            echo '<p>' . esc_html__( 'Visit our', 'cdw' ) . ' <a href="' . esc_url( $docs_url ) . '">' . esc_html__( 'documentation', 'cdw' ) . '</a> ' . esc_html__( 'for more information.', 'cdw' ) . '</p>';
         }
         
         if ( empty( $email ) && empty( $docs_url ) ) {
-            echo '<p>No support information configured. <a href="' . esc_url( get_admin_url( null, 'options-general.php?page=cdw-settings' ) ) . '">Configure settings</a></p>';
+            echo '<p>' . esc_html__( 'No support information configured.', 'cdw' ) . ' <a href="' . esc_url( get_admin_url( null, 'options-general.php?page=cdw-settings' ) ) . '">' . esc_html__( 'Configure settings', 'cdw' ) . '</a></p>';
         } else {
-            echo '<p><a href="' . esc_url( get_admin_url( null, 'options-general.php?page=cdw-settings' ) ) . '" class="button">Edit Widget Settings</a></p>';
+            echo '<p><a href="' . esc_url( get_admin_url( null, 'options-general.php?page=cdw-settings' ) ) . '" class="button">' . esc_html__( 'Edit Widget Settings', 'cdw' ) . '</a></p>';
         }
         
         echo '</div>';

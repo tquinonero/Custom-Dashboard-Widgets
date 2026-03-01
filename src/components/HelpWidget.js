@@ -12,18 +12,28 @@ export default function HelpWidget() {
     }, []);
 
     const adminUrl = window.cdwData?.adminUrl || '';
-    const email = settings?.email || 'support@example.com';
-    const docsUrl = settings?.docs_url || 'https://example.com/docs';
+    const email = settings?.email || '';
+    const docsUrl = settings?.docs_url || '';
 
     return (
         <div className="cdw-help-widget">
-            <p>
-                Need help? Contact our support team at{' '}
-                <a href={`mailto:${email}`}>{email}</a>
-            </p>
-            <p>
-                Visit our <a href={docsUrl}>documentation</a> for more information.
-            </p>
+            {email && (
+                <p>
+                    Need help? Contact support at{' '}
+                    <a href={`mailto:${email}`}>{email}</a>
+                </p>
+            )}
+            {docsUrl && (
+                <p>
+                    Visit our <a href={docsUrl}>documentation</a> for more information.
+                </p>
+            )}
+            {!email && !docsUrl && (
+                <p>
+                    No support information configured.{' '}
+                    <a href={adminUrl + 'options-general.php?page=cdw-settings'}>Configure settings</a>
+                </p>
+            )}
             <p>
                 <a href={adminUrl + 'options-general.php?page=cdw-settings'} className="button">
                     Edit Widget Settings

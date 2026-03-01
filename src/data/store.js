@@ -1,3 +1,6 @@
+import { createReduxStore, register } from '@wordpress/data';
+import apiFetch from '@wordpress/api-fetch';
+
 const DEFAULT_STATE = {
     stats: {
         posts: 0,
@@ -25,6 +28,7 @@ const DEFAULT_STATE = {
         tasks: false,
         posts: false,
         media: false,
+        users: false,
         updates: false,
         settings: false,
     },
@@ -45,7 +49,7 @@ const actions = {
     fetchStats: () => async ({ dispatch }) => {
         dispatch(actions.setLoading('stats', true));
         try {
-            const stats = await wp.apiFetch({ path: '/cdw/v1/stats' });
+            const stats = await apiFetch({ path: '/cdw/v1/stats' });
             dispatch(actions.setStats(stats));
         } catch (error) {
             dispatch(actions.setError('stats', error.message));
@@ -57,7 +61,7 @@ const actions = {
     fetchTasks: () => async ({ dispatch }) => {
         dispatch(actions.setLoading('tasks', true));
         try {
-            const tasks = await wp.apiFetch({ path: '/cdw/v1/tasks' });
+            const tasks = await apiFetch({ path: '/cdw/v1/tasks' });
             dispatch(actions.setTasks(tasks));
         } catch (error) {
             dispatch(actions.setError('tasks', error.message));
@@ -69,7 +73,7 @@ const actions = {
     saveTasks: (tasks) => async ({ dispatch }) => {
         dispatch(actions.setLoading('tasks', true));
         try {
-            const result = await wp.apiFetch({
+            const result = await apiFetch({
                 path: '/cdw/v1/tasks',
                 method: 'POST',
                 data: { tasks },
@@ -87,7 +91,7 @@ const actions = {
     addTask: (task, assigneeId = null) => async ({ dispatch }) => {
         dispatch(actions.setLoading('tasks', true));
         try {
-            const result = await wp.apiFetch({
+            const result = await apiFetch({
                 path: '/cdw/v1/tasks',
                 method: 'POST',
                 data: { tasks: task, assignee_id: assigneeId },
@@ -105,7 +109,7 @@ const actions = {
     removeTask: (tasks, assigneeId = null) => async ({ dispatch }) => {
         dispatch(actions.setLoading('tasks', true));
         try {
-            const result = await wp.apiFetch({
+            const result = await apiFetch({
                 path: '/cdw/v1/tasks',
                 method: 'POST',
                 data: { tasks, assignee_id: assigneeId },
@@ -123,7 +127,7 @@ const actions = {
     fetchPosts: (perPage = 10) => async ({ dispatch }) => {
         dispatch(actions.setLoading('posts', true));
         try {
-            const posts = await wp.apiFetch({ path: `/cdw/v1/posts?per_page=${perPage}` });
+            const posts = await apiFetch({ path: `/cdw/v1/posts?per_page=${perPage}` });
             dispatch(actions.setPosts(posts));
         } catch (error) {
             dispatch(actions.setError('posts', error.message));
@@ -135,7 +139,7 @@ const actions = {
     fetchMedia: (perPage = 10) => async ({ dispatch }) => {
         dispatch(actions.setLoading('media', true));
         try {
-            const media = await wp.apiFetch({ path: `/cdw/v1/media?per_page=${perPage}` });
+            const media = await apiFetch({ path: `/cdw/v1/media?per_page=${perPage}` });
             dispatch(actions.setMedia(media));
         } catch (error) {
             dispatch(actions.setError('media', error.message));
@@ -145,18 +149,21 @@ const actions = {
     },
 
     fetchUsers: () => async ({ dispatch }) => {
+        dispatch(actions.setLoading('users', true));
         try {
-            const users = await wp.apiFetch({ path: '/cdw/v1/users' });
+            const users = await apiFetch({ path: '/cdw/v1/users' });
             dispatch(actions.setUsers(users));
         } catch (error) {
             dispatch(actions.setError('users', error.message));
+        } finally {
+            dispatch(actions.setLoading('users', false));
         }
     },
 
     fetchUpdates: () => async ({ dispatch }) => {
         dispatch(actions.setLoading('updates', true));
         try {
-            const updates = await wp.apiFetch({ path: '/cdw/v1/updates' });
+            const updates = await apiFetch({ path: '/cdw/v1/updates' });
             dispatch(actions.setUpdates(updates));
         } catch (error) {
             dispatch(actions.setError('updates', error.message));
@@ -168,7 +175,7 @@ const actions = {
     fetchSettings: () => async ({ dispatch }) => {
         dispatch(actions.setLoading('settings', true));
         try {
-            const settings = await wp.apiFetch({ path: '/cdw/v1/settings' });
+            const settings = await apiFetch({ path: '/cdw/v1/settings' });
             dispatch(actions.setSettings(settings));
         } catch (error) {
             dispatch(actions.setError('settings', error.message));
@@ -180,12 +187,14 @@ const actions = {
     saveSettings: (settings) => async ({ dispatch }) => {
         dispatch(actions.setLoading('settings', true));
         try {
-            await wp.apiFetch({
+            await apiFetch({
                 path: '/cdw/v1/settings',
                 method: 'POST',
                 data: settings,
             });
-            dispatch(actions.setSettings(settings));
+            // Re-fetch from the server so the store reflects the server-validated values
+            // rather than the submitted values (server silently drops invalid fields).
+            await dispatch(actions.fetchSettings());
         } catch (error) {
             dispatch(actions.setError('settings', error.message));
             throw error;
@@ -244,7 +253,8 @@ const storeConfig = {
     selectors,
 };
 
-wp.data.registerStore('cdw/store', storeConfig);
+const cdwStore = createReduxStore( 'cdw/store', storeConfig );
+register( cdwStore );
 
 export const store = 'cdw/store';
 export { actions, selectors };

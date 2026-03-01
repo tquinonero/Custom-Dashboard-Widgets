@@ -23,7 +23,7 @@ export default function UpdatesWidget() {
                     {updates.map((update, index) => (
                         <li key={index}>
                             <strong>{update.name}</strong> -{' '}
-                            <a href="/wp-admin/update-core.php">Update Now</a>
+                            <a href={(window.cdwData?.adminUrl || '') + 'update-core.php'}>Update Now</a>
                         </li>
                     ))}
                 </ul>

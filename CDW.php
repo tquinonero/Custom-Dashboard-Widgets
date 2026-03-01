@@ -6,6 +6,9 @@
  * Version: 2.0.0
  * License: GPLv3
  * Text Domain: cdw
+ * Requires at least: 6.0
+ * Requires PHP: 7.4
+ * Tested up to: 6.7
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -22,6 +25,7 @@ function CDW_activate() {
     require_once CDW_PLUGIN_DIR . 'includes/class-cdw-rest-api.php';
     $rest_api = new CDW_REST_API();
     $rest_api->create_audit_log_table();
+    update_option( 'cdw_db_version', CDW_REST_API::DB_VERSION );
     update_option( 'cdw_cli_enabled', true );
     update_option( 'cdw_remove_default_widgets', true );
 }
