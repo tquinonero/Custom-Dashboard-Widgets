@@ -82,13 +82,16 @@ class CDW_CLI_Service {
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.SchemaChange -- CREATE TABLE cannot use placeholders; all interpolated values come from trusted $wpdb properties.
 		$result = $wpdb->query( $create_sql );
 
-		// DIAGNOSTIC: emit to PHP error log when running on a real DB connection
-		// (i.e. integration/CI contexts).  Skipped in Brain\Monkey unit tests
-		// where $wpdb->ready is not set.
+		// DIAGNOSTIC: emit to PHP error log when running on a real DB (not Brain\Monkey stub).
 		if ( isset( $wpdb->ready ) ) {
 			$diag_last_error = isset( $wpdb->last_error ) ? $wpdb->last_error : '';
+			// Verify table existence immediately using the same $wpdb handle.
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.NoCaching
+			$diag_current_db  = $wpdb->get_var( 'SELECT DATABASE()' );
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.DirectQuery
+			$diag_show_tables = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) );
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log,WordPress.PHP.DevelopmentFunctions.error_log_var_export
-			error_log( '[CDW-DIAG] create_audit_log_table: table=' . $table_name . ' charset_collate=' . $charset_collate . ' result=' . var_export( $result, true ) . ' last_error=' . $diag_last_error ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			error_log( '[CDW-DIAG] table=' . $table_name . ' current_db=' . $diag_current_db . ' result=' . var_export( $result, true ) . ' last_error=' . $diag_last_error . ' show_tables=' . var_export( $diag_show_tables, true ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
 	}
 
