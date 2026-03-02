@@ -61,7 +61,10 @@ document.addEventListener('DOMContentLoaded', () => {
             createRoot(settingsRoot).render(<SettingsApp />);
         } catch (e) {
             console.error('CDW: Error rendering settings:', e);
-            settingsRoot.innerHTML = '<div class="error"><p>Error loading settings: ' + e.message + '</p></div>';
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = 'Error loading settings: ' + e.message;
+            settingsRoot.appendChild(errorDiv);
         }
     }
 });

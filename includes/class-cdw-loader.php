@@ -39,7 +39,7 @@ class CDW_Loader {
         }
 
         $asset = require $asset_file;
-        $dependencies = array_merge( $asset['dependencies'], array( 'wp-api' ) );
+        $dependencies = array_merge( $asset['dependencies'], array( 'wp-api-fetch' ) );
         wp_enqueue_script(
             'cdw-script',
             CDW_PLUGIN_URL . 'build/index.js',

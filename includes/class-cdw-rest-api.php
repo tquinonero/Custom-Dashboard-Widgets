@@ -182,10 +182,7 @@ class CDW_REST_API {
         if ( ! preg_match( '/^#?([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$/', $color ) ) {
             return '';
         }
-        if ( strpos( $color, '#' ) !== 0 ) {
-            $color = '#' . $color;
-        }
-        return $color;
+        return sanitize_hex_color( $color );
     }
 
     private function validate_email( $email ) {
@@ -226,13 +223,13 @@ class CDW_REST_API {
 
     public function register_routes() {
         register_rest_route( $this->namespace, '/stats', array(
-            'methods'             => WP_REST_Server::READABLE,
+            'methods'             => 'GET',
             'callback'            => array( $this, 'get_stats' ),
             'permission_callback' => array( $this, 'check_read_permission' ),
         ) );
 
         register_rest_route( $this->namespace, '/media', array(
-            'methods'             => WP_REST_Server::READABLE,
+            'methods'             => 'GET',
             'callback'            => array( $this, 'get_media' ),
             'permission_callback' => array( $this, 'check_read_permission' ),
             'args'                => array(
@@ -246,7 +243,7 @@ class CDW_REST_API {
         ) );
 
         register_rest_route( $this->namespace, '/posts', array(
-            'methods'             => WP_REST_Server::READABLE,
+            'methods'             => 'GET',
             'callback'            => array( $this, 'get_posts' ),
             'permission_callback' => array( $this, 'check_read_permission' ),
             'args'                => array(
@@ -266,19 +263,19 @@ class CDW_REST_API {
         ) );
 
         register_rest_route( $this->namespace, '/updates', array(
-            'methods'             => WP_REST_Server::READABLE,
+            'methods'             => 'GET',
             'callback'            => array( $this, 'get_updates' ),
             'permission_callback' => array( $this, 'check_admin_permission' ),
         ) );
 
         register_rest_route( $this->namespace, '/tasks', array(
             array(
-                'methods'             => WP_REST_Server::READABLE,
+                'methods'             => 'GET',
                 'callback'            => array( $this, 'get_tasks' ),
                 'permission_callback' => array( $this, 'check_read_permission' ),
             ),
             array(
-                'methods'             => WP_REST_Server::CREATABLE,
+                'methods'             => 'POST',
                 'callback'            => array( $this, 'save_tasks' ),
                 'permission_callback' => array( $this, 'check_read_permission' ),
             ),
@@ -286,60 +283,48 @@ class CDW_REST_API {
 
         register_rest_route( $this->namespace, '/settings', array(
             array(
-                'methods'             => WP_REST_Server::READABLE,
+                'methods'             => 'GET',
                 'callback'            => array( $this, 'get_settings' ),
                 'permission_callback' => array( $this, 'check_admin_permission' ),
             ),
             array(
-                'methods'             => WP_REST_Server::CREATABLE,
+                'methods'             => 'POST',
                 'callback'            => array( $this, 'save_settings' ),
                 'permission_callback' => array( $this, 'check_admin_permission' ),
             ),
         ) );
 
         register_rest_route( $this->namespace, '/cli/execute', array(
-            'methods'             => WP_REST_Server::CREATABLE,
+            'methods'             => 'POST',
             'callback'            => array( $this, 'execute_cli_command' ),
             'permission_callback' => array( $this, 'check_admin_permission' ),
         ) );
 
         register_rest_route( $this->namespace, '/cli/history', array(
             array(
-                'methods'             => WP_REST_Server::READABLE,
+                'methods'             => 'GET',
                 'callback'            => array( $this, 'get_cli_history' ),
                 'permission_callback' => array( $this, 'check_admin_permission' ),
             ),
             array(
-                'methods'             => WP_REST_Server::CREATABLE,
+                'methods'             => 'POST',
                 'callback'            => array( $this, 'clear_cli_history' ),
                 'permission_callback' => array( $this, 'check_admin_permission' ),
             ),
         ) );
 
         register_rest_route( $this->namespace, '/cli/commands', array(
-            'methods'             => WP_REST_Server::READABLE,
+            'methods'             => 'GET',
             'callback'            => array( $this, 'get_cli_commands' ),
             'permission_callback' => array( $this, 'check_admin_permission' ),
         ) );
     }
 
-    public function check_read_permission( $request = null ) {
-        if ( $request instanceof WP_REST_Request ) {
-            $nonce = $request->get_header( 'X-WP-Nonce' );
-            if ( ! empty( $nonce ) && ! wp_verify_nonce( $nonce, 'wp_rest' ) ) {
-                return false;
-            }
-        }
+    public function check_read_permission() {
         return current_user_can( 'read' );
     }
 
-    public function check_admin_permission( $request = null ) {
-        if ( $request instanceof WP_REST_Request ) {
-            $nonce = $request->get_header( 'X-WP-Nonce' );
-            if ( ! empty( $nonce ) && ! wp_verify_nonce( $nonce, 'wp_rest' ) ) {
-                return false;
-            }
-        }
+    public function check_admin_permission() {
         return current_user_can( 'manage_options' );
     }
 
@@ -675,10 +660,19 @@ class CDW_REST_API {
 
         delete_transient( 'cdw_stats_cache' );
 
-        for ( $i = 1; $i <= 50; $i++ ) {
-            delete_transient( 'cdw_media_cache_' . $i );
-            delete_transient( 'cdw_posts_cache_' . $i );
-        }
+        global $wpdb;
+        $wpdb->query(
+            "DELETE FROM {$wpdb->options} WHERE option_name LIKE '" . $wpdb->esc_like( '_transient_cdw_media_cache_' ) . "%'"
+        );
+        $wpdb->query(
+            "DELETE FROM {$wpdb->options} WHERE option_name LIKE '" . $wpdb->esc_like( '_transient_cdw_posts_cache_' ) . "%'"
+        );
+        $wpdb->query(
+            "DELETE FROM {$wpdb->options} WHERE option_name LIKE '" . $wpdb->esc_like( '_transient_timeout_cdw_media_cache_' ) . "%'"
+        );
+        $wpdb->query(
+            "DELETE FROM {$wpdb->options} WHERE option_name LIKE '" . $wpdb->esc_like( '_transient_timeout_cdw_posts_cache_' ) . "%'"
+        );
 
         return rest_ensure_response( array( 'success' => true ) );
     }
@@ -2036,7 +2030,7 @@ class CDW_REST_API {
         $lines[] = '';
         $lines[] = 'Examples:';
         $lines[] = '  plugin update --all';
-        $lines[] = '  theme install twentytwentyfive';
+        $lines[] = '  theme install <theme-slug>';
         $lines[] = '  user update john --role editor';
         $lines[] = '  search-replace https://old.com https://new.com --dry-run';
         $lines[] = '  maintenance on';

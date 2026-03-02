@@ -102,7 +102,7 @@ class CDW_Widgets {
     public function render_settings_page() {
         ?>
         <div class="wrap">
-            <h1><?php echo esc_html( __( 'Custom Dashboard Widgets Settings', 'cdw' ) ); ?></h1>
+            <h1><?php echo esc_html__( 'Custom Dashboard Widgets Settings', 'cdw' ); ?></h1>
             <div id="cdw-settings-root" data-loading="true">
                 <p><?php esc_html_e( 'Loading settings...', 'cdw' ); ?></p>
             </div>
