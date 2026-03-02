@@ -15,6 +15,7 @@ export default function SettingsPanel() {
         header_text_color: '',
         cli_enabled: true,
         remove_default_widgets: true,
+        delete_on_uninstall: true,
     });
 
     const [saved, setSaved] = useState(false);
@@ -35,6 +36,7 @@ export default function SettingsPanel() {
                 header_text_color: settings.header_text_color || '',
                 cli_enabled: settings.cli_enabled !== false,
                 remove_default_widgets: settings.remove_default_widgets !== false,
+                delete_on_uninstall: settings.delete_on_uninstall !== false,
             });
         }
     }, [settings]);
@@ -215,6 +217,29 @@ export default function SettingsPanel() {
                         </label>
                         <span className="description">
                             Remove the default WordPress dashboard widgets (Right Now, Activity, Quick Press, etc.) and replace them with custom widgets.
+                        </span>
+                    </div>
+                </div>
+
+                <div className="cdw-settings-section">
+                    <div className="cdw-section-header">
+                        <div className="cdw-section-icon">&#128465;</div>
+                        <h2>Data Management</h2>
+                    </div>
+
+                    <div className="cdw-field">
+                        <label htmlFor="delete_on_uninstall" className="cdw-checkbox-label">
+                            <input
+                                type="checkbox"
+                                id="delete_on_uninstall"
+                                name="delete_on_uninstall"
+                                checked={formData.delete_on_uninstall}
+                                onChange={handleChange}
+                            />
+                            <span>Delete all data on uninstall</span>
+                        </label>
+                        <span className="description">
+                            When the plugin is deleted (not just deactivated), remove all settings, tasks, CLI history, audit logs, and the database table. Uncheck to preserve your data across reinstalls.
                         </span>
                     </div>
                 </div>

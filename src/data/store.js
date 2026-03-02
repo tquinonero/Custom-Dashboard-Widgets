@@ -27,6 +27,7 @@ const DEFAULT_STATE = {
         header_text_color: '',
         cli_enabled: true,
         remove_default_widgets: true,
+        delete_on_uninstall: true,
     },
     isLoading: {
         stats: false,

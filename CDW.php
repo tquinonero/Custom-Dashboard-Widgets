@@ -30,6 +30,7 @@ function CDW_activate() {
     update_option( 'cdw_db_version', CDW_CLI_Service::DB_VERSION );
     update_option( 'cdw_cli_enabled', true );
     update_option( 'cdw_remove_default_widgets', true );
+    update_option( 'cdw_delete_on_uninstall', true );
 }
 
 function CDW_deactivate() {

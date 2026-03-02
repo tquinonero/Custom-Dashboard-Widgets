@@ -4,7 +4,7 @@
 **Tags:** dashboard, admin, widgets, customization  
 **Requires at least:** 6.0  
 **Requires PHP:** 8.0
-**Tested up to:** 6.7  
+**Tested up to:** 6.9  
 **Stable tag:** 3.0.0  
 **License:** GPLv3 or later  
 **License URI:** https://www.gnu.org/licenses/gpl-3.0.html

@@ -28,8 +28,9 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
         $bg_color          = get_option( 'cdw_bg_color', get_option( 'custom_dashboard_widget_background_color', '' ) );
         $header_bg_color   = get_option( 'cdw_header_bg_color', get_option( 'custom_dashboard_widget_header_background_color', '' ) );
         $header_text_color = get_option( 'cdw_header_text_color', get_option( 'custom_dashboard_widget_header_text_color', '' ) );
-        $cli_enabled       = get_option( 'cdw_cli_enabled', true );
+        $cli_enabled            = get_option( 'cdw_cli_enabled', true );
         $remove_default_widgets = get_option( 'cdw_remove_default_widgets', true );
+        $delete_on_uninstall    = get_option( 'cdw_delete_on_uninstall', true );
 
         return rest_ensure_response( array(
             'email'                  => $email,
@@ -40,6 +41,7 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
             'header_text_color'      => $header_text_color,
             'cli_enabled'            => $cli_enabled,
             'remove_default_widgets' => $remove_default_widgets,
+            'delete_on_uninstall'    => $delete_on_uninstall,
         ) );
     }
 
@@ -98,6 +100,10 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 
         if ( isset( $settings['remove_default_widgets'] ) ) {
             update_option( 'cdw_remove_default_widgets', (bool) $settings['remove_default_widgets'] );
+        }
+
+        if ( isset( $settings['delete_on_uninstall'] ) ) {
+            update_option( 'cdw_delete_on_uninstall', (bool) $settings['delete_on_uninstall'] );
         }
 
         return rest_ensure_response( array( 'success' => true ) );
