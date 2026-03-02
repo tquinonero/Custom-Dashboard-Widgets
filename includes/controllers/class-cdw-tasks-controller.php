@@ -4,9 +4,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-require_once CDW_PLUGIN_DIR . 'includes/controllers/class-cdw-base-controller.php';
-require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-task-service.php';
-
 class CDW_Tasks_Controller extends CDW_Base_Controller {
     private $task_service;
 
