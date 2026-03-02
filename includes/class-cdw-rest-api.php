@@ -53,6 +53,12 @@ class CDW_REST_API {
     }
 
     public function ensure_audit_table() {
+        // Only run in contexts where the table is actually needed.
+        // Avoids a DB query on every frontend page load.
+        if ( ! is_admin() && ! ( defined( 'REST_REQUEST' ) && REST_REQUEST ) && ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+            return;
+        }
+
         if ( get_option( 'cdw_db_version' ) === CDW_CLI_Service::DB_VERSION ) {
             return;
         }

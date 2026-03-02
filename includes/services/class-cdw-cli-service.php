@@ -103,24 +103,15 @@ class CDW_CLI_Service {
     }
 
     public function check_rate_limit( $user_id ) {
-        $key       = 'cdw_cli_rate_' . $user_id;
-        $start_key = 'cdw_cli_rate_start_' . $user_id;
-        $count     = get_transient( $key );
+        $key   = 'cdw_cli_rate_' . $user_id;
+        $count = get_transient( $key );
 
-        if ( false === $count ) {
-            // First command in a new window.
-            set_transient( $key, 1, self::RATE_LIMIT_WINDOW );
-            update_option( $start_key, time(), false );
-            return true;
-        }
-
+        // get_transient returns false when not set; (int) false === 0.
         if ( (int) $count >= self::RATE_LIMIT_COUNT ) {
             return false;
         }
 
-        $window_start = (int) get_option( $start_key, 0 );
-        $ttl          = max( 1, self::RATE_LIMIT_WINDOW - ( time() - $window_start ) );
-        set_transient( $key, (int) $count + 1, $ttl );
+        set_transient( $key, (int) $count + 1, self::RATE_LIMIT_WINDOW );
         return true;
     }
 

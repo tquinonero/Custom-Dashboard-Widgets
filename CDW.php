@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Custom Dashboard Widgets (v2)
+ * Plugin Name: Custom Dashboard Widgets
  * Description: Modernized WordPress dashboard widgets with React and REST API
  * Author: Toni Quiñonero
  * Version: 3.0.0
