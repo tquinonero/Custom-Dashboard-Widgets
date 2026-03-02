@@ -13,11 +13,11 @@ class CDW_Loader {
     private $widgets;
 
     public function run() {
-        // Load REST API and admin widgets only when needed.
-        if ( is_admin() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
-            $this->rest_api = new CDW_REST_API();
-            $this->rest_api->register();
-        }
+        // REST API routes must be registered unconditionally: REST_REQUEST is
+        // not yet defined at plugins_loaded (it is set later at parse_request),
+        // so any runtime check here would incorrectly skip registration.
+        $this->rest_api = new CDW_REST_API();
+        $this->rest_api->register();
 
         if ( is_admin() ) {
             $this->widgets = new CDW_Widgets();

@@ -10,7 +10,7 @@ class CDW_REST_API {
     public function register() {
         $this->load_controllers();
         $this->register_routes();
-        add_action( 'admin_init', array( $this, 'ensure_audit_table' ) );
+        add_action( 'init', array( $this, 'ensure_audit_table' ), 5 );
     }
 
     private function load_controllers() {
