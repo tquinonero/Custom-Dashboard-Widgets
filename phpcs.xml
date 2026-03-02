@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<ruleset name="CDW">
+    <description>WordPress Coding Standards ruleset for Custom Dashboard Widgets</description>
+
+    <!-- Files to check -->
+    <file>includes/</file>
+    <file>CDW.php</file>
+    <file>uninstall.php</file>
+
+    <!-- Exclude test infrastructure and third-party code -->
+    <exclude-pattern>vendor/*</exclude-pattern>
+    <exclude-pattern>node_modules/*</exclude-pattern>
+    <exclude-pattern>tests/*</exclude-pattern>
+    <exclude-pattern>build/*</exclude-pattern>
+
+    <!-- Base standard -->
+    <rule ref="WordPress">
+
+        <!--
+            CDW.php is the main plugin file and must be named "CDW.php" to match
+            the plugin header. Filename convention sniffs do not apply here.
+        -->
+        <exclude name="WordPress.Files.FileName.NotHyphenatedLowercase"/>
+        <exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
+
+        <!--
+            CDW.php is the main plugin file: it intentionally contains both
+            function declarations (activation/deactivation hooks) and the
+            CDW_Plugin singleton class. This is a standard WordPress pattern.
+        -->
+        <exclude name="Universal.Files.SeparateFunctionsFromOO.Mixed"/>
+
+        <!--
+            CDW_activate(), CDW_deactivate(), CDW() are WordPress activation hook
+            callbacks and the singleton accessor. Their names are intentional and
+            match the WordPress naming convention for plugin-prefixed functions.
+        -->
+        <exclude name="WordPress.NamingConventions.ValidFunctionName.FunctionNameInvalid"/>
+
+        <!--
+            The CLI service performs direct SQL queries as part of WP-CLI-style
+            database management commands (search-replace, db optimize/repair, etc.).
+            These are intentional, one-off administrative queries — not cacheable
+            read queries. The "direct DB call discouraged" and "no caching" warnings
+            are expected and acceptable for this service.
+        -->
+        <exclude name="WordPress.DB.DirectDatabaseQuery.DirectQuery"/>
+        <exclude name="WordPress.DB.DirectDatabaseQuery.NoCaching"/>
+
+    </rule>
+
+    <!--
+        Allow short array syntax ([] instead of array()).
+        WordPress core itself uses both; [] is readable and idiomatic in modern PHP.
+    -->
+    <rule ref="Generic.Arrays.DisallowShortArraySyntax">
+        <severity>0</severity>
+    </rule>
+
+</ruleset>

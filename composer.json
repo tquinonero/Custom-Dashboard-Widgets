@@ -1,0 +1,27 @@
+{
+  "require-dev": {
+    "phpunit/phpunit": "^9.6",
+    "wp-phpunit/wp-phpunit": "^6.7",
+    "brain/monkey": "^2.6",
+    "mockery/mockery": "^1.6",
+    "yoast/phpunit-polyfills": "^2.0",
+    "squizlabs/php_codesniffer": "^3.9",
+    "wp-coding-standards/wpcs": "^3.1",
+    "phpstan/phpstan": "^1.12",
+    "szepeviktor/phpstan-wordpress": "^1.3"
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "CDW\\Tests\\": "tests/php/"
+    }
+  },
+  "scripts": {
+    "phpcs": "phpcs --standard=WordPress includes/ CDW.php uninstall.php",
+    "phpstan": "phpstan analyse --level=6 includes/ CDW.php"
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    }
+  }
+}

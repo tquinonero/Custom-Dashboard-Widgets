@@ -71,6 +71,15 @@ A "Delete all data on uninstall" toggle in settings controls whether your tasks,
 * WordPress 6.0 or higher
 * PHP 8.0 or higher
 
+== Screenshots ==
+
+1. **Dashboard overview** — all eight widgets displayed on the WordPress admin dashboard.
+2. **Command Line widget** — the CLI terminal showing command history and autocomplete suggestions.
+3. **Statistics widget** — post, page, comment, user, and media counts.
+4. **Tasks widget** — personal to-do list with timestamp display.
+5. **Updates widget** — available core, plugin, and theme updates.
+6. **Settings page** — appearance controls and feature toggles.
+
 == Frequently Asked Questions ==
 
 = Does this plugin affect the public front-end? =

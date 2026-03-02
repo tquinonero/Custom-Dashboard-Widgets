@@ -1,0 +1,110 @@
+# Copyright (C) 2026 Toni Quiñonero
+# This file is distributed under the GPLv3.
+msgid ""
+msgstr ""
+"Project-Id-Version: Custom Dashboard Widgets 3.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/CDW\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-03-02T23:05:53+01:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: cdw\n"
+
+#. Plugin Name of the plugin
+#: CDW.php
+msgid "Custom Dashboard Widgets"
+msgstr ""
+
+#. Description of the plugin
+#: CDW.php
+msgid "Modernized WordPress dashboard widgets with React and REST API"
+msgstr ""
+
+#. Author of the plugin
+#: CDW.php
+msgid "Toni Quiñonero"
+msgstr ""
+
+#: includes/class-cdw-widgets.php:48
+msgid "Help & Support"
+msgstr ""
+
+#: includes/class-cdw-widgets.php:49
+msgid "Site Statistics"
+msgstr ""
+
+#: includes/class-cdw-widgets.php:50
+msgid "Latest Media"
+msgstr ""
+
+#: includes/class-cdw-widgets.php:51
+msgid "Latest Posts"
+msgstr ""
+
+#: includes/class-cdw-widgets.php:55
+msgid "Pending Tasks"
+msgstr ""
+
+#: includes/class-cdw-widgets.php:56
+msgid "Updates"
+msgstr ""
+
+#: includes/class-cdw-widgets.php:57
+msgid "Quick Links"
+msgstr ""
+
+#: includes/class-cdw-widgets.php:61
+msgid "Command Line"
+msgstr ""
+
+#: includes/class-cdw-widgets.php:78
+msgid "Need help? Contact our support team at"
+msgstr ""
+
+#: includes/class-cdw-widgets.php:82
+msgid "Visit our"
+msgstr ""
+
+#: includes/class-cdw-widgets.php:82
+msgid "documentation"
+msgstr ""
+
+#: includes/class-cdw-widgets.php:82
+msgid "for more information."
+msgstr ""
+
+#: includes/class-cdw-widgets.php:86
+msgid "No support information configured."
+msgstr ""
+
+#: includes/class-cdw-widgets.php:86
+msgid "Configure settings"
+msgstr ""
+
+#: includes/class-cdw-widgets.php:88
+msgid "Edit Widget Settings"
+msgstr ""
+
+#: includes/class-cdw-widgets.php:164
+msgid "CDW Settings"
+msgstr ""
+
+#: includes/class-cdw-widgets.php:165
+msgid "Dashboard Widgets"
+msgstr ""
+
+#: includes/class-cdw-widgets.php:180
+msgid "Custom Dashboard Widgets Settings"
+msgstr ""
+
+#: includes/class-cdw-widgets.php:182
+msgid "Loading settings..."
+msgstr ""
+
+#: includes/services/class-cdw-cli-service.php:285
+msgid "CLI feature is disabled in settings."
+msgstr ""

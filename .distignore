@@ -1,0 +1,36 @@
+# Files and directories to exclude from the WordPress.org distribution archive.
+# Used by: git archive --worktree-attributes, wp dist-archive, or manual zip.
+
+# Development tools & config
+.github/
+.ddev/
+.gitignore
+.distignore
+.editorconfig
+babel.config.js
+phpunit.xml
+phpunit-integration.xml
+patchwork.json
+prompt.txt
+known_issues.json
+wp-tests-config.php
+wp-tests-config-sample.php
+
+# Source (compiled into build/)
+src/
+
+# Tests
+tests/
+
+# Dependency source (ship only what the plugin needs at runtime)
+vendor/
+node_modules/
+
+# Composer & npm metadata
+composer.json
+composer.lock
+package.json
+package-lock.json
+
+# Build tooling output (not needed if build/ is already compiled)
+# (build/ itself IS included — it contains the compiled JS/CSS)

@@ -1,4 +1,5 @@
 // CDW Settings & Dashboard Styles
+@use 'sass:color';
 
 // Variables
 $cdw-primary: #1d2327;
@@ -283,7 +284,7 @@ $cdw-transition: all 0.2s ease;
         transition: $cdw-transition;
 
         &:hover {
-            background: darken($cdw-bg, 2%);
+            background: color.adjust($cdw-bg, $lightness: -2%);
             transform: translateX(4px);
         }
 
@@ -602,7 +603,7 @@ $cdw-term-comment: #6272a4;
         justify-content: space-between;
         align-items: center;
         padding: 0.6rem 1rem;
-        background: darken($cdw-term-bg, 3%);
+        background: color.adjust($cdw-term-bg, $lightness: -3%);
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 
         .cdw-command-title {
@@ -803,7 +804,7 @@ $cdw-term-comment: #6272a4;
         align-items: center;
         gap: 0.5rem;
         padding: 0.75rem 1rem;
-        background: darken($cdw-term-bg, 5%);
+        background: color.adjust($cdw-term-bg, $lightness: -5%);
         border-top: 1px solid rgba(255, 255, 255, 0.05);
 
         .cdw-input-prompt {
@@ -909,7 +910,7 @@ $cdw-term-comment: #6272a4;
         justify-content: space-between;
         align-items: center;
         padding: 0.5rem 1rem;
-        background: darken($cdw-term-bg, 3%);
+        background: color.adjust($cdw-term-bg, $lightness: -3%);
         border-top: 1px solid rgba(255, 255, 255, 0.05);
         font-size: 0.75rem;
 

@@ -155,18 +155,102 @@ Examples:
   transient flush
   post publish 42";
   
+## Development Status
+
+### ✅ Completed
+
+| Area | Detail |
+|---|---|
+| **PHP unit tests** | 215 tests, 387 assertions — all passing |
+| **JS unit tests** | 96 tests across 7 suites — all passing |
+| **Integration tests** | 24 tests, 67 assertions — all passing |
+| **Static analysis** | PHPCS (WordPress Coding Standards) + PHPStan level 6 — 0 errors |
+| **CI (GitHub Actions)** | PHP unit, JS unit, and PHP integration jobs all enabled |
+| **Build pipeline** | `npm run build` — 0 errors, 0 warnings |
+| **Internationalization** | All strings wrapped; `languages/cdw.pot` generated (24 strings) |
+| **Security** | Protected option list expanded; `wp-tests-config.php` gitignored |
+| **Uninstall** | Cleanup logic extracted to `includes/functions-uninstall.php` and fully tested |
+| **Release prep** | `.distignore` created for clean archive generation |
+
+### 🔲 Still needed before release
+
+- **Accessibility (a11y)** — automated axe-core audit; screen reader keyboard navigation
+- **Compatibility testing** — manual verification on WP 6.0 (min) and WP 6.9 (tested up to); PHP 8.0 and PHP 8.4; multisite
+- **Release** — bump `CDW_VERSION`, tag `v3.0.0`, create `.zip` archive, upload to WordPress.org SVN
+
+---
+
+## Running Tests
+
+### Unit Tests (no database required)
+
+```bash
+# PHP unit tests — 215 tests
+vendor/bin/phpunit --testsuite=Unit
+
+# JavaScript unit tests — 96 tests
+npm run test:js
+
+# Static analysis
+vendor/bin/phpcs
+vendor/bin/phpstan analyse --configuration=phpstan.neon
+```
+
+### Integration Tests (requires DDEV + WordPress test database)
+
+1. Copy the sample config and fill in your credentials:
+
+```bash
+cp wp-tests-config-sample.php wp-tests-config.php
+# Edit wp-tests-config.php — see inline comments for each value
+```
+
+2. Run the integration suite inside DDEV:
+
+```bash
+ddev exec bash -c 'export WP_PHPUNIT__TESTS_CONFIG=/var/www/html/wp-content/plugins/CDW/wp-tests-config.php \
+  && vendor/bin/phpunit --config phpunit-integration.xml'
+```
+
+Or via npm script:
+
+```bash
+ddev exec bash -c 'export WP_PHPUNIT__TESTS_CONFIG=/var/www/html/wp-content/plugins/CDW/wp-tests-config.php \
+  && npm run test:integration'
+```
+
+> **Note:** The integration suite requires a dedicated test database. The test runner
+> will **drop and recreate tables** on each run — never point it at your production DB.
+
 ## Changelog
 
-### 3.0.0
-- **Major Architecture Refactor** - Complete rewrite of REST API architecture
-- Split 2,500+ line REST API class into separate controllers and services
-- Added service layer for better separation of concerns
-- Created dedicated controllers for each endpoint (stats, media, posts, users, updates, tasks, settings, cli)
-- Added WP-CLI command support (`wp cdw stats`, `wp cdw tasks`, `wp cdw cli`)
-- Added deactivation hook for proper cleanup
-- Updated minimum PHP version to 8.0
-- Updated minimum WordPress version to 6.0
-- Improved code maintainability and testability
+### 3.0.0 (in development)
+
+**Architecture**
+- Complete rewrite of REST API architecture; split 2 500+ line class into dedicated controllers and services
+- Separate controllers for stats, media, posts, users, updates, tasks, settings, and CLI
+- Service layer (`CDW_Task_Service`, `CDW_Stats_Service`, `CDW_CLI_Service`) for clean separation of concerns
+- WP-CLI command support (`wp cdw stats`, `wp cdw tasks`, `wp cdw cli`)
+- Minimum PHP bumped to 8.0; minimum WordPress bumped to 6.0
+
+**Quality & testing**
+- Full test suite: 215 PHP unit tests, 96 JavaScript unit tests, 24 integration tests — all passing
+- PHP: Brain\Monkey + Mockery for isolated unit tests; wp-phpunit for integration against real DB
+- JS: Jest + @testing-library/react for component tests; store reducer and async actions fully covered
+- Static analysis: PHPCS (WordPress Coding Standards) + PHPStan level 6 — 0 errors across all source files
+- GitHub Actions CI: PHP unit, JS unit, and PHP integration jobs
+
+**Internationalisation**
+- All user-visible strings wrapped with `__()` / `esc_html__()` / `_e()`
+- `languages/cdw.pot` generated with 24 translatable strings
+
+**Security**
+- Protected-option list extended to cover `admin_email`, `users_can_register`, `default_role`
+- Uninstall logic extracted to `includes/functions-uninstall.php` and covered by unit tests
+
+**Build**
+- SASS deprecated `darken()` calls replaced with `color.adjust()` — zero build warnings
+- `.distignore` created for clean release archive generation
 
 ### 2.0.0
 - Complete rewrite with React and REST API

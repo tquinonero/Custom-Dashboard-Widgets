@@ -1,15 +1,6 @@
 import { useState, useEffect } from '@wordpress/element';
 import { useSelect, useDispatch } from '@wordpress/data';
-
-function calculateTimeAgo(timestamp) {
-    const now = Math.floor(Date.now() / 1000);
-    const diff = now - timestamp;
-    
-    if (diff < 60) return `${diff} seconds`;
-    if (diff < 3600) return `${Math.floor(diff / 60)} minutes`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)} hours`;
-    return `${Math.floor(diff / 86400)} days`;
-}
+import { calculateTimeAgo } from '../utils/timeAgo';
 
 export default function TasksWidget() {
     const tasks = useSelect((select) => select('cdw/store').getTasks());

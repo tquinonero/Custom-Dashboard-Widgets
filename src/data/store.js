@@ -250,4 +250,4 @@ const cdwStore = createReduxStore( 'cdw/store', storeConfig );
 register( cdwStore );
 
 export const store = 'cdw/store';
-export { actions, selectors };
+export { actions, selectors, reducer };

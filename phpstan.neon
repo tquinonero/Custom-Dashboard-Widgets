@@ -1,0 +1,25 @@
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+    level: 6
+    paths:
+        - includes/
+        - CDW.php
+    bootstrapFiles:
+        - phpstan-bootstrap.php
+    # PHPDoc-declared return types (e.g. WP_Error) can cause "always true/false"
+    # noise; let PHPStan treat them as documentation hints, not flow constraints.
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        # WP-CLI is an optional add-on; its WP_CLI class is not a Composer dependency.
+        - '#Call to static method (line|error|success|add_command|warning|colorize)\(\) on an unknown class WP_CLI\.#'
+        - '#Call to static method .+ on an unknown class WP_CLI\.#'
+        # wp_optimize() is provided by the WP-Optimize plugin, not core.
+        - '#Function wp_optimize not found\.#'
+        # $skin->get_errors() returns WP_Error per stubs; defensive is_wp_error() check is intentional.
+        - '#is_wp_error\(.+\) will always evaluate to (true|false)\.#'
+        # plugins_api() stubs type is broader than its actual object return; $download_link access is safe.
+        - '#Cannot access property \$download_link on array\|object\.#'
+    tmpDir: /tmp/phpstan-cdw

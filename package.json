@@ -7,7 +7,10 @@
   "scripts": {
     "start": "wp-scripts start",
     "build": "wp-scripts build",
-    "dev": "wp-scripts start"
+    "dev": "wp-scripts start",
+    "test:js": "jest",
+    "test:php": "vendor/bin/phpunit",
+    "test:integration": "vendor/bin/phpunit --config phpunit-integration.xml"
   },
   "dependencies": {
     "@wordpress/api-fetch": "^7.16.0",
@@ -19,6 +22,21 @@
     "react-chartjs-2": "^5.2.0"
   },
   "devDependencies": {
-    "@wordpress/scripts": "^30.5.0"
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@wordpress/jest-preset-default": "^12.40.0",
+    "@wordpress/scripts": "^30.5.0",
+    "jest-environment-jsdom": "^29.7.0"
+  },
+  "jest": {
+    "preset": "@wordpress/jest-preset-default",
+    "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": [
+      "@testing-library/jest-dom"
+    ],
+    "moduleNameMapper": {
+      "\\.(css|scss)$": "<rootDir>/tests/js/__mocks__/styleMock.js"
+    }
   }
 }

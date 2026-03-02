@@ -1,34 +1,58 @@
 <?php
+/**
+ * Users REST controller.
+ *
+ * @package CDW
+ */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 require_once CDW_PLUGIN_DIR . 'includes/controllers/class-cdw-base-controller.php';
 
+/**
+ * Handles GET /cdw/v1/users — returns a summary user list for the admin interface.
+ *
+ * @package CDW
+ */
 class CDW_Users_Controller extends CDW_Base_Controller {
-    public function register_routes() {
-        register_rest_route( $this->namespace, '/users', array(
-            'methods'             => 'GET',
-            'callback'            => array( $this, 'get_users' ),
-            'permission_callback' => array( $this, 'check_admin_permission' ),
-        ) );
-    }
+	/**
+	 * Registers the /users REST route.
+	 *
+	 * @return void
+	 */
+	public function register_routes() {
+		register_rest_route(
+			$this->namespace,
+			'/users',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'get_users' ),
+				'permission_callback' => array( $this, 'check_admin_permission' ),
+			)
+		);
+	}
 
-    public function get_users() {
-        $users = get_users( array( 'number' => 200 ) );
-        $formatted = array();
+	/**
+	 * Returns a list of users with basic profile data.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_users() {
+		$users     = get_users( array( 'number' => 200 ) );
+		$formatted = array();
 
-        foreach ( $users as $user ) {
-            $formatted[] = array(
-                'id'         => $user->ID,
-                'username'   => $user->user_login,
-                'email'      => $user->user_email,
-                'display_name' => $user->display_name,
-                'roles'      => $user->roles,
-            );
-        }
+		foreach ( $users as $user ) {
+			$formatted[] = array(
+				'id'           => $user->ID,
+				'username'     => $user->user_login,
+				'email'        => $user->user_email,
+				'display_name' => $user->display_name,
+				'roles'        => $user->roles,
+			);
+		}
 
-        return rest_ensure_response( $formatted );
-    }
+		return rest_ensure_response( $formatted );
+	}
 }

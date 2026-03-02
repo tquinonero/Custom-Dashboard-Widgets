@@ -10,3 +10,13 @@ wp-content/cache/
 *.swp
 *.swo
 *~
+
+# WordPress test configuration — contains local DB credentials; generate from
+# the wp-tests-config.php template at the repo root.
+wp-tests-config.php
+
+# PHPUnit generated cache — local artifact, not portable.
+.phpunit.result.cache
+
+# Development session notes — may contain local filesystem paths.
+prompt.txt

@@ -1,0 +1,123 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # PHP unit tests — no DB required.
+  # ---------------------------------------------------------------------------
+  php-unit:
+    name: PHP Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.1
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+          tools: composer
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run PHP unit tests
+        run: vendor/bin/phpunit --testsuite=Unit
+
+  # ---------------------------------------------------------------------------
+  # JavaScript unit tests.
+  # ---------------------------------------------------------------------------
+  js:
+    name: JS Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Run JS unit tests
+        run: npm run test:js -- --ci
+
+  # ---------------------------------------------------------------------------
+  # PHP integration tests — requires a real WordPress test DB.
+  # ---------------------------------------------------------------------------
+  php-integration:
+    name: PHP Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: test
+          MYSQL_USER: db
+          MYSQL_PASSWORD: db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.1
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+          tools: composer
+
+      - name: Install WordPress core (for ABSPATH)
+        run: |
+          curl -O https://wordpress.org/latest.tar.gz
+          tar -xzf latest.tar.gz
+          echo "ABSPATH=$(pwd)/wordpress/" >> $GITHUB_ENV
+
+      - name: Write wp-tests-config.php
+        run: |
+          cat > wp-tests-config.php <<'EOF'
+          <?php
+          define( 'ABSPATH',     getenv( 'ABSPATH' ) );
+          define( 'DB_NAME',     'test' );
+          define( 'DB_USER',     'db' );
+          define( 'DB_PASSWORD', 'db' );
+          define( 'DB_HOST',     '127.0.0.1:3306' );
+          define( 'DB_CHARSET',  'utf8' );
+          define( 'DB_COLLATE',  '' );
+          $table_prefix = 'wptests_';
+          define( 'WP_TESTS_DOMAIN',  'example.com' );
+          define( 'WP_TESTS_EMAIL',   'admin@example.com' );
+          define( 'WP_TESTS_TITLE',   'CDW Test Site' );
+          define( 'WP_DEFAULT_THEME', 'default' );
+          define( 'WP_PHP_BINARY',    'php' );
+          define( 'WPLANG', '' );
+          EOF
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run PHP integration tests
+        env:
+          WP_PHPUNIT__TESTS_CONFIG: ${{ github.workspace }}/wp-tests-config.php
+        run: vendor/bin/phpunit --config phpunit-integration.xml
