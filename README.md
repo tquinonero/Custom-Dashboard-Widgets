@@ -40,6 +40,7 @@ Custom Dashboard Widgets replaces the default WordPress dashboard with a modern,
 - Support email and documentation URL settings
 - Enable/disable individual widgets
 - Remove default WordPress widgets option
+- **WP-CLI Commands** - Manage site from terminal with `wp cdw`
 
 ## Installation
 
@@ -81,65 +82,87 @@ Absolutely. Go to **Settings → Dashboard Widgets → Widget Appearance** to ad
 ### Does the CLI widget really run WP-CLI commands?
 
 The CLI widget simulates WP-CLI commands through WordPress APIs. It provides a subset of common commands:
-help                                  - Show this help message
 
+### Available Commands
+
+**Help:**
+  help                                  - Show this help message
+
+**Plugin Management:**
   plugin list                           - List all plugins (with update status)
   plugin status <slug>                  - Show version, status, update info
   plugin install <slug>                 - Install a plugin from wordpress.org
   plugin activate <slug>                - Activate a plugin
-  plugin deactivate <slug>              - Deactivate a plugin
+  plugin deactivate <slug>             - Deactivate a plugin
   plugin update <slug>                  - Update a specific plugin
   plugin update --all                   - Update all plugins
   plugin delete <slug>                  - Delete a plugin (requires --force)
 
-  theme list                            - List all themes (with update status)
-  theme status <slug>                   - Show version, status, update info
-  theme install <slug>                  - Install a theme from wordpress.org
-  theme activate <slug>                 - Activate a theme
-  theme deactivate [slug]               - Switch to another theme
-  theme update <slug>                   - Update a specific theme
-  theme update --all                    - Update all themes
+**Theme Management:**
+  theme list                           - List all themes (with update status)
+  theme status <slug>                  - Show version, status, update info
+  theme install <slug>                 - Install a theme from wordpress.org
+  theme activate <slug>                - Activate a theme
+  theme delete <slug>                  - Delete a theme (requires --force)
 
-  user list                             - List all users
-  user get <id|username>                - Get details for a user
-  user create <user> <email> <role>     - Create a user (password emailed)
-  user update <id|user> --role <role>   - Change a user's role
-  user delete <id|username>             - Delete a user (requires --force)
+**User Management:**
+  user list                            - List all users
+  user create <user> <email> <role>    - Create a user
+  user role <user> <role>              - Change user role
+  user delete <user>                   - Delete user (requires --force)
 
-  post list                             - List recent posts
-  post get <id>                         - Get details for a post
-  post create <title>                   - Create a draft post
-  post publish <id>                     - Publish a post
-  post unpublish <id>                   - Set a post back to draft
-  post delete <id>                      - Permanently delete a post (requires --force)
+**Post Management:**
+  post list [<type>]                   - List posts by type
+  post status <id> <status>            - Change post status
+  post delete <id>                     - Delete post
 
-  db optimize                           - Optimize all WordPress database tables
-  db repair                             - Repair all WordPress database tables
+**Site Management:**
+  site info                            - Show site information
+  site status                          - Show site status
+  site empty                           - Optimize database
 
-  option get <key>                      - Get an option value
-  option set <key> <value>              - Set an option value
-  option delete <key>                   - Delete an option (requires --force)
+**Cache:**
+  cache flush [type]                  - Flush cache (all, posts, terms, comments, transients, object)
 
-  transient get <key>                   - Get a transient value
-  transient delete <key>                - Delete a specific transient
-  transient flush                       - Delete ALL transients
+**Database:**
+  db size                             - Show database size
+  db tables                           - List all tables
 
-  cron list                             - List all scheduled cron events
-  cron run <hook>                       - Manually trigger a cron hook
+**Options:**
+  option get <name>                   - Get option value
+  option set <name> <value>           - Set option value
+  option delete <name>                 - Delete option (protected options blocked)
+  option list                          - List CDW options
 
-  maintenance on                        - Enable maintenance mode
-  maintenance off                       - Disable maintenance mode
-  maintenance status                    - Check maintenance mode status
+**Transients:**
+  transient list                       - List transients
+  transient delete <name>              - Delete transient
 
+**Cron:**
+  cron list                           - List scheduled cron events
+  cron run <hook>                     - Manually trigger a cron hook
+
+**Maintenance:**
+  maintenance on                       - Enable maintenance mode
+  maintenance off                      - Disable maintenance mode
+
+**Search & Replace:**
   search-replace <old> <new> --dry-run  - Preview matches without making changes
   search-replace <old> <new> --force    - Replace a string sitewide
 
-  cache flush                           - Flush the object cache
-  site info                             - Show site information
-  site status                           - Show site status
+### WP-CLI Terminal Commands
+
+You can also manage your site from the terminal using WP-CLI:
+
+  wp cdw stats                        - Show site statistics
+  wp cdw tasks list                   - List user tasks
+  wp cdw tasks clear                  - Clear user tasks
+  wp cdw cli execute <command>         - Execute a CLI command
+  wp cdw cli history                  - Show command history
+  wp cdw cli clear                    - Clear command history
 
 Security notes:
-  - Destructive commands require --force
+  - Destructive commands require --force flag
   - search-replace supports --dry-run to safely preview before committing
   - Critical options (siteurl, admin_email, auth keys, etc.) are protected
   - user delete cannot target your own account
@@ -147,13 +170,14 @@ Security notes:
 Examples:
   plugin update --all
   theme install twentytwentyfive
-  user update john --role editor
+  user role john editor
   search-replace https://old.com https://new.com --dry-run
   maintenance on
   cron list
   option get blogname
-  transient flush
-  post publish 42";
+  post status 42 draft
+  cache flush
+  wp cdw stats";
   
 ## Changelog
 
