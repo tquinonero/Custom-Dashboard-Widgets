@@ -69,13 +69,16 @@ jobs:
           MYSQL_DATABASE: test
           MYSQL_USER: db
           MYSQL_PASSWORD: db
+          # Force mysql_native_password so PHP 8 mysqli connects without SSL.
+          MYSQL_AUTHENTICATION_PLUGIN: mysql_native_password
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping"
+          --health-cmd="mysqladmin -u root -proot ping -h 127.0.0.1"
           --health-interval=10s
           --health-timeout=5s
-          --health-retries=5
+          --health-retries=10
+          --health-start-period=30s
 
     steps:
       - name: Checkout
@@ -96,26 +99,44 @@ jobs:
 
       - name: Write wp-tests-config.php
         run: |
-          cat > wp-tests-config.php <<'EOF'
-          <?php
-          define( 'ABSPATH',     getenv( 'ABSPATH' ) );
-          define( 'DB_NAME',     'test' );
-          define( 'DB_USER',     'db' );
-          define( 'DB_PASSWORD', 'db' );
-          define( 'DB_HOST',     '127.0.0.1:3306' );
-          define( 'DB_CHARSET',  'utf8' );
-          define( 'DB_COLLATE',  '' );
-          $table_prefix = 'wptests_';
-          define( 'WP_TESTS_DOMAIN',  'example.com' );
-          define( 'WP_TESTS_EMAIL',   'admin@example.com' );
-          define( 'WP_TESTS_TITLE',   'CDW Test Site' );
-          define( 'WP_DEFAULT_THEME', 'default' );
-          define( 'WP_PHP_BINARY',    'php' );
-          define( 'WPLANG', '' );
-          EOF
+          # Use a group-command + echo so $ABSPATH is expanded by the shell.
+          # Double-quote the heredoc delimiter so shell variables expand;
+          # escape \$table_prefix so it is written as a PHP variable.
+          {
+            echo '<?php'
+            echo "define( 'ABSPATH',     '$ABSPATH' );"
+            echo "define( 'DB_NAME',     'test' );"
+            echo "define( 'DB_USER',     'db' );"
+            echo "define( 'DB_PASSWORD', 'db' );"
+            echo "define( 'DB_HOST',     '127.0.0.1:3306' );"
+            echo "define( 'DB_CHARSET',  'utf8mb4' );"
+            echo "define( 'DB_COLLATE',  '' );"
+            echo "\$table_prefix = 'wptests_';"
+            echo "define( 'WP_TESTS_DOMAIN',  'example.com' );"
+            echo "define( 'WP_TESTS_EMAIL',   'admin@example.com' );"
+            echo "define( 'WP_TESTS_TITLE',   'CDW Test Site' );"
+            echo "define( 'WP_DEFAULT_THEME', 'twentytwentyfive' );"
+            echo "define( 'WP_PHP_BINARY',    'php' );"
+            echo "define( 'WPLANG', '' );"
+          } > wp-tests-config.php
+          echo '--- wp-tests-config.php ---'
+          cat wp-tests-config.php
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist
+
+      - name: Wait for MySQL and verify connectivity
+        run: |
+          for i in $(seq 1 20); do
+            php -r "
+              \$c = @new mysqli('127.0.0.1', 'db', 'db', 'test', 3306);
+              if (\$c->connect_error) { exit(1); }
+              echo 'MySQL ready' . PHP_EOL;
+              exit(0);
+            " && break
+            echo "Waiting for MySQL... attempt \$i"
+            sleep 3
+          done
 
       - name: Run PHP integration tests
         env:

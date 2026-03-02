@@ -46,7 +46,7 @@ tests_add_filter(
             define( 'CDW_PLUGIN_DIR', $plugin_dir );
         }
         if ( ! defined( 'CDW_PLUGIN_URL' ) ) {
-            define( 'CDW_PLUGIN_URL', 'http://homesite.ddev.site/wp-content/plugins/CDW/' );
+            define( 'CDW_PLUGIN_URL', 'http://example.com/wp-content/plugins/CDW/' );
         }
         if ( ! defined( 'CDW_VERSION' ) ) {
             define( 'CDW_VERSION', '3.0.0' );

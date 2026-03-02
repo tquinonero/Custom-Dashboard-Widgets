@@ -30,7 +30,7 @@ define( 'DB_NAME',    'wordpress_test' );       // Test database name.
 define( 'DB_USER',    'root' );                 // Database user.
 define( 'DB_PASSWORD', '' );                    // Database password.
 define( 'DB_HOST',    '127.0.0.1' );            // Database host. Use 'db' inside DDEV.
-define( 'DB_CHARSET', 'utf8' );
+define( 'DB_CHARSET', 'utf8mb4' );
 define( 'DB_COLLATE', '' );
 
 $table_prefix = 'wptests_'; // Prefix for test tables (must differ from your real table prefix).
@@ -42,6 +42,6 @@ $table_prefix = 'wptests_'; // Prefix for test tables (must differ from your rea
 define( 'WP_TESTS_DOMAIN',  'example.com' );
 define( 'WP_TESTS_EMAIL',   'admin@example.com' );
 define( 'WP_TESTS_TITLE',   'CDW Test Site' );
-define( 'WP_DEFAULT_THEME', 'default' );
+define( 'WP_DEFAULT_THEME', 'twentytwentyfive' );
 define( 'WP_PHP_BINARY',    'php' );
 define( 'WPLANG',           '' );
