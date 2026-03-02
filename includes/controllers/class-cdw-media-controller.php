@@ -4,6 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+require_once CDW_PLUGIN_DIR . 'includes/controllers/class-cdw-base-controller.php';
+
 class CDW_Media_Controller extends CDW_Base_Controller {
     public function register_routes() {
         register_rest_route( $this->namespace, '/media', array(

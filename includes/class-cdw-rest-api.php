@@ -10,20 +10,17 @@ class CDW_REST_API {
     private $controllers = array();
 
     public function register() {
-        $this->load_dependencies();
         $this->load_controllers();
         $this->register_routes();
         add_action( 'init', array( $this, 'ensure_audit_table' ), 5 );
     }
 
-    private function load_dependencies() {
+    private function load_controllers() {
         require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-stats-service.php';
         require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-task-service.php';
         require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-cli-service.php';
-        require_once CDW_PLUGIN_DIR . 'includes/controllers/class-cdw-base-controller.php';
-    }
 
-    private function load_controllers() {
+        require_once CDW_PLUGIN_DIR . 'includes/controllers/class-cdw-base-controller.php';
         require_once CDW_PLUGIN_DIR . 'includes/controllers/class-cdw-stats-controller.php';
         require_once CDW_PLUGIN_DIR . 'includes/controllers/class-cdw-media-controller.php';
         require_once CDW_PLUGIN_DIR . 'includes/controllers/class-cdw-posts-controller.php';
@@ -62,6 +59,7 @@ class CDW_REST_API {
             return;
         }
 
+        require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-cli-service.php';
         $cli_service = new CDW_CLI_Service();
         $cli_service->create_audit_log_table();
         update_option( 'cdw_db_version', self::DB_VERSION );

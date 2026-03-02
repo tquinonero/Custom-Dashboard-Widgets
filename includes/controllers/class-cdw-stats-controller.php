@@ -4,6 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+require_once CDW_PLUGIN_DIR . 'includes/controllers/class-cdw-base-controller.php';
+require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-stats-service.php';
+
 class CDW_Stats_Controller extends CDW_Base_Controller {
     private $stats_service;
 
