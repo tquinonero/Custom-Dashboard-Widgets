@@ -22,7 +22,7 @@ export default function PostsWidget() {
                 <ul className="cdw-posts-list">
                     {posts.map((post) => (
                         <li key={post.id}>
-                            <a href={post.link} target="_blank" rel="noopener noreferrer">
+                            <a href={post.permalink} target="_blank" rel="noopener noreferrer">
                                 {post.title}
                             </a>
                         </li>

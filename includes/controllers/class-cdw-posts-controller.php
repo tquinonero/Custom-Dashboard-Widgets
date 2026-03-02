@@ -32,37 +32,44 @@ class CDW_Posts_Controller extends CDW_Base_Controller {
     }
 
     public function get_posts( WP_REST_Request $request ) {
-        $per_page  = $request->get_param( 'per_page' ) ?: 10;
-        $status    = $request->get_param( 'status' ) ?: 'publish';
-        $post_type = $request->get_param( 'post_type' ) ?: 'post';
+        $per_page  = (int) $request->get_param( 'per_page' );
+        $status    = $request->get_param( 'status' );
+        $post_type = $request->get_param( 'post_type' );
+
+        // Non-admins may only see published content.
+        if ( 'publish' !== $status && ! current_user_can( 'manage_options' ) ) {
+            $status = 'publish';
+        }
+
+        // Reject unregistered or non-public post types to prevent data leakage
+        // (e.g. post_type=revision) and avoid confusing empty results.
+        $post_type_obj = get_post_type_object( $post_type );
+        if ( ! $post_type_obj || ! $post_type_obj->public ) {
+            return $this->error_response( 'Invalid or non-public post type.', 400 );
+        }
 
         $cache_key = "cdw_posts_cache_{$per_page}_{$status}_{$post_type}";
-        $cached    = get_transient( $cache_key );
+        $formatted = $this->get_transient_with_cache( $cache_key, function() use ( $per_page, $status, $post_type ) {
+            $posts = get_posts( array(
+                'numberposts'      => $per_page,
+                'post_status'      => $status,
+                'post_type'        => $post_type,
+                'suppress_filters' => true,
+            ) );
 
-        if ( false !== $cached ) {
-            return rest_ensure_response( $cached );
-        }
-
-        $posts = get_posts( array(
-            'numberposts'      => $per_page,
-            'post_status'      => $status,
-            'post_type'        => $post_type,
-            'suppress_filters' => true,
-        ) );
-
-        $formatted = array();
-        foreach ( $posts as $post ) {
-            $formatted[] = array(
-                'id'        => $post->ID,
-                'title'     => $post->post_title,
-                'status'    => $post->post_status,
-                'date'      => $post->post_date,
-                'author'    => $post->post_author,
-                'permalink' => get_permalink( $post->ID ),
-            );
-        }
-
-        set_transient( $cache_key, $formatted, 300 );
+            $items = array();
+            foreach ( $posts as $post ) {
+                $items[] = array(
+                    'id'        => $post->ID,
+                    'title'     => $post->post_title,
+                    'status'    => $post->post_status,
+                    'date'      => $post->post_date,
+                    'author'    => $post->post_author,
+                    'permalink' => get_permalink( $post->ID ),
+                );
+            }
+            return $items;
+        }, 300 );
 
         return rest_ensure_response( $formatted );
     }

@@ -11,17 +11,7 @@ class CDW_CLI_Service {
     const RATE_LIMIT_COUNT = 20;
     const RATE_LIMIT_WINDOW = 60;
 
-    protected $protected_options = array(
-        'siteurl', 'home', 'admin_email', 'blogname', 'blogdescription',
-        'wp_user_roles', 'active_plugins', 'template', 'stylesheet',
-        'auth_key', 'secure_auth_key', 'logged_in_key', 'nonce_key',
-        'auth_salt', 'secure_auth_salt', 'logged_in_salt', 'nonce_salt',
-        'db_version', 'initial_db_version', 'wordpress_db_version',
-        'cron', 'sidebars_widgets', 'widget_block', 'widget_pages',
-        'widget_calendar', 'widget_archives', 'widget_meta', 'widget_search',
-        'widget_recent-posts', 'widget_recent-comments', 'widget_rss',
-        'widget_tag_cloud', 'widget_nav_menu', 'widget_text', 'widget_categories',
-    );
+    private static $audit_table_confirmed = false;
 
     public function ensure_audit_table() {
         if ( get_option( 'cdw_db_version' ) === self::DB_VERSION ) {
@@ -56,12 +46,14 @@ class CDW_CLI_Service {
         global $wpdb;
         $table_name = $wpdb->prefix . self::TABLE_NAME;
 
-        $table_exists = $wpdb->get_var(
-            "SHOW TABLES LIKE '" . $wpdb->esc_like( $table_name ) . "'"
-        );
-
-        if ( $table_exists !== $table_name ) {
-            return;
+        if ( ! self::$audit_table_confirmed ) {
+            $exists = $wpdb->get_var(
+                "SHOW TABLES LIKE '" . $wpdb->esc_like( $table_name ) . "'"
+            );
+            if ( $exists !== $table_name ) {
+                return;
+            }
+            self::$audit_table_confirmed = true;
         }
 
         $wpdb->insert(
@@ -111,19 +103,24 @@ class CDW_CLI_Service {
     }
 
     public function check_rate_limit( $user_id ) {
-        $key   = 'cdw_cli_rate_' . $user_id;
-        $count = get_transient( $key );
+        $key       = 'cdw_cli_rate_' . $user_id;
+        $start_key = 'cdw_cli_rate_start_' . $user_id;
+        $count     = get_transient( $key );
 
         if ( false === $count ) {
+            // First command in a new window.
             set_transient( $key, 1, self::RATE_LIMIT_WINDOW );
+            update_option( $start_key, time(), false );
             return true;
         }
 
-        if ( $count >= self::RATE_LIMIT_COUNT ) {
+        if ( (int) $count >= self::RATE_LIMIT_COUNT ) {
             return false;
         }
 
-        wp_cache_incr( $key, 1 );
+        $window_start = (int) get_option( $start_key, 0 );
+        $ttl          = max( 1, self::RATE_LIMIT_WINDOW - ( time() - $window_start ) );
+        set_transient( $key, (int) $count + 1, $ttl );
         return true;
     }
 
@@ -132,10 +129,14 @@ class CDW_CLI_Service {
     }
 
     public function is_option_protected( $option_name ) {
-        return in_array( $option_name, $this->protected_options, true );
+        // Ensure the base controller is loaded (it is, via class-cdw-rest-api.php load chain).
+        if ( class_exists( 'CDW_Base_Controller' ) ) {
+            return in_array( $option_name, CDW_Base_Controller::$protected_options, true );
+        }
+        return false;
     }
 
-    public function execute( $command, $user_id ) {
+    public function execute( $command, $user_id, $bypass_rate_limit = false ) {
         if ( ! $this->is_cli_enabled() ) {
             return new WP_Error(
                 'cli_disabled',
@@ -148,13 +149,13 @@ class CDW_CLI_Service {
             return new WP_Error( 'empty_command', 'Command cannot be empty', array( 'status' => 400 ) );
         }
 
-        if ( ! $this->check_rate_limit( $user_id ) ) {
+        if ( ! $bypass_rate_limit && ! $this->check_rate_limit( $user_id ) ) {
             return new WP_Error( 'rate_limited', 'Rate limit exceeded. Max 20 commands per minute.', array( 'status' => 429 ) );
         }
 
         $this->ensure_audit_table();
 
-        $command = sanitize_text_field( wp_unslash( $command ) );
+        $command = wp_unslash( $command );
         $parts   = preg_split( '/\s+/', trim( $command ) );
         $cmd     = strtolower( $parts[0] ?? '' );
         $subcmd  = strtolower( $parts[1] ?? '' );
@@ -184,7 +185,8 @@ class CDW_CLI_Service {
         }
 
         $clean_args = array_values( array_filter( $raw_args, function( $arg ) {
-            return ! in_array( strtolower( $arg ), array( '--force', '--all' ), true );
+            return ! in_array( strtolower( $arg ), array( '--force', '--all', '--dry-run', '--delete-content' ), true )
+                && ! preg_match( '/^--reassign=\d+$/', $arg );
         } ) );
 
         $output  = '';
@@ -201,7 +203,7 @@ class CDW_CLI_Service {
                     $result = $this->handle_theme_command( $subcmd, $clean_args, $raw_args );
                     break;
                 case 'user':
-                    $result = $this->handle_user_command( $subcmd, $clean_args );
+                    $result = $this->handle_user_command( $subcmd, $clean_args, $raw_args );
                     break;
                 case 'post':
                     $result = $this->handle_post_command( $subcmd, $clean_args, $raw_args );
@@ -228,7 +230,7 @@ class CDW_CLI_Service {
                     $result = $this->handle_maintenance_command( $subcmd, $clean_args );
                     break;
                 case 'search-replace':
-                    $result = $this->handle_search_replace_command( $raw_args );
+                    $result = $this->handle_search_replace_command( $clean_args, $raw_args );
                     break;
                 case 'help':
                     $result = $this->handle_help_command();
@@ -241,6 +243,8 @@ class CDW_CLI_Service {
             if ( $result && is_array( $result ) && isset( $result['output'] ) ) {
                 $output  = $result['output'];
                 $success = isset( $result['success'] ) ? $result['success'] : true;
+            } elseif ( ! $success ) {
+                $output = $error;
             }
         } catch ( Error $e ) {
             $success = false;
@@ -251,9 +255,12 @@ class CDW_CLI_Service {
             $error   = $e->getMessage();
         }
 
-        $this->log_cli_command( $user_id, $command, $success, $success ? $output : $error );
+        // Use $output when non-empty (it holds the handler's message for both
+        // success and failure), falling back to $error which is set by the
+        // catch blocks or the "unknown command" / default branch.
+        $final_output = ! empty( $output ) ? $output : $error;
 
-        $final_output = $success ? $output : $error;
+        $this->log_cli_command( $user_id, $command, $success, $final_output );
         $this->add_to_history( $user_id, $command, $final_output, $success );
 
         return array(
@@ -276,9 +283,14 @@ class CDW_CLI_Service {
     }
 
     private function command_requires_force( $cmd, $subcmd ) {
+        if ( 'search-replace' === $cmd ) {
+            return true;
+        }
+
         $dangerous_commands = array(
-            'plugin' => array( 'delete', 'update' ),
-            'theme'  => array( 'delete', 'update' ),
+            'plugin' => array( 'delete', 'update', 'install' ),
+            'theme'  => array( 'delete', 'update', 'install' ),
+            'user'   => array( 'delete' ),
             'post'   => array( 'delete' ),
             'db'     => array( 'export', 'import' ),
         );
@@ -306,6 +318,9 @@ class CDW_CLI_Service {
     }
 
     private function resolve_plugin_file( $slug ) {
+        if ( ! function_exists( 'get_plugins' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
         $plugins = get_plugins();
         foreach ( $plugins as $file => $plugin ) {
             $plugin_slug = dirname( $file );
@@ -320,6 +335,9 @@ class CDW_CLI_Service {
         $wp_content_dir = defined( 'WP_CONTENT_DIR' ) ? WP_CONTENT_DIR : ABSPATH . 'wp-content';
         if ( file_exists( $wp_content_dir . '/plugins/' . $slug ) ) {
             $files = scandir( $wp_content_dir . '/plugins/' . $slug );
+            if ( ! is_array( $files ) ) {
+                return false;
+            }
             foreach ( $files as $file ) {
                 if ( substr( $file, -4 ) === '.php' ) {
                     return $slug . '/' . $file;
@@ -331,6 +349,9 @@ class CDW_CLI_Service {
     }
 
     private function handle_plugin_command( $subcmd, $args, $raw_args = array() ) {
+        if ( ! function_exists( 'get_plugins' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
         switch ( $subcmd ) {
             case 'list':
                 $plugins = get_plugins();
@@ -440,7 +461,7 @@ class CDW_CLI_Service {
                     $skin_errors = $skin->get_errors();
                     $error_msg   = is_wp_error( $skin_errors ) && $skin_errors->has_errors()
                         ? $skin_errors->get_error_message()
-                        : 'Could not connect to thefilesystem.';
+                        : 'Could not connect to the filesystem.';
                     return array( 'output' => 'Update failed: ' . $error_msg, 'success' => false );
                 }
                 if ( is_wp_error( $result ) ) {
@@ -489,8 +510,12 @@ class CDW_CLI_Service {
 
                 $existing_plugins  = get_plugins();
                 $already_installed = false;
-                foreach ( $existing_plugins as $plugin_file => $plugin_data ) {
-                    if ( strpos( $plugin_file, $slug ) !== false ) {
+                foreach ( $existing_plugins as $existing_file => $plugin_data ) {
+                    $existing_slug = dirname( $existing_file );
+                    if ( '.' === $existing_slug ) {
+                        $existing_slug = basename( $existing_file, '.php' );
+                    }
+                    if ( $existing_slug === $slug || basename( $existing_file, '.php' ) === $slug ) {
                         $already_installed = true;
                         break;
                     }
@@ -574,14 +599,14 @@ class CDW_CLI_Service {
                     return array( 'output' => 'Usage: theme activate <theme-slug>', 'success' => false );
                 }
                 $slug = sanitize_text_field( $args[0] );
+                if ( ! wp_get_theme( $slug )->exists() ) {
+                    return array( 'output' => "Theme not found: $slug", 'success' => false );
+                }
                 switch_theme( $slug );
                 return array( 'output' => "Theme activated: $slug", 'success' => true );
 
             case 'delete':
                 if ( empty( $args[0] ) ) {
-                    return array( 'output' => 'Usage: theme delete <theme-slug> --force', 'success' => false );
-                }
-                if ( ! $this->has_force_flag( $raw_args ) ) {
                     return array( 'output' => 'Usage: theme delete <theme-slug> --force', 'success' => false );
                 }
                 $slug = sanitize_text_field( $args[0] );
@@ -599,8 +624,8 @@ class CDW_CLI_Service {
                 global $wp_filesystem;
                 $theme_dir = $theme->get_theme_root() . '/' . $slug;
                 $result    = $wp_filesystem->delete( $theme_dir, true );
-                if ( is_wp_error( $result ) ) {
-                    return array( 'output' => 'Delete failed: ' . $result->get_error_message(), 'success' => false );
+                if ( ! $result ) {
+                    return array( 'output' => 'Delete failed: could not remove theme directory. Check file permissions.', 'success' => false );
                 }
                 return array( 'output' => "Theme deleted: $slug", 'success' => true );
 
@@ -613,6 +638,7 @@ class CDW_CLI_Service {
                 require_once ABSPATH . 'wp-admin/includes/file.php';
                 require_once ABSPATH . 'wp-admin/includes/misc.php';
                 require_once ABSPATH . 'wp-admin/includes/theme.php';
+                require_once ABSPATH . 'wp-admin/includes/theme-install.php';
                 require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
 
                 if ( ! $this->init_filesystem() ) {
@@ -632,24 +658,93 @@ class CDW_CLI_Service {
                 $upgrader = new Theme_Upgrader( $skin );
                 $result   = $upgrader->install( $api->download_link );
 
+                if ( false === $result ) {
+                    $skin_errors = $skin->get_errors();
+                    $error_msg   = is_wp_error( $skin_errors ) && $skin_errors->has_errors()
+                        ? $skin_errors->get_error_message()
+                        : 'Could not connect to the filesystem. Check permissions.';
+                    return array( 'output' => 'Install failed: ' . $error_msg, 'success' => false );
+                }
+
                 if ( is_wp_error( $result ) ) {
                     return array( 'output' => 'Install failed: ' . $result->get_error_message(), 'success' => false );
                 }
 
                 return array( 'output' => "Theme installed: $slug", 'success' => true );
 
+            case 'update':
+                require_once ABSPATH . 'wp-admin/includes/file.php';
+                require_once ABSPATH . 'wp-admin/includes/misc.php';
+                require_once ABSPATH . 'wp-admin/includes/theme.php';
+                require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
+                if ( ! $this->init_filesystem() ) {
+                    return array( 'output' => 'Could not initialize filesystem.', 'success' => false );
+                }
+
+                $updates = get_site_transient( 'update_themes' );
+
+                if ( $this->has_all_flag( $raw_args ) ) {
+                    if ( empty( $updates->response ) ) {
+                        return array( 'output' => 'All themes are up to date.', 'success' => true );
+                    }
+                    $skin     = new WP_Ajax_Upgrader_Skin();
+                    $upgrader = new Theme_Upgrader( $skin );
+                    $results  = $upgrader->bulk_upgrade( array_keys( $updates->response ) );
+                    $output   = "Theme updates:\n";
+                    foreach ( $results as $theme_stylesheet => $result ) {
+                        if ( is_wp_error( $result ) ) {
+                            $output .= "  FAILED  $theme_stylesheet: " . $result->get_error_message() . "\n";
+                        } elseif ( false === $result ) {
+                            $output .= "  FAILED  $theme_stylesheet\n";
+                        } else {
+                            $output .= "  Updated $theme_stylesheet\n";
+                        }
+                    }
+                    wp_cache_delete( 'themes', 'themes' );
+                    return array( 'output' => rtrim( $output ), 'success' => true );
+                }
+
+                if ( empty( $args[0] ) ) {
+                    return array( 'output' => "Usage: theme update <slug>  |  theme update --all", 'success' => false );
+                }
+                $slug = sanitize_text_field( $args[0] );
+                $theme = wp_get_theme( $slug );
+                if ( ! $theme->exists() ) {
+                    return array( 'output' => "Theme not found: $slug", 'success' => false );
+                }
+                $theme_stylesheet = $theme->get_stylesheet();
+                if ( empty( $updates->response[ $theme_stylesheet ] ) ) {
+                    return array( 'output' => "Theme is already up to date: $slug", 'success' => true );
+                }
+                $skin     = new WP_Ajax_Upgrader_Skin();
+                $upgrader = new Theme_Upgrader( $skin );
+                $result   = $upgrader->upgrade( $theme_stylesheet );
+                if ( false === $result ) {
+                    $skin_errors = $skin->get_errors();
+                    $error_msg   = is_wp_error( $skin_errors ) && $skin_errors->has_errors()
+                        ? $skin_errors->get_error_message()
+                        : 'Could not connect to the filesystem.';
+                    return array( 'output' => 'Update failed: ' . $error_msg, 'success' => false );
+                }
+                if ( is_wp_error( $result ) ) {
+                    return array( 'output' => 'Update failed: ' . $result->get_error_message(), 'success' => false );
+                }
+                wp_cache_delete( 'themes', 'themes' );
+                return array( 'output' => "Theme updated: " . $slug, 'success' => true );
+
             default:
                 return array(
-                    'output'  => "Available theme commands:\n  theme list               - List all themes\n  theme status <slug>     - Show status for a theme\n  theme install <slug>   - Install a theme\n  theme activate <slug>  - Activate a theme\n  theme delete <slug>    - Delete a theme (requires --force)",
+                    'output'  => "Available theme commands:\n  theme list               - List all themes\n  theme status <slug>     - Show status for a theme\n  theme install <slug>   - Install a theme\n  theme activate <slug>  - Activate a theme\n  theme update <slug>    - Update a theme\n  theme update --all    - Update all themes\n  theme delete <slug>    - Delete a theme (requires --force)",
                     'success' => true,
                 );
         }
     }
 
-    private function handle_user_command( $subcmd, $args ) {
+    private function handle_user_command( $subcmd, $args, $raw_args = array() ) {
         switch ( $subcmd ) {
             case 'list':
-                $users = get_users();
+                $users = get_users( array( 'number' => 200 ) );
                 $output = "Users:\n";
                 foreach ( $users as $user ) {
                     $roles = implode( ', ', $user->roles );
@@ -681,7 +776,8 @@ class CDW_CLI_Service {
                 }
 
                 wp_update_user( array( 'ID' => $user_id, 'role' => $role ) );
-                return array( 'output' => "User created: $username (ID: $user_id, role: $role)", 'success' => true );
+                wp_new_user_notification( $user_id, null, 'both' );
+                return array( 'output' => "User created: $username (ID: $user_id, role: $role). Password reset email sent to $email.", 'success' => true );
 
             case 'delete':
                 if ( empty( $args[0] ) ) {
@@ -699,11 +795,29 @@ class CDW_CLI_Service {
                     return array( 'output' => 'Cannot delete yourself.', 'success' => false );
                 }
                 require_once ABSPATH . 'wp-admin/includes/user.php';
-                $result = wp_delete_user( $user->ID );
-                if ( is_wp_error( $result ) ) {
-                    return array( 'output' => 'Delete failed: ' . $result->get_error_message(), 'success' => false );
+                $reassign_id    = null;
+                $delete_content = in_array( '--delete-content', $raw_args, true );
+                foreach ( $raw_args as $arg ) {
+                    if ( preg_match( '/^--reassign=(\d+)$/', $arg, $m ) ) {
+                        $reassign_id = (int) $m[1];
+                        break;
+                    }
                 }
-                return array( 'output' => "User deleted: $identifier", 'success' => true );
+                if ( null === $reassign_id && ! $delete_content ) {
+                    return array(
+                        'output'  => "user delete requires one of:\n  --reassign=<user_id>  Reassign content to another user\n  --delete-content      Permanently delete all their content\nExample: user delete $identifier --reassign=1 --force",
+                        'success' => false,
+                    );
+                }
+                if ( $reassign_id && ! get_userdata( $reassign_id ) ) {
+                    return array( 'output' => "Reassign target not found: $reassign_id", 'success' => false );
+                }
+                $result = wp_delete_user( $user->ID, $reassign_id );
+                if ( ! $result ) {
+                    return array( 'output' => 'Delete failed: could not delete user.', 'success' => false );
+                }
+                $note = $reassign_id ? " (content reassigned to user $reassign_id)" : ' (content deleted)';
+                return array( 'output' => "User deleted: $identifier$note", 'success' => true );
 
             case 'role':
                 if ( count( $args ) < 2 ) {
@@ -711,6 +825,10 @@ class CDW_CLI_Service {
                 }
                 $identifier = sanitize_text_field( $args[0] );
                 $new_role   = sanitize_text_field( $args[1] );
+
+                if ( ! get_role( $new_role ) ) {
+                    return array( 'output' => "Invalid role: $new_role", 'success' => false );
+                }
 
                 $user = get_user_by( 'login', $identifier );
                 if ( ! $user ) {
@@ -762,16 +880,22 @@ class CDW_CLI_Service {
                 return array( 'output' => "Post deleted: $post_id", 'success' => true );
 
             case 'status':
-                if ( empty( $args[0] ) ) {
+                if ( empty( $args[0] ) || empty( $args[1] ) ) {
                     return array( 'output' => 'Usage: post status <post-id> <status>', 'success' => false );
                 }
-                $post_id   = intval( $args[0] );
+                $post_id    = intval( $args[0] );
                 $new_status = sanitize_text_field( $args[1] );
-                $post      = get_post( $post_id );
+                $post       = get_post( $post_id );
                 if ( ! $post ) {
                     return array( 'output' => "Post not found: $post_id", 'success' => false );
                 }
-                wp_update_post( array( 'ID' => $post_id, 'post_status' => $new_status ) );
+                $result = wp_update_post( array( 'ID' => $post_id, 'post_status' => $new_status ), true );
+                if ( is_wp_error( $result ) ) {
+                    return array( 'output' => 'Failed to update post status: ' . $result->get_error_message(), 'success' => false );
+                }
+                if ( ! $result ) {
+                    return array( 'output' => "Failed to update post status: $post_id", 'success' => false );
+                }
                 return array( 'output' => "Post status updated: $post_id -> $new_status", 'success' => true );
 
             default:
@@ -799,6 +923,9 @@ class CDW_CLI_Service {
                 return array( 'output' => $output, 'success' => true );
 
             case 'empty':
+                if ( ! class_exists( 'WP_Optimize' ) ) {
+                    return array( 'output' => 'WP-Optimize plugin is required for this command.', 'success' => false );
+                }
                 wp_optimize()->database->clean_all();
                 return array( 'output' => 'Database optimized', 'success' => true );
 
@@ -814,46 +941,66 @@ class CDW_CLI_Service {
         switch ( $subcmd ) {
             case 'clear':
             case 'flush':
-                global $wpdb;
+                $type = ! empty( $args[0] ) ? strtolower( sanitize_text_field( $args[0] ) ) : 'all';
 
-                $types = array();
-                if ( empty( $args[0] ) || in_array( 'all', $args, true ) ) {
-                    $types = array( 'posts', 'terms', 'comments' );
-                } else {
-                    $types = array( sanitize_text_field( $args[0] ) );
+                if ( in_array( $type, array( 'all', 'object' ), true ) ) {
+                    wp_cache_flush();
+                    return array( 'output' => 'Object cache fully flushed.', 'success' => true );
                 }
 
+                $can_flush_group = function_exists( 'wp_cache_flush_group' );
                 $output = "Cleared cache:\n";
-                foreach ( $types as $type ) {
-                    switch ( $type ) {
-                        case 'posts':
-                            wp_cache_flush();
-                            $output .= "  - Post cache\n";
-                            break;
-                        case 'terms':
-                            wp_cache_flush();
-                            $output .= "  - Term cache\n";
-                            break;
-                        case 'comments':
-                            wp_cache_flush();
-                            $output .= "  - Comment cache\n";
-                            break;
-                        case 'transients':
-                            delete_transients();
-                            $output .= "  - Transients\n";
-                            break;
-                        case 'object':
-                            wp_cache_flush();
-                            $output .= "  - Object cache\n";
-                            break;
-                    }
-                }
 
-                return array( 'output' => $output, 'success' => true );
+                switch ( $type ) {
+                    case 'posts':
+                        if ( $can_flush_group ) {
+                            wp_cache_flush_group( 'posts' );
+                            wp_cache_flush_group( 'post_meta' );
+                        } else {
+                            wp_cache_flush();
+                        }
+                        $output .= "  - Post cache\n";
+                        break;
+                    case 'terms':
+                        if ( $can_flush_group ) {
+                            wp_cache_flush_group( 'terms' );
+                            wp_cache_flush_group( 'term_meta' );
+                        } else {
+                            wp_cache_flush();
+                        }
+                        $output .= "  - Term cache\n";
+                        break;
+                    case 'comments':
+                        if ( $can_flush_group ) {
+                            wp_cache_flush_group( 'comment' );
+                            wp_cache_flush_group( 'comment_meta' );
+                        } else {
+                            wp_cache_flush();
+                        }
+                        $output .= "  - Comment cache\n";
+                        break;
+                    case 'transients':
+                        global $wpdb;
+                        $wpdb->query(
+                            "DELETE FROM {$wpdb->options} WHERE
+                 option_name LIKE '_transient_cdw_%'
+                 OR option_name LIKE '_transient_timeout_cdw_%'
+                 OR option_name LIKE '_site_transient_cdw_%'
+                 OR option_name LIKE '_site_transient_timeout_cdw_%'"
+                        );
+                        $output .= "  - CDW transients\n";
+                        break;
+                    default:
+                        return array(
+                            'output'  => "Unknown cache type: $type\nAvailable: all, object, posts, terms, comments, transients",
+                            'success' => false,
+                        );
+                }
+                return array( 'output' => rtrim( $output ), 'success' => true );
 
             default:
                 return array(
-                    'output'  => "Available cache commands:\n  cache flush [type]       - Flush cache (all, posts, terms, comments, transients, object)",
+                    'output'  => "Available cache commands:\n  cache flush [type]       - Flush cache (all, object, posts, terms, comments, transients)",
                     'success' => true,
                 );
         }
@@ -864,6 +1011,9 @@ class CDW_CLI_Service {
             case 'size':
                 global $wpdb;
                 $result = $wpdb->get_row( 'SELECT ROUND( SUM( data_length + index_length ) / 1024 / 1024, 2 ) AS size FROM information_schema.tables WHERE table_schema = DATABASE()' );
+                if ( ! $result || $result->size === null ) {
+                    return array( 'output' => 'Could not determine database size.', 'success' => false );
+                }
                 return array( 'output' => "Database size: {$result->size} MB", 'success' => true );
 
             case 'tables':
@@ -894,7 +1044,7 @@ class CDW_CLI_Service {
                 if ( false === $value ) {
                     return array( 'output' => "Option not found: $name", 'success' => false );
                 }
-                return array( 'output' => "$name = " . ( is_array( $value ) ? json_encode( $value ) : $value ), 'success' => true );
+                return array( 'output' => "$name = " . ( is_array( $value ) ? wp_json_encode( $value ) : $value ), 'success' => true );
 
             case 'set':
                 if ( count( $args ) < 2 ) {
@@ -904,9 +1054,15 @@ class CDW_CLI_Service {
                 if ( $this->is_option_protected( $name ) ) {
                     return array( 'output' => "Cannot modify protected option: $name", 'success' => false );
                 }
-                $value = sanitize_text_field( $args[1] );
-                update_option( $name, $value );
-                return array( 'output' => "Option updated: $name = $value", 'success' => true );
+                $value   = sanitize_text_field( $args[1] );
+                $updated = update_option( $name, $value );
+                // update_option() returns false both on DB failure AND when the value is unchanged.
+                // Check that the stored value matches what was requested.
+                $success = $updated || ( get_option( $name ) === $value );
+                return array(
+                    'output'  => $success ? "Option updated: $name = $value" : "Failed to update option: $name",
+                    'success' => $success,
+                );
 
             case 'delete':
                 if ( empty( $args[0] ) ) {
@@ -916,8 +1072,11 @@ class CDW_CLI_Service {
                 if ( $this->is_option_protected( $name ) ) {
                     return array( 'output' => "Cannot delete protected option: $name", 'success' => false );
                 }
-                delete_option( $name );
-                return array( 'output' => "Option deleted: $name", 'success' => true );
+                $deleted = delete_option( $name );
+                return array(
+                    'output'  => $deleted ? "Option deleted: $name" : "Option not found: $name",
+                    'success' => $deleted,
+                );
 
             case 'list':
                 global $wpdb;
@@ -971,9 +1130,12 @@ class CDW_CLI_Service {
         switch ( $subcmd ) {
             case 'list':
                 $crons  = _get_cron_array();
+                if ( empty( $crons ) ) {
+                    return array( 'output' => 'No scheduled cron events found.', 'success' => true );
+                }
                 $output  = "Scheduled Cron Events:\n";
                 foreach ( $crons as $timestamp => $hooks ) {
-                    $time = date( 'Y-m-d H:i:s', $timestamp );
+                    $time = wp_date( 'Y-m-d H:i:s', $timestamp );
                     foreach ( $hooks as $hook => $events ) {
                         foreach ( $events as $key => $event ) {
                             $schedule = isset( $event['schedule'] ) ? $event['schedule'] : 'one-time';
@@ -989,13 +1151,21 @@ class CDW_CLI_Service {
                 }
                 $hook = sanitize_key( $args[0] );
                 $crons = _get_cron_array();
-                if ( ! isset( $crons[ $hook ] ) ) {
+                if ( empty( $crons ) ) {
                     return array( 'output' => "Cron hook not found: $hook", 'success' => false );
                 }
-                foreach ( $crons[ $hook ] as $timestamp => $events ) {
-                    foreach ( $events as $event ) {
-                        do_action_ref_array( $hook, $event['args'] );
+                $hook_found = false;
+                foreach ( $crons as $timestamp => $hooks ) {
+                    if ( isset( $hooks[ $hook ] ) ) {
+                        $hook_found = true;
+                        foreach ( $hooks[ $hook ] as $event ) {
+                            $event_args = isset( $event['args'] ) && is_array( $event['args'] ) ? $event['args'] : array();
+                            do_action_ref_array( $hook, $event_args );
+                        }
                     }
+                }
+                if ( ! $hook_found ) {
+                    return array( 'output' => "Cron hook not found: $hook", 'success' => false );
                 }
                 return array( 'output' => "Cron hook executed: $hook", 'success' => true );
 
@@ -1010,14 +1180,21 @@ class CDW_CLI_Service {
     private function handle_maintenance_command( $subcmd, $args ) {
         switch ( $subcmd ) {
             case 'enable':
-                $message = ! empty( $args[0] ) ? sanitize_text_field( implode( ' ', $args ) ) : 'Site is under maintenance.';
-                $content = "<html><body><h1>$message</h1></body></html>";
-                file_put_contents( ABSPATH . '.maintenance', $content );
+                // WordPress checks .maintenance by including it as PHP and reading $upgrading.
+                // The file must define: $upgrading = time();
+                $upgrading_time = time();
+                $content = "<?php \$upgrading = $upgrading_time; ?>";
+                $written = file_put_contents( ABSPATH . '.maintenance', $content );
+                if ( false === $written ) {
+                    return array( 'output' => 'Maintenance mode enable failed: could not write .maintenance file. Check file permissions.', 'success' => false );
+                }
                 return array( 'output' => 'Maintenance mode enabled', 'success' => true );
 
             case 'disable':
                 if ( file_exists( ABSPATH . '.maintenance' ) ) {
-                    unlink( ABSPATH . '.maintenance' );
+                    if ( ! unlink( ABSPATH . '.maintenance' ) ) {
+                        return array( 'output' => 'Maintenance mode disable failed: could not delete .maintenance file. Check file permissions.', 'success' => false );
+                    }
                 }
                 return array( 'output' => 'Maintenance mode disabled', 'success' => true );
 
@@ -1029,7 +1206,7 @@ class CDW_CLI_Service {
         }
     }
 
-    private function handle_search_replace_command( $args ) {
+    private function handle_search_replace_command( $args, $raw_args = array() ) {
         if ( count( $args ) < 2 ) {
             return array(
                 'output'  => "Usage: search-replace <old> <new> [--dry-run] [--force]\n  old  - Text to search for\n  new  - Replacement text\n  --dry-run - Preview changes without applying",
@@ -1037,12 +1214,16 @@ class CDW_CLI_Service {
             );
         }
 
-        $old     = sanitize_text_field( $args[0] );
-        $new     = sanitize_text_field( $args[1] );
-        $dry_run = $this->has_dry_run_flag( $args );
+        $old     = wp_unslash( $args[0] );
+        $new     = wp_unslash( $args[1] );
+        // Check --dry-run in the original $raw_args (flags are stripped from $args).
+        $dry_run = $this->has_dry_run_flag( $raw_args );
 
         global $wpdb;
-        $tables = $wpdb->get_results( 'SHOW TABLES', ARRAY_N );
+        $tables = $wpdb->get_results(
+            $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->prefix ) . '%' ),
+            ARRAY_N
+        );
 
         $output  = "Search & Replace: '$old' -> '$new'\n";
         $output .= $dry_run ? "(DRY RUN - no changes made)\n" : "(APPLYING CHANGES)\n";
@@ -1050,10 +1231,18 @@ class CDW_CLI_Service {
         $count = 0;
         foreach ( $tables as $table ) {
             $table_name = $table[0];
-            $columns    = $wpdb->get_results( "SHOW COLUMNS FROM $table_name", ARRAY_N );
+            $table_name_escaped = preg_replace( '/[^a-zA-Z0-9_]/', '', $table_name );
+            if ( empty( $table_name_escaped ) ) {
+                continue;
+            }
+            $columns = $wpdb->get_results( "SHOW COLUMNS FROM `$table_name_escaped`", ARRAY_N );
 
             foreach ( $columns as $column ) {
                 $col_name = $column[0];
+                $col_name_escaped = preg_replace( '/[^a-zA-Z0-9_]/', '', $col_name );
+                if ( empty( $col_name_escaped ) ) {
+                    continue;
+                }
                 $col_type = $column[1];
 
                 if ( stripos( $col_type, 'char' ) === false && stripos( $col_type, 'text' ) === false ) {
@@ -1063,7 +1252,7 @@ class CDW_CLI_Service {
                 if ( $dry_run ) {
                     $result = $wpdb->get_results(
                         $wpdb->prepare(
-                            "SELECT COUNT(*) as cnt FROM $table_name WHERE $col_name LIKE %s",
+                            "SELECT COUNT(*) as cnt FROM `$table_name_escaped` WHERE `$col_name_escaped` LIKE %s",
                             '%' . $wpdb->esc_like( $old ) . '%'
                         )
                     );
@@ -1072,16 +1261,58 @@ class CDW_CLI_Service {
                         $count  += $result[0]->cnt;
                     }
                 } else {
-                    $result = $wpdb->query(
+                    // Find the primary key column for this table.
+                    $pk_col = null;
+                    foreach ( $columns as $col_def ) {
+                        if ( strtoupper( $col_def[3] ) === 'PRI' ) {
+                            $pk_col = preg_replace( '/[^a-zA-Z0-9_]/', '', $col_def[0] );
+                            break;
+                        }
+                    }
+
+                    if ( ! $pk_col ) {
+                        // No PK — use bulk SQL REPLACE as best-effort fallback.
+                        $affected = (int) $wpdb->query(
+                            $wpdb->prepare(
+                                "UPDATE `$table_name_escaped` SET `$col_name_escaped` = REPLACE(`$col_name_escaped`, %s, %s) WHERE `$col_name_escaped` LIKE %s",
+                                $old, $new, '%' . $wpdb->esc_like( $old ) . '%'
+                            )
+                        );
+                        if ( $affected > 0 ) {
+                            $output .= "  $table_name.$col_name: $affected changes (no PK, bulk)\n";
+                            $count  += $affected;
+                        }
+                        continue;
+                    }
+
+                    $rows = $wpdb->get_results(
                         $wpdb->prepare(
-                            "UPDATE $table_name SET $col_name = REPLACE($col_name, %s, %s)",
-                            $old,
-                            $new
-                        )
+                            "SELECT `$pk_col`, `$col_name_escaped` FROM `$table_name_escaped` WHERE `$col_name_escaped` LIKE %s",
+                            '%' . $wpdb->esc_like( $old ) . '%'
+                        ),
+                        ARRAY_N
                     );
-                    if ( $result > 0 ) {
-                        $output .= "  $table_name.$col_name: $result changes\n";
-                        $count  += $result;
+
+                    $changed = 0;
+                    foreach ( (array) $rows as $row ) {
+                        $pk_val   = $row[0];
+                        $original = $row[1];
+                        $replaced = $this->replace_in_value( $original, $old, $new );
+                        if ( $replaced !== $original ) {
+                            $wpdb->update(
+                                $table_name_escaped,
+                                array( $col_name_escaped => $replaced ),
+                                array( $pk_col           => $pk_val ),
+                                array( '%s' ),
+                                array( '%s' )
+                            );
+                            $changed++;
+                        }
+                    }
+
+                    if ( $changed > 0 ) {
+                        $output .= "  $table_name.$col_name: $changed changes\n";
+                        $count  += $changed;
                     }
                 }
             }
@@ -1089,6 +1320,35 @@ class CDW_CLI_Service {
 
         $output .= "Total: $count replacements";
         return array( 'output' => $output, 'success' => true );
+    }
+
+    private function replace_in_value( $value, $old, $new ) {
+        if ( is_serialized( $value ) ) {
+            $data = unserialize( $value );
+            return serialize( $this->replace_in_data( $data, $old, $new ) );
+        }
+        return str_replace( $old, $new, $value );
+    }
+
+    private function replace_in_data( $data, $old, $new ) {
+        if ( is_string( $data ) ) {
+            return str_replace( $old, $new, $data );
+        }
+        if ( is_array( $data ) ) {
+            $out = array();
+            foreach ( $data as $k => $v ) {
+                $new_key         = is_string( $k ) ? str_replace( $old, $new, $k ) : $k;
+                $out[ $new_key ] = $this->replace_in_data( $v, $old, $new );
+            }
+            return $out;
+        }
+        if ( is_object( $data ) ) {
+            foreach ( get_object_vars( $data ) as $prop => $val ) {
+                $data->$prop = $this->replace_in_data( $val, $old, $new );
+            }
+            return $data;
+        }
+        return $data;
     }
 
     private function handle_help_command() {
@@ -1146,10 +1406,10 @@ Options:
   option get <name>       - Get option
   option set <name> <val> - Set option
   option delete <name>    - Delete option
-  option list            options
+  option list             - List CDW options
 
 Transients:
-  transient - List CDW list         - List transients
+  transient list         - List transients
   transient delete <name> - Delete transient
 
 Cron:

@@ -1,4 +1,5 @@
 import { createRoot } from '@wordpress/element';
+import apiFetch from '@wordpress/api-fetch';
 import StatsWidget from './components/StatsWidget';
 import TasksWidget from './components/TasksWidget';
 import PostsWidget from './components/PostsWidget';
@@ -17,6 +18,11 @@ function SettingsApp() {
             <SettingsPanel />
         </div>
     );
+}
+
+// Configure nonce for all apiFetch calls globally.
+if ( window.cdwData?.nonce ) {
+    apiFetch.use( apiFetch.createNonceMiddleware( window.cdwData.nonce ) );
 }
 
 document.addEventListener('DOMContentLoaded', () => {

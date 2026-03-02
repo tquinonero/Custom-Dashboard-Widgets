@@ -4,7 +4,6 @@
   "description": "Custom Dashboard Widgets - Modernized with React and REST API",
   "author": "Toni Quiñonero",
   "license": "GPL-3.0",
-  "main": "src/index.js",
   "scripts": {
     "start": "wp-scripts start",
     "build": "wp-scripts build",

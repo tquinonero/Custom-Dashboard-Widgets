@@ -137,6 +137,8 @@ export default function SettingsPanel() {
                             value={formData.bg_color}
                             onChange={handleChange}
                             placeholder="#ffffff"
+                            pattern="^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+                            title="Enter a valid hex color (e.g. #ffffff or #fff), or leave empty for default"
                         />
                         <span className="description">
                             Hex color for widget backgrounds. Leave empty for default.
@@ -152,6 +154,8 @@ export default function SettingsPanel() {
                             value={formData.header_bg_color}
                             onChange={handleChange}
                             placeholder="#ff7e5f"
+                            pattern="^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+                            title="Enter a valid hex color (e.g. #ffffff or #fff), or leave empty for default"
                         />
                         <span className="description">
                             Hex color for widget header background. Overrides the default gradient when set.
@@ -167,6 +171,8 @@ export default function SettingsPanel() {
                             value={formData.header_text_color}
                             onChange={handleChange}
                             placeholder="#ffffff"
+                            pattern="^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+                            title="Enter a valid hex color (e.g. #ffffff or #fff), or leave empty for default"
                         />
                         <span className="description">
                             Hex color for widget header text. Leave empty for default.

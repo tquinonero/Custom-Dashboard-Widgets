@@ -26,14 +26,18 @@ class CDW_Updates_Controller extends CDW_Base_Controller {
     }
 
     private function get_core_updates() {
-        $updates = wp_get_update_data();
+        $updates      = wp_get_update_data();
+        $core_count   = isset( $updates['counts']['wordpress'] ) ? (int) $updates['counts']['wordpress'] : 0;
         return array(
-            'count' => $updates['counts']['total'],
-            'available' => $updates['update'],
+            'count'     => $core_count,
+            'available' => $core_count > 0,
         );
     }
 
     private function get_plugin_updates() {
+        if ( ! function_exists( 'get_plugins' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
         $updates = get_site_transient( 'update_plugins' );
         $plugins = get_plugins();
         $upgrade = array();
@@ -46,7 +50,7 @@ class CDW_Updates_Controller extends CDW_Base_Controller {
                 $upgrade[] = array(
                     'file'    => $plugin_file,
                     'name'    => $plugin_name,
-                    'version' => $plugins[ $plugin_file ]['Version'],
+                    'version' => isset( $plugins[ $plugin_file ]['Version'] ) ? $plugins[ $plugin_file ]['Version'] : '',
                     'new_version' => $plugin_data->new_version,
                 );
             }

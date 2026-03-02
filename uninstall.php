@@ -89,4 +89,18 @@ if ( $remove_all_data ) {
 	// Use direct SQL deletes instead of get_users() to avoid loading all user IDs into memory.
 	$wpdb->delete( $wpdb->usermeta, array( 'meta_key' => 'cdw_tasks' ),       array( '%s' ) );
 	$wpdb->delete( $wpdb->usermeta, array( 'meta_key' => 'cdw_cli_history' ), array( '%s' ) );
+
+	// Delete rate-limit transients for all users
+	$wpdb->query(
+		"DELETE FROM {$wpdb->options} WHERE option_name LIKE '"
+		. $wpdb->esc_like( '_transient_cdw_cli_rate_' ) . "%'"
+	);
+	$wpdb->query(
+		"DELETE FROM {$wpdb->options} WHERE option_name LIKE '"
+		. $wpdb->esc_like( '_transient_timeout_cdw_cli_rate_' ) . "%'"
+	);
+	$wpdb->query(
+		"DELETE FROM {$wpdb->options} WHERE option_name LIKE '"
+		. $wpdb->esc_like( 'cdw_cli_rate_start_' ) . "%'"
+	);
 }

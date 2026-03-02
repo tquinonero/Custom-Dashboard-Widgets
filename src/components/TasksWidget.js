@@ -91,7 +91,7 @@ export default function TasksWidget() {
                                 <td>{task.name}</td>
                                 <td className="cdw-task-assignee">
                                     {task.created_by ? (
-                                        users.find(u => u.id === task.created_by)?.name || 'Unknown'
+                                        users.find(u => u.id === task.created_by)?.display_name || 'Unknown'
                                     ) : (
                                         'Me'
                                     )}
@@ -129,7 +129,7 @@ export default function TasksWidget() {
                         >
                             <option value="">My Tasks</option>
                             {users.map(user => (
-                                <option key={user.id} value={user.id}>{user.name}</option>
+                                <option key={user.id} value={user.id}>{user.display_name}</option>
                             ))}
                         </select>
                     )}

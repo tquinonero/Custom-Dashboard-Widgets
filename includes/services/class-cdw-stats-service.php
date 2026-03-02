@@ -21,17 +21,21 @@ class CDW_Stats_Service {
     }
 
     private function fetch_stats() {
+        if ( ! function_exists( 'get_plugins' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+
         $page_counts   = wp_count_posts( 'page' );
         $page_total    = $this->sum_post_statuses( $page_counts );
 
         $stats = array(
-            'posts'      => wp_count_posts()->publish,
+            'posts'      => (int) wp_count_posts()->publish,
             'pages'      => $page_total,
-            'comments'   => wp_count_comments()->approved,
+            'comments'   => (int) wp_count_comments()->approved,
             'users'      => count_users()['total_users'],
-            'media'      => wp_count_posts( 'attachment' )->inherit,
-            'categories' => wp_count_terms( array( 'taxonomy' => 'category' ) ),
-            'tags'       => wp_count_terms( array( 'taxonomy' => 'post_tag' ) ),
+            'media'      => (int) wp_count_posts( 'attachment' )->inherit,
+            'categories' => (int) wp_count_terms( array( 'taxonomy' => 'category' ) ),
+            'tags'       => (int) wp_count_terms( array( 'taxonomy' => 'post_tag' ) ),
             'plugins'    => count( get_plugins() ),
             'themes'     => count( wp_get_themes() ),
         );

@@ -87,7 +87,7 @@ class CDW_CLI_Command {
 
                 WP_CLI::line( '=== Tasks ===' );
                 foreach ( $tasks as $index => $task ) {
-                    $date = date( 'Y-m-d H:i', $task['timestamp'] );
+                    $date = wp_date( 'Y-m-d H:i', $task['timestamp'] );
                     WP_CLI::line( sprintf( '%d. %s (created: %s)', $index + 1, $task['name'], $date ) );
                 }
                 break;
@@ -115,7 +115,7 @@ class CDW_CLI_Command {
                 $command = implode( ' ', array_slice( $args, 1 ) );
                 $user_id = get_current_user_id();
 
-                $result = $this->cli_service->execute( $command, $user_id );
+                $result = $this->cli_service->execute( $command, $user_id, true );
 
                 if ( is_wp_error( $result ) ) {
                     WP_CLI::error( $result->get_error_message() );
@@ -136,7 +136,7 @@ class CDW_CLI_Command {
 
                 WP_CLI::line( '=== CLI Command History ===' );
                 foreach ( $history as $index => $item ) {
-                    $date    = date( 'Y-m-d H:i', $item['timestamp'] );
+                    $date    = wp_date( 'Y-m-d H:i', $item['timestamp'] );
                     $status  = $item['success'] ? '[OK]' : '[FAIL]';
                     WP_CLI::line( sprintf( '%d. %s %s - %s', $index + 1, $status, $date, $item['command'] ) );
                 }

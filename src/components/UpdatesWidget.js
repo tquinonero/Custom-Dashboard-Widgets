@@ -14,16 +14,33 @@ export default function UpdatesWidget() {
         return <div className="cdw-loading">Loading updates...</div>;
     }
 
+    const pluginUpdates = updates.plugins || [];
+    const themeUpdates = updates.themes || [];
+    const coreAvailable = updates.core?.available || false;
+    const hasUpdates = coreAvailable || pluginUpdates.length > 0 || themeUpdates.length > 0;
+
     return (
         <div className="cdw-updates-widget">
-            {updates.length === 0 ? (
+            {!hasUpdates ? (
                 <p>Good job, you have no pending updates.</p>
             ) : (
                 <ul className="cdw-updates-list">
-                    {updates.map((update, index) => (
-                        <li key={index}>
-                            <strong>{update.name}</strong> -{' '}
+                    {coreAvailable && (
+                        <li key="core">
+                            <strong>WordPress Core</strong> -{' '}
                             <a href={(window.cdwData?.adminUrl || '') + 'update-core.php'}>Update Now</a>
+                        </li>
+                    )}
+                    {pluginUpdates.map((update, index) => (
+                        <li key={`plugin-${index}`}>
+                            <strong>{update.name}</strong> {update.version} &rarr; {update.new_version} -{' '}
+                            <a href={(window.cdwData?.adminUrl || '') + 'plugins.php'}>Update Now</a>
+                        </li>
+                    ))}
+                    {themeUpdates.map((update, index) => (
+                        <li key={`theme-${index}`}>
+                            <strong>{update.name}</strong> {update.version} &rarr; {update.new_version} -{' '}
+                            <a href={(window.cdwData?.adminUrl || '') + 'themes.php'}>Update Now</a>
                         </li>
                     ))}
                 </ul>

@@ -18,13 +18,13 @@ class CDW_Tasks_Controller extends CDW_Base_Controller {
         register_rest_route( $this->namespace, '/tasks', array(
             'methods'             => 'GET',
             'callback'            => array( $this, 'get_tasks' ),
-            'permission_callback' => array( $this, 'check_read_permission' ),
+            'permission_callback' => array( $this, 'check_admin_permission' ),
         ) );
 
         register_rest_route( $this->namespace, '/tasks', array(
             'methods'             => 'POST',
             'callback'            => array( $this, 'save_tasks' ),
-            'permission_callback' => array( $this, 'check_read_permission' ),
+            'permission_callback' => array( $this, 'check_admin_permission' ),
         ) );
     }
 

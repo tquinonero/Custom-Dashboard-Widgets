@@ -1,109 +1,972 @@
-# CDW Plugin Refactoring Plan
+You are fixing a WordPress plugin located at `/home/toni/Escritorio/Wordpress/wp-content/plugins/CDW`.
 
-## Status: COMPLETED
-
-## Overview
-Split the 2,516-line `class-cdw-rest-api.php` into maintainable, single-responsibility files.
+Before touching any file, read it first to confirm the current state matches what is described here.
+After all PHP changes, run `npm run build`. The expected result is `compiled with 8 warnings` (Sass darken() deprecations only) and zero errors.
 
 ---
 
-## Phase 1: REST API Controllers - COMPLETED
+## ALREADY FIXED — do NOT re-report or re-fix these
 
-**Created in:** `includes/controllers/`
-
-| File | Lines | Responsibility |
-|------|-------|---------------|
-| `class-cdw-base-controller.php` | 103 | Shared methods (permissions, responses) |
-| `class-cdw-stats-controller.php` | 29 | /stats endpoint |
-| `class-cdw-media-controller.php` | 62 | /media endpoint |
-| `class-cdw-posts-controller.php` | 69 | /posts endpoint |
-| `class-cdw-users-controller.php` | 34 | /users endpoint |
-| `class-cdw-updates-controller.php` | 79 | /updates endpoint |
-| `class-cdw-tasks-controller.php` | 62 | /tasks endpoint |
-| `class-cdw-settings-controller.php` | 102 | /settings endpoint |
-| `class-cdw-cli-controller.php` | 140 | /cli endpoints |
+All bugs listed in the previous prompt.txt sessions, plus:
+- `class-cdw-settings-controller.php`: docs_url rejects non-http(s) URIs.
+- `class-cdw-cli-service.php`: option delete checks delete_option() return.
+- `class-cdw-cli-service.php`: handle_search_replace_command() uses wp_unslash() instead of sanitize_text_field() for $old/$new.
+- `class-cdw-rest-api.php`: Duplicate const DB_VERSION removed; ensure_audit_table() references CDW_CLI_Service::DB_VERSION.
+- `class-cdw-loader.php`: clear_content_cache() added with save_post, delete_post, add_attachment, edit_attachment hooks.
 
 ---
 
-## Phase 2: Service Classes - COMPLETED
+## ISSUES TO FIX THIS SESSION
 
-**Created in:** `includes/services/`
-
-| File | Lines | Responsibility |
-|------|-------|---------------|
-| `class-cdw-stats-service.php` | 67 | Stats fetching logic |
-| `class-cdw-task-service.php` | 99 | Task CRUD logic |
-| `class-cdw-cli-service.php` | 1167 | CLI execution logic |
+Fix ALL of them. Read each file before editing to confirm the code matches what is described.
 
 ---
 
-## Phase 3: WP-CLI Integration - COMPLETED
+### C-1 · CRITICAL · class-cdw-cli-service.php — execute() mangles the whole command string before arg parsing
 
-**Created in:** `includes/cli/`
+The problem: Around line 161, execute() does `$command = sanitize_text_field( wp_unslash( $command ) );` BEFORE splitting into parts. sanitize_text_field() strips HTML tags, so any argument containing < or > is destroyed before any handler sees it. The search-replace handler fix (wp_unslash) is bypassed because arguments are already stripped two stack frames earlier.
 
-| File | Lines | Responsibility |
-|------|-------|---------------|
-| `class-cdw-cli-command.php` | 173 | `wp cdw` command |
+Fix: Remove sanitize_text_field() here. wp_unslash() is sufficient. Individual handlers sanitize their own args.
+
+BEFORE:
+    $command = sanitize_text_field( wp_unslash( $command ) );
+
+AFTER:
+    $command = wp_unslash( $command );
 
 ---
 
-## Results
+### C-2 · CRITICAL · class-cdw-cli-service.php — search-replace corrupts serialized PHP data
 
-### Before vs After
+The problem: handle_search_replace_command() uses SQL REPLACE() directly. WordPress stores data as serialized PHP (e.g. `a:2:{s:3:"key";s:5:"value";}`). SQL REPLACE() changes bytes but leaves length integers intact, fatally breaking unserialize(). This affects wp_options, wp_postmeta, wp_usermeta, and any table with serialized data. This is data-corrupting on every real-world use.
 
-| Metric | Before | After |
-|--------|--------|-------|
-| Largest file | 2,516 lines | 1,167 lines (CLI service) |
-| Total files in includes/ | 3 | 15 |
-| REST API router | 2,516 lines | 67 lines |
-| Average lines per file | 900 | ~130 |
+Fix: Add two private helper methods to CDW_CLI_Service:
 
-### New File Structure
+```php
+private function replace_in_value( $value, $old, $new ) {
+    if ( is_serialized( $value ) ) {
+        $data = unserialize( $value );
+        return serialize( $this->replace_in_data( $data, $old, $new ) );
+    }
+    return str_replace( $old, $new, $value );
+}
 
-```
-includes/
-├── controllers/
-│   ├── class-cdw-base-controller.php
-│   ├── class-cdw-stats-controller.php
-│   ├── class-cdw-media-controller.php
-│   ├── class-cdw-posts-controller.php
-│   ├── class-cdw-users-controller.php
-│   ├── class-cdw-updates-controller.php
-│   ├── class-cdw-tasks-controller.php
-│   ├── class-cdw-settings-controller.php
-│   └── class-cdw-cli-controller.php
-├── services/
-│   ├── class-cdw-stats-service.php
-│   ├── class-cdw-task-service.php
-│   └── class-cdw-cli-service.php
-├── cli/
-│   └── class-cdw-cli-command.php
-├── class-cdw-rest-api.php     (router - 67 lines)
-├── class-cdw-widgets.php      (unchanged - 112 lines)
-└── class-cdw-loader.php       (updated - 72 lines)
+private function replace_in_data( $data, $old, $new ) {
+    if ( is_string( $data ) ) {
+        return str_replace( $old, $new, $data );
+    }
+    if ( is_array( $data ) ) {
+        $out = array();
+        foreach ( $data as $k => $v ) {
+            $new_key         = is_string( $k ) ? str_replace( $old, $new, $k ) : $k;
+            $out[ $new_key ] = $this->replace_in_data( $v, $old, $new );
+        }
+        return $out;
+    }
+    if ( is_object( $data ) ) {
+        foreach ( get_object_vars( $data ) as $prop => $val ) {
+            $data->$prop = $this->replace_in_data( $val, $old, $new );
+        }
+        return $data;
+    }
+    return $data;
+}
 ```
 
+In handle_search_replace_command(), in the live (non-dry-run) branch, replace the current $wpdb->query( UPDATE ... REPLACE() ... ) block with a per-row fetch-transform-update loop:
+
+```php
+} else {
+    // Find the primary key column for this table.
+    $pk_col = null;
+    foreach ( $columns as $col_def ) {
+        if ( strtoupper( $col_def[3] ) === 'PRI' ) {
+            $pk_col = preg_replace( '/[^a-zA-Z0-9_]/', '', $col_def[0] );
+            break;
+        }
+    }
+
+    if ( ! $pk_col ) {
+        // No PK — use bulk SQL REPLACE as best-effort fallback.
+        $affected = (int) $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE `$table_name_escaped` SET `$col_name_escaped` = REPLACE(`$col_name_escaped`, %s, %s) WHERE `$col_name_escaped` LIKE %s",
+                $old, $new, '%' . $wpdb->esc_like( $old ) . '%'
+            )
+        );
+        if ( $affected > 0 ) {
+            $output .= "  $table_name.$col_name: $affected changes (no PK, bulk)\n";
+            $count  += $affected;
+        }
+        continue;
+    }
+
+    $rows = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT `$pk_col`, `$col_name_escaped` FROM `$table_name_escaped` WHERE `$col_name_escaped` LIKE %s",
+            '%' . $wpdb->esc_like( $old ) . '%'
+        ),
+        ARRAY_N
+    );
+
+    $changed = 0;
+    foreach ( (array) $rows as $row ) {
+        $pk_val   = $row[0];
+        $original = $row[1];
+        $replaced = $this->replace_in_value( $original, $old, $new );
+        if ( $replaced !== $original ) {
+            $wpdb->update(
+                $table_name_escaped,
+                array( $col_name_escaped => $replaced ),
+                array( $pk_col           => $pk_val ),
+                array( '%s' ),
+                array( '%s' )
+            );
+            $changed++;
+        }
+    }
+
+    if ( $changed > 0 ) {
+        $output .= "  $table_name.$col_name: $changed changes\n";
+        $count  += $changed;
+    }
+}
+```
+
 ---
 
-## WP-CLI Commands Available
+### C-3 · CRITICAL · class-cdw-cli-service.php — theme install is missing theme-install.php include
 
-- `wp cdw stats` - Show site stats
-- `wp cdw tasks list` - List tasks
-- `wp cdw tasks clear` - Clear tasks
-- `wp cdw cli execute <command>` - Execute CLI command
-- `wp cdw cli history` - Show command history
-- `wp cdw cli clear` - Clear command history
+The problem: themes_api() is defined in wp-admin/includes/theme-install.php, which is never required. Every `theme install <slug>` command throws a fatal "Call to undefined function themes_api()" error.
+
+Fix: In the `case 'install':` block of handle_theme_command(), add the missing include:
+
+BEFORE:
+    require_once ABSPATH . 'wp-admin/includes/file.php';
+    require_once ABSPATH . 'wp-admin/includes/misc.php';
+    require_once ABSPATH . 'wp-admin/includes/theme.php';
+    require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
+AFTER:
+    require_once ABSPATH . 'wp-admin/includes/file.php';
+    require_once ABSPATH . 'wp-admin/includes/misc.php';
+    require_once ABSPATH . 'wp-admin/includes/theme.php';
+    require_once ABSPATH . 'wp-admin/includes/theme-install.php';
+    require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
 
 ---
 
-## Implementation Notes
+### H-1 · HIGH · class-cdw-cli-service.php — search-replace runs on ALL database tables
 
-1. Controllers call services for business logic
-2. Base controller provides shared functionality (permissions, responses)
-3. CLI service handles all command execution with security checks
-4. WP-CLI command provides terminal access to plugin features
-5. REST API router now only loads and registers controllers
+The problem: `SHOW TABLES` returns every table in the MySQL database, including non-WordPress tables.
+
+Fix:
+BEFORE:
+    $tables = $wpdb->get_results( 'SHOW TABLES', ARRAY_N );
+
+AFTER:
+    $tables = $wpdb->get_results(
+        $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->prefix ) . '%' ),
+        ARRAY_N
+    );
 
 ---
 
-## COMPLETED
+### H-2 · HIGH · class-cdw-cli-service.php — resolve_plugin_file() does not check scandir() return
+
+The problem: scandir() returns false when the directory is unreadable. foreach(false) throws TypeError in PHP 8+.
+
+Fix:
+BEFORE:
+    $files = scandir( $wp_content_dir . '/plugins/' . $slug );
+    foreach ( $files as $file ) {
+
+AFTER:
+    $files = scandir( $wp_content_dir . '/plugins/' . $slug );
+    if ( ! is_array( $files ) ) {
+        return false;
+    }
+    foreach ( $files as $file ) {
+
+---
+
+### H-3 · HIGH · class-cdw-cli-service.php — user create generates an inaccessible account
+
+The problem: The generated password is never shown and no welcome email is sent. The account is permanently inaccessible without a manual reset.
+
+Fix: Call wp_new_user_notification() after creating the user:
+
+BEFORE:
+    wp_update_user( array( 'ID' => $user_id, 'role' => $role ) );
+    return array( 'output' => "User created: $username (ID: $user_id, role: $role)", 'success' => true );
+
+AFTER:
+    wp_update_user( array( 'ID' => $user_id, 'role' => $role ) );
+    wp_new_user_notification( $user_id, null, 'both' );
+    return array( 'output' => "User created: $username (ID: $user_id, role: $role). Password reset email sent to $email.", 'success' => true );
+
+---
+
+### H-4 · HIGH · class-cdw-cli-service.php — user delete silently destroys all posts by that user
+
+The problem: wp_delete_user( $user->ID ) with no $reassign argument deletes all content authored by that user — catastrophic on any real site.
+
+Fix part 1: In execute(), pass $raw_args to handle_user_command():
+
+BEFORE:
+    case 'user':
+        $result = $this->handle_user_command( $subcmd, $clean_args );
+
+AFTER:
+    case 'user':
+        $result = $this->handle_user_command( $subcmd, $clean_args, $raw_args );
+
+Fix part 2: Update method signature:
+
+BEFORE:
+    private function handle_user_command( $subcmd, $args ) {
+
+AFTER:
+    private function handle_user_command( $subcmd, $args, $raw_args = array() ) {
+
+Fix part 3: Inside case 'delete':, replace the wp_delete_user call block:
+
+BEFORE:
+    require_once ABSPATH . 'wp-admin/includes/user.php';
+    $result = wp_delete_user( $user->ID );
+    if ( ! $result ) {
+        return array( 'output' => 'Delete failed: could not delete user.', 'success' => false );
+    }
+    return array( 'output' => "User deleted: $identifier", 'success' => true );
+
+AFTER:
+    require_once ABSPATH . 'wp-admin/includes/user.php';
+    $reassign_id    = null;
+    $delete_content = in_array( '--delete-content', $raw_args, true );
+    foreach ( $raw_args as $arg ) {
+        if ( preg_match( '/^--reassign=(\d+)$/', $arg, $m ) ) {
+            $reassign_id = (int) $m[1];
+            break;
+        }
+    }
+    if ( null === $reassign_id && ! $delete_content ) {
+        return array(
+            'output'  => "user delete requires one of:\n  --reassign=<user_id>  Reassign content to another user\n  --delete-content      Permanently delete all their content\nExample: user delete $identifier --reassign=1 --force",
+            'success' => false,
+        );
+    }
+    if ( $reassign_id && ! get_userdata( $reassign_id ) ) {
+        return array( 'output' => "Reassign target not found: $reassign_id", 'success' => false );
+    }
+    $result = wp_delete_user( $user->ID, $reassign_id );
+    if ( ! $result ) {
+        return array( 'output' => 'Delete failed: could not delete user.', 'success' => false );
+    }
+    $note = $reassign_id ? " (content reassigned to user $reassign_id)" : ' (content deleted)';
+    return array( 'output' => "User deleted: $identifier$note", 'success' => true );
+
+Fix part 4: Strip --delete-content and --reassign=N from clean_args in execute():
+
+BEFORE:
+    $clean_args = array_values( array_filter( $raw_args, function( $arg ) {
+        return ! in_array( strtolower( $arg ), array( '--force', '--all', '--dry-run' ), true );
+    } ) );
+
+AFTER:
+    $clean_args = array_values( array_filter( $raw_args, function( $arg ) {
+        return ! in_array( strtolower( $arg ), array( '--force', '--all', '--dry-run', '--delete-content' ), true )
+            && ! preg_match( '/^--reassign=\d+$/', $arg );
+    } ) );
+
+---
+
+### H-5 · HIGH · class-cdw-rest-api.php — ensure_audit_table() runs on every page load via init hook
+
+The problem: init fires on every WordPress request including all frontend visitor hits. A get_option() DB query runs on each one.
+
+Fix:
+BEFORE:
+    add_action( 'init', array( $this, 'ensure_audit_table' ), 5 );
+
+AFTER:
+    add_action( 'admin_init', array( $this, 'ensure_audit_table' ) );
+
+---
+
+### H-6 · HIGH · class-cdw-cli-service.php — maintenance disable ignores unlink() return value
+
+The problem: If the file can't be deleted, unlink() returns false silently and the command reports success while the site stays in maintenance mode.
+
+Fix:
+BEFORE:
+    case 'disable':
+        if ( file_exists( ABSPATH . '.maintenance' ) ) {
+            unlink( ABSPATH . '.maintenance' );
+        }
+        return array( 'output' => 'Maintenance mode disabled', 'success' => true );
+
+AFTER:
+    case 'disable':
+        if ( file_exists( ABSPATH . '.maintenance' ) ) {
+            if ( ! unlink( ABSPATH . '.maintenance' ) ) {
+                return array( 'output' => 'Maintenance mode disable failed: could not delete .maintenance file. Check file permissions.', 'success' => false );
+            }
+        }
+        return array( 'output' => 'Maintenance mode disabled', 'success' => true );
+
+---
+
+### H-7 · HIGH · class-cdw-cli-service.php — plugin install and theme install don't require --force
+
+Fix:
+BEFORE:
+    $dangerous_commands = array(
+        'plugin' => array( 'delete', 'update' ),
+        'theme'  => array( 'delete', 'update' ),
+
+AFTER:
+    $dangerous_commands = array(
+        'plugin' => array( 'delete', 'update', 'install' ),
+        'theme'  => array( 'delete', 'update', 'install' ),
+
+---
+
+### H-8 · HIGH · class-cdw-cli-service.php — plugin install already-installed check is too broad
+
+The problem: strpos($plugin_file, $slug) matches any plugin whose PATH contains the slug as a substring (e.g. slug 'woo' matches 'woocommerce', 'woocommerce-payments', etc.).
+
+Fix:
+BEFORE:
+    $already_installed = false;
+    foreach ( $existing_plugins as $plugin_file => $plugin_data ) {
+        if ( strpos( $plugin_file, $slug ) !== false ) {
+            $already_installed = true;
+            break;
+        }
+    }
+
+AFTER:
+    $already_installed = false;
+    foreach ( $existing_plugins as $existing_file => $plugin_data ) {
+        $existing_slug = dirname( $existing_file );
+        if ( '.' === $existing_slug ) {
+            $existing_slug = basename( $existing_file, '.php' );
+        }
+        if ( $existing_slug === $slug || basename( $existing_file, '.php' ) === $slug ) {
+            $already_installed = true;
+            break;
+        }
+    }
+
+---
+
+### H-9 · HIGH · class-cdw-tasks-controller.php — tasks endpoint accessible to all logged-in users
+
+The problem: Both GET and POST /cdw/v1/tasks only require check_read_permission() (the 'read' capability). Any subscriber can call them.
+
+Fix: Change BOTH route permission_callback entries to check_admin_permission:
+
+BEFORE:
+    // GET route:
+    'permission_callback' => array( $this, 'check_read_permission' ),
+    // ... and POST route:
+    'permission_callback' => array( $this, 'check_read_permission' ),
+
+AFTER (both occurrences in register_routes()):
+    'permission_callback' => array( $this, 'check_admin_permission' ),
+
+---
+
+### M-1 · MEDIUM · Duplicate $protected_options in CDW_CLI_Service and CDW_Base_Controller
+
+Fix: Make it a public static property on CDW_Base_Controller, then reference it from CDW_CLI_Service.
+
+In class-cdw-base-controller.php:
+BEFORE:
+    protected $protected_options = array(
+
+AFTER:
+    public static $protected_options = array(
+
+Keep the instance method using self::$protected_options.
+
+In class-cdw-cli-service.php, remove the entire $protected_options property declaration and update is_option_protected():
+
+BEFORE:
+    public function is_option_protected( $option_name ) {
+        return in_array( $option_name, $this->protected_options, true );
+    }
+
+AFTER:
+    public function is_option_protected( $option_name ) {
+        // Ensure the base controller is loaded (it is, via class-cdw-rest-api.php load chain).
+        if ( class_exists( 'CDW_Base_Controller' ) ) {
+            return in_array( $option_name, CDW_Base_Controller::$protected_options, true );
+        }
+        return false;
+    }
+
+Also update class-cdw-base-controller.php's own is_option_protected() to use self:::
+BEFORE:
+    protected function is_option_protected( $option_name ) {
+        return in_array( $option_name, $this->protected_options, true );
+    }
+
+AFTER:
+    protected function is_option_protected( $option_name ) {
+        return in_array( $option_name, self::$protected_options, true );
+    }
+
+---
+
+### M-2 · MEDIUM · class-cdw-cli-service.php — cache flush named types all call wp_cache_flush() — misleading
+
+The problem: cache flush posts/terms/comments/object all call wp_cache_flush() which nukes the entire object cache regardless of the named type.
+
+Fix: Replace the entire case 'clear': case 'flush': block in handle_cache_command() with granular clearing. wp_cache_flush_group() requires WP 6.1 so add a fallback:
+
+```php
+case 'clear':
+case 'flush':
+    $type = ! empty( $args[0] ) ? strtolower( sanitize_text_field( $args[0] ) ) : 'all';
+
+    if ( in_array( $type, array( 'all', 'object' ), true ) ) {
+        wp_cache_flush();
+        return array( 'output' => 'Object cache fully flushed.', 'success' => true );
+    }
+
+    $can_flush_group = function_exists( 'wp_cache_flush_group' );
+    $output = "Cleared cache:\n";
+
+    switch ( $type ) {
+        case 'posts':
+            if ( $can_flush_group ) {
+                wp_cache_flush_group( 'posts' );
+                wp_cache_flush_group( 'post_meta' );
+            } else {
+                wp_cache_flush();
+            }
+            $output .= "  - Post cache\n";
+            break;
+        case 'terms':
+            if ( $can_flush_group ) {
+                wp_cache_flush_group( 'terms' );
+                wp_cache_flush_group( 'term_meta' );
+            } else {
+                wp_cache_flush();
+            }
+            $output .= "  - Term cache\n";
+            break;
+        case 'comments':
+            if ( $can_flush_group ) {
+                wp_cache_flush_group( 'comment' );
+                wp_cache_flush_group( 'comment_meta' );
+            } else {
+                wp_cache_flush();
+            }
+            $output .= "  - Comment cache\n";
+            break;
+        case 'transients':
+            global $wpdb;
+            $wpdb->query(
+                "DELETE FROM {$wpdb->options} WHERE
+                 option_name LIKE '_transient_cdw_%'
+                 OR option_name LIKE '_transient_timeout_cdw_%'
+                 OR option_name LIKE '_site_transient_cdw_%'
+                 OR option_name LIKE '_site_transient_timeout_cdw_%'"
+            );
+            $output .= "  - CDW transients\n";
+            break;
+        default:
+            return array(
+                'output'  => "Unknown cache type: $type\nAvailable: all, object, posts, terms, comments, transients",
+                'success' => false,
+            );
+    }
+    return array( 'output' => rtrim( $output ), 'success' => true );
+```
+
+---
+
+### M-3 · MEDIUM · class-cdw-cli-service.php — check_rate_limit() reads internal _transient_timeout_ option directly
+
+The problem: get_option('_transient_timeout_'.$key) is an internal WP implementation detail. It returns nothing useful when an object-cache (Redis/Memcached) backend is active, causing the rate window to reset on every command.
+
+Fix: Track the window start time in a dedicated option (not a transient). Replace the entire check_rate_limit() method:
+
+```php
+public function check_rate_limit( $user_id ) {
+    $key       = 'cdw_cli_rate_' . $user_id;
+    $start_key = 'cdw_cli_rate_start_' . $user_id;
+    $count     = get_transient( $key );
+
+    if ( false === $count ) {
+        // First command in a new window.
+        set_transient( $key, 1, self::RATE_LIMIT_WINDOW );
+        update_option( $start_key, time(), false );
+        return true;
+    }
+
+    if ( (int) $count >= self::RATE_LIMIT_COUNT ) {
+        return false;
+    }
+
+    $window_start = (int) get_option( $start_key, 0 );
+    $ttl          = max( 1, self::RATE_LIMIT_WINDOW - ( time() - $window_start ) );
+    set_transient( $key, (int) $count + 1, $ttl );
+    return true;
+}
+```
+
+Also add cleanup in uninstall.php after the existing cdw_cli_rate_ cleanup block:
+
+```php
+$wpdb->query(
+    "DELETE FROM {$wpdb->options} WHERE option_name LIKE '"
+    . $wpdb->esc_like( 'cdw_cli_rate_start_' ) . "%'"
+);
+```
+
+---
+
+### M-4 · MEDIUM · class-cdw-cli-service.php — SHOW TABLES LIKE issued on every command to check table existence
+
+The problem: log_cli_command() runs SHOW TABLES LIKE on every command with no caching.
+
+Fix: Add a static flag — replace the table-existence check in log_cli_command():
+
+Add this property at the top of the class (after the const declarations):
+    private static $audit_table_confirmed = false;
+
+Then in log_cli_command():
+BEFORE:
+    $table_exists = $wpdb->get_var(
+        "SHOW TABLES LIKE '" . $wpdb->esc_like( $table_name ) . "'"
+    );
+
+    if ( $table_exists !== $table_name ) {
+        return;
+    }
+
+AFTER:
+    if ( ! self::$audit_table_confirmed ) {
+        $exists = $wpdb->get_var(
+            "SHOW TABLES LIKE '" . $wpdb->esc_like( $table_name ) . "'"
+        );
+        if ( $exists !== $table_name ) {
+            return;
+        }
+        self::$audit_table_confirmed = true;
+    }
+
+---
+
+### M-5 · MEDIUM · class-cdw-cli-service.php — theme delete has a redundant --force check
+
+The problem: command_requires_force() already gates theme delete before the handler ever runs. The internal has_force_flag() check in case 'delete': is dead code.
+
+Fix: Remove the dead check from case 'delete': in handle_theme_command(). The only remaining guard should be the empty args check.
+
+BEFORE:
+    case 'delete':
+        if ( empty( $args[0] ) ) {
+            return array( 'output' => 'Usage: theme delete <theme-slug> --force', 'success' => false );
+        }
+        if ( ! $this->has_force_flag( $raw_args ) ) {
+            return array( 'output' => 'Usage: theme delete <theme-slug> --force', 'success' => false );
+        }
+        $slug = sanitize_text_field( $args[0] );
+
+AFTER:
+    case 'delete':
+        if ( empty( $args[0] ) ) {
+            return array( 'output' => 'Usage: theme delete <theme-slug> --force', 'success' => false );
+        }
+        $slug = sanitize_text_field( $args[0] );
+
+---
+
+### M-6 · MEDIUM · class-cdw-cli-service.php — option set ignores update_option() return value
+
+Fix:
+BEFORE:
+    $value = sanitize_text_field( $args[1] );
+    update_option( $name, $value );
+    return array( 'output' => "Option updated: $name = $value", 'success' => true );
+
+AFTER:
+    $value   = sanitize_text_field( $args[1] );
+    $updated = update_option( $name, $value );
+    // update_option() returns false both on DB failure AND when the value is unchanged.
+    // Check that the stored value matches what was requested.
+    $success = $updated || ( get_option( $name ) === $value );
+    return array(
+        'output'  => $success ? "Option updated: $name = $value" : "Failed to update option: $name",
+        'success' => $success,
+    );
+
+---
+
+### M-7 · MEDIUM · class-cdw-loader.php + SettingsPanel.js — font_size and color settings stored but never applied
+
+Fix: In CDW_Loader::enqueue_assets(), after the wp_enqueue_style() call, inject inline CSS:
+
+```php
+// After wp_enqueue_style('cdw-style', ...) call:
+$font_size         = get_option( 'cdw_font_size', '' );
+$bg_color          = get_option( 'cdw_bg_color', '' );
+$header_bg_color   = get_option( 'cdw_header_bg_color', '' );
+$header_text_color = get_option( 'cdw_header_text_color', '' );
+
+$css = '';
+if ( is_numeric( $font_size ) && (int) $font_size > 0 ) {
+    $css .= '.cdw-widget { font-size: ' . (int) $font_size . 'px; }' . "\n";
+}
+if ( ! empty( $bg_color ) && preg_match( '/^#[0-9a-fA-F]{3,6}$/', $bg_color ) ) {
+    $css .= '.cdw-widget { background-color: ' . esc_attr( $bg_color ) . '; }' . "\n";
+}
+if ( ! empty( $header_bg_color ) && preg_match( '/^#[0-9a-fA-F]{3,6}$/', $header_bg_color ) ) {
+    $css .= '.cdw-widget .cdw-widget-header, .postbox .hndle { background: ' . esc_attr( $header_bg_color ) . ' !important; background-image: none !important; }' . "\n";
+}
+if ( ! empty( $header_text_color ) && preg_match( '/^#[0-9a-fA-F]{3,6}$/', $header_text_color ) ) {
+    $css .= '.cdw-widget .cdw-widget-header, .postbox .hndle { color: ' . esc_attr( $header_text_color ) . ' !important; }' . "\n";
+}
+if ( ! empty( $css ) ) {
+    wp_add_inline_style( 'cdw-style', $css );
+}
+```
+
+---
+
+### M-8 · MEDIUM · class-cdw-rest-api.php — remove now-redundant require_once in ensure_audit_table()
+
+After the H-5 fix changes to admin_init, the service is already loaded by load_controllers() which runs before admin_init fires. Remove the require_once:
+
+BEFORE:
+    public function ensure_audit_table() {
+        require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-cli-service.php';
+        if ( get_option( 'cdw_db_version' ) === CDW_CLI_Service::DB_VERSION ) {
+
+AFTER:
+    public function ensure_audit_table() {
+        if ( get_option( 'cdw_db_version' ) === CDW_CLI_Service::DB_VERSION ) {
+
+---
+
+### M-9 · MEDIUM · class-cdw-widgets.php — Stats/Posts/Media/Help widgets visible to all dashboard users
+
+Fix: Gate the four "public" widgets behind edit_posts capability:
+
+BEFORE:
+    wp_add_dashboard_widget( 'cdw_help', __( 'Help & Support', 'cdw' ), array( $this, 'render_help_widget' ) );
+    wp_add_dashboard_widget( 'cdw_stats', __( 'Site Statistics', 'cdw' ), array( $this, 'render_stats_widget' ) );
+    wp_add_dashboard_widget( 'cdw_media', __( 'Latest Media', 'cdw' ), array( $this, 'render_media_widget' ) );
+    wp_add_dashboard_widget( 'cdw_posts', __( 'Latest Posts', 'cdw' ), array( $this, 'render_posts_widget' ) );
+
+    if ( current_user_can( 'manage_options' ) ) {
+
+AFTER:
+    if ( current_user_can( 'edit_posts' ) ) {
+        wp_add_dashboard_widget( 'cdw_help', __( 'Help & Support', 'cdw' ), array( $this, 'render_help_widget' ) );
+        wp_add_dashboard_widget( 'cdw_stats', __( 'Site Statistics', 'cdw' ), array( $this, 'render_stats_widget' ) );
+        wp_add_dashboard_widget( 'cdw_media', __( 'Latest Media', 'cdw' ), array( $this, 'render_media_widget' ) );
+        wp_add_dashboard_widget( 'cdw_posts', __( 'Latest Posts', 'cdw' ), array( $this, 'render_posts_widget' ) );
+    }
+
+    if ( current_user_can( 'manage_options' ) ) {
+
+---
+
+### M-10 · MEDIUM · CDW.php — Tested up to: 6.7 is outdated
+
+Fix:
+BEFORE:
+ * Tested up to: 6.7
+
+AFTER:
+ * Tested up to: 6.9
+
+---
+
+### M-11 · MEDIUM · Redundant ?: 10 fallback in class-cdw-media-controller.php and class-cdw-posts-controller.php
+
+The problem: Both routes declare `'default' => 10` in args. WordPress fills in the default automatically, so ?: 10 is dead code.
+
+Fix in class-cdw-media-controller.php:
+BEFORE:
+    $per_page  = $request->get_param( 'per_page' ) ?: 10;
+
+AFTER:
+    $per_page  = (int) $request->get_param( 'per_page' );
+
+Fix in class-cdw-posts-controller.php:
+BEFORE:
+    $per_page  = $request->get_param( 'per_page' ) ?: 10;
+    $status    = $request->get_param( 'status' ) ?: 'publish';
+    $post_type = $request->get_param( 'post_type' ) ?: 'post';
+
+AFTER:
+    $per_page  = (int) $request->get_param( 'per_page' );
+    $status    = $request->get_param( 'status' );
+    $post_type = $request->get_param( 'post_type' );
+
+---
+
+### M-12 · MEDIUM · class-cdw-cli-service.php — post status doesn't surface wp_update_post() errors
+
+Fix:
+BEFORE:
+    $result = wp_update_post( array( 'ID' => $post_id, 'post_status' => $new_status ) );
+    if ( ! $result ) {
+        return array( 'output' => "Failed to update post status: $post_id", 'success' => false );
+    }
+    return array( 'output' => "Post status updated: $post_id -> $new_status", 'success' => true );
+
+AFTER:
+    $result = wp_update_post( array( 'ID' => $post_id, 'post_status' => $new_status ), true );
+    if ( is_wp_error( $result ) ) {
+        return array( 'output' => 'Failed to update post status: ' . $result->get_error_message(), 'success' => false );
+    }
+    if ( ! $result ) {
+        return array( 'output' => "Failed to update post status: $post_id", 'success' => false );
+    }
+    return array( 'output' => "Post status updated: $post_id -> $new_status", 'success' => true );
+
+---
+
+### L-1 · LOW · class-cdw-loader.php — all services/controllers loaded on every frontend request
+
+Fix: Scope REST API and widget registration to admin/REST/WP-CLI contexts in CDW_Loader::run(). Move cache hook registrations outside the is_admin() guard so they still fire during REST saves.
+
+BEFORE (the existing run() body):
+    public function run() {
+        $this->rest_api = new CDW_REST_API();
+        $this->rest_api->register();
+
+        $this->widgets = new CDW_Widgets();
+        $this->widgets->register();
+
+        add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+
+        add_action( 'save_post',       array( $this, 'clear_content_cache' ) );
+        add_action( 'delete_post',     array( $this, 'clear_content_cache' ) );
+        add_action( 'add_attachment',  array( $this, 'clear_content_cache' ) );
+        add_action( 'edit_attachment', array( $this, 'clear_content_cache' ) );
+    }
+
+AFTER:
+    public function run() {
+        // Load REST API and admin widgets only when needed.
+        if ( is_admin() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+            $this->rest_api = new CDW_REST_API();
+            $this->rest_api->register();
+        }
+
+        if ( is_admin() ) {
+            $this->widgets = new CDW_Widgets();
+            $this->widgets->register();
+
+            add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+        }
+
+        // Cache hooks must fire on all contexts (REST API saves, CLI, admin).
+        add_action( 'save_post',       array( $this, 'clear_content_cache' ) );
+        add_action( 'delete_post',     array( $this, 'clear_content_cache' ) );
+        add_action( 'add_attachment',  array( $this, 'clear_content_cache' ) );
+        add_action( 'edit_attachment', array( $this, 'clear_content_cache' ) );
+    }
+
+---
+
+### L-2 · LOW · src/index.js — configure apiFetch nonce middleware once instead of per-request in CommandWidget.js
+
+Fix part 1: In src/index.js, add apiFetch middleware setup before the DOMContentLoaded listener:
+
+BEFORE (after the last import line):
+    document.addEventListener('DOMContentLoaded', () => {
+
+AFTER:
+    // Configure nonce for all apiFetch calls globally.
+    if ( window.cdwData?.nonce ) {
+        apiFetch.use( apiFetch.createNonceMiddleware( window.cdwData.nonce ) );
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+
+Also add `import apiFetch from '@wordpress/api-fetch';` to src/index.js imports if not already present.
+
+Fix part 2: In src/components/CommandWidget.js, remove all `headers: { 'X-WP-Nonce': window.cdwData?.nonce }` objects from the four apiFetch calls (loadHistory, loadCommandDefinitions, executeCommand, clearHistory).
+
+---
+
+### L-3 · LOW · src/components/SettingsPanel.js — color inputs have no client-side validation feedback
+
+Fix: Add pattern and title attributes to the three color inputs so the browser shows inline validation feedback:
+
+For bg_color input, add:
+    pattern="^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+    title="Enter a valid hex color (e.g. #ffffff or #fff), or leave empty for default"
+
+Apply the same pattern and title to header_bg_color and header_text_color inputs.
+
+---
+
+### L-4 · LOW · class-cdw-cli-controller.php — clear history uses POST where DELETE is correct
+
+Fix: Change the HTTP method for the clear history route:
+
+BEFORE:
+    register_rest_route( $this->namespace, '/cli/history', array(
+        'methods'             => 'POST',
+        'callback'            => array( $this, 'clear_cli_history' ),
+        'permission_callback' => array( $this, 'check_admin_permission' ),
+    ) );
+
+AFTER:
+    register_rest_route( $this->namespace, '/cli/history', array(
+        'methods'             => 'DELETE',
+        'callback'            => array( $this, 'clear_cli_history' ),
+        'permission_callback' => array( $this, 'check_admin_permission' ),
+    ) );
+
+Then in src/components/CommandWidget.js, update the clearHistory apiFetch call:
+
+BEFORE:
+    await apiFetch({
+        path: '/cdw/v1/cli/history',
+        method: 'POST',
+
+AFTER:
+    await apiFetch({
+        path: '/cdw/v1/cli/history',
+        method: 'DELETE',
+
+---
+
+### L-5 · LOW · class-cdw-base-controller.php — get_transient_with_cache() is never called
+
+Fix: Refactor CDW_Media_Controller::get_media() and CDW_Posts_Controller::get_posts() to use it.
+
+In class-cdw-media-controller.php, replace the manual get_transient / set_transient pattern:
+
+BEFORE:
+    $cache_key = 'cdw_media_cache_' . $per_page;
+    $cached    = get_transient( $cache_key );
+
+    if ( false !== $cached ) {
+        return rest_ensure_response( $cached );
+    }
+
+    $args  = array( ... );
+    $query = new WP_Query( $args );
+    $media = array();
+
+    if ( $query->have_posts() ) {
+        while ( $query->have_posts() ) {
+            $query->the_post();
+            $media[] = array( ... );
+        }
+        wp_reset_postdata();
+    }
+
+    set_transient( $cache_key, $media, 300 );
+
+    return rest_ensure_response( $media );
+
+AFTER:
+    $cache_key = 'cdw_media_cache_' . $per_page;
+    $media     = $this->get_transient_with_cache( $cache_key, function() use ( $per_page ) {
+        $args  = array(
+            'post_type'      => 'attachment',
+            'post_status'    => 'inherit',
+            'posts_per_page' => $per_page,
+            'orderby'        => 'date',
+            'order'          => 'DESC',
+        );
+        $query = new WP_Query( $args );
+        $items = array();
+
+        if ( $query->have_posts() ) {
+            while ( $query->have_posts() ) {
+                $query->the_post();
+                $items[] = array(
+                    'id'    => get_the_ID(),
+                    'title' => get_the_title(),
+                    'url'   => wp_get_attachment_url( get_the_ID() ),
+                    'date'  => get_the_date( 'c' ),
+                );
+            }
+            wp_reset_postdata();
+        }
+
+        return $items;
+    }, 300 );
+
+    return rest_ensure_response( $media );
+
+Apply the same pattern to CDW_Posts_Controller::get_posts(): wrap the inner get_posts() call and formatting loop inside $this->get_transient_with_cache( $cache_key, function() use ( $per_page, $status, $post_type ) { ... }, 300 ).
+
+---
+
+### L-6 · LOW · class-cdw-cli-command.php — WP-CLI path hits the REST-layer rate limiter
+
+Fix: Add $bypass_rate_limit parameter to CDW_CLI_Service::execute():
+
+BEFORE:
+    public function execute( $command, $user_id ) {
+        ...
+        if ( ! $this->check_rate_limit( $user_id ) ) {
+            return new WP_Error( 'rate_limited', 'Rate limit exceeded. Max 20 commands per minute.', array( 'status' => 429 ) );
+        }
+
+AFTER:
+    public function execute( $command, $user_id, $bypass_rate_limit = false ) {
+        ...
+        if ( ! $bypass_rate_limit && ! $this->check_rate_limit( $user_id ) ) {
+            return new WP_Error( 'rate_limited', 'Rate limit exceeded. Max 20 commands per minute.', array( 'status' => 429 ) );
+        }
+
+In class-cdw-cli-command.php, pass true as third argument:
+
+BEFORE:
+    $result = $this->cli_service->execute( $command, $user_id );
+
+AFTER:
+    $result = $this->cli_service->execute( $command, $user_id, true );
+
+---
+
+### L-7 · LOW · known_issues.json — file is entirely stale
+
+The file references constructs and line numbers from an old monolith that no longer exists.
+
+Fix: Replace the entire content of known_issues.json with:
+{
+  "issues": []
+}
+
+---
+
+### L-8 · LOW · CDW.php — missing Domain Path header
+
+Fix:
+BEFORE:
+ * Text Domain: cdw
+
+AFTER:
+ * Text Domain: cdw
+ * Domain Path: /languages
+
+---
+
+### L-9 · LOW · package.json — meaningless "main" field
+
+Fix: Remove the `"main": "src/index.js"` line from package.json.
+
+---
+
+## AFTER ALL CHANGES
+
+1. Run `npm run build` from the plugin root.
+2. Confirm the output ends with `compiled with 8 warnings` (Sass darken() deprecations) and ZERO errors.
+3. Do NOT modify any Sass/SCSS files — the 8 warnings are pre-existing and acceptable.

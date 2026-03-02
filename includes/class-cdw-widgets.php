@@ -21,10 +21,12 @@ class CDW_Widgets {
             remove_meta_box( 'dashboard_quick_press', 'dashboard', 'side' );
         }
 
-        wp_add_dashboard_widget( 'cdw_help', __( 'Help & Support', 'cdw' ), array( $this, 'render_help_widget' ) );
-        wp_add_dashboard_widget( 'cdw_stats', __( 'Site Statistics', 'cdw' ), array( $this, 'render_stats_widget' ) );
-        wp_add_dashboard_widget( 'cdw_media', __( 'Latest Media', 'cdw' ), array( $this, 'render_media_widget' ) );
-        wp_add_dashboard_widget( 'cdw_posts', __( 'Latest Posts', 'cdw' ), array( $this, 'render_posts_widget' ) );
+        if ( current_user_can( 'edit_posts' ) ) {
+            wp_add_dashboard_widget( 'cdw_help', __( 'Help & Support', 'cdw' ), array( $this, 'render_help_widget' ) );
+            wp_add_dashboard_widget( 'cdw_stats', __( 'Site Statistics', 'cdw' ), array( $this, 'render_stats_widget' ) );
+            wp_add_dashboard_widget( 'cdw_media', __( 'Latest Media', 'cdw' ), array( $this, 'render_media_widget' ) );
+            wp_add_dashboard_widget( 'cdw_posts', __( 'Latest Posts', 'cdw' ), array( $this, 'render_posts_widget' ) );
+        }
 
         if ( current_user_can( 'manage_options' ) ) {
             wp_add_dashboard_widget( 'cdw_tasks', __( 'Pending Tasks', 'cdw' ), array( $this, 'render_tasks_widget' ) );

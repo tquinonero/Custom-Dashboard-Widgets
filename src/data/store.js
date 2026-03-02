@@ -8,12 +8,16 @@ const DEFAULT_STATE = {
         comments: 0,
         users: 0,
         media: 0,
+        categories: 0,
+        tags: 0,
+        plugins: 0,
+        themes: 0,
     },
     tasks: [],
     posts: [],
     media: [],
     users: [],
-    updates: [],
+    updates: { core: { count: 0, available: false }, plugins: [], themes: [] },
     settings: {
         email: '',
         docs_url: '',
@@ -22,6 +26,7 @@ const DEFAULT_STATE = {
         header_bg_color: '',
         header_text_color: '',
         cli_enabled: true,
+        remove_default_widgets: true,
     },
     isLoading: {
         stats: false,
@@ -78,7 +83,12 @@ const actions = {
                 method: 'POST',
                 data: { tasks: task, assignee_id: assigneeId },
             });
-            dispatch(actions.setTasks(result.tasks));
+            // Only update the store with the returned task list when saving the
+            // current user's own tasks. When assigning to another user the server
+            // returns *that* user's merged list, which must not replace ours.
+            if ( !assigneeId ) {
+                dispatch(actions.setTasks(result.tasks));
+            }
             return result;
         } catch (error) {
             dispatch(actions.setError('tasks', error.message));

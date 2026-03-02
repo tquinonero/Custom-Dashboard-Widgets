@@ -22,7 +22,7 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
         ) );
 
         register_rest_route( $this->namespace, '/cli/history', array(
-            'methods'             => 'POST',
+            'methods'             => 'DELETE',
             'callback'            => array( $this, 'clear_cli_history' ),
             'permission_callback' => array( $this, 'check_admin_permission' ),
         ) );
@@ -70,15 +70,31 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
             );
         }
 
-        $result = $this->cli_service->execute( $command, $user_id );
+        $ob_level = ob_get_level();
+        ob_start();
 
-        if ( is_wp_error( $result ) ) {
-            return $result;
+        try {
+            $result = $this->cli_service->execute( $command, $user_id );
+
+            ob_end_clean();
+
+            if ( is_wp_error( $result ) ) {
+                return $result;
+            }
+
+            delete_transient( 'cdw_stats_cache' );
+
+            return new WP_REST_Response( $result, 200 );
+        } catch ( Exception $e ) {
+            while ( ob_get_level() > $ob_level ) {
+                ob_end_clean();
+            }
+            return new WP_Error(
+                'cli_error',
+                'Command execution failed: ' . $e->getMessage(),
+                array( 'status' => 500 )
+            );
         }
-
-        delete_transient( 'cdw_stats_cache' );
-
-        return new WP_REST_Response( $result, 200 );
     }
 
     private function get_command_definitions() {

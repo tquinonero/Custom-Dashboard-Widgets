@@ -8,7 +8,8 @@
  * Text Domain: cdw
  * Requires at least: 6.0
  * Requires PHP: 8.0
- * Tested up to: 6.7
+ * Tested up to: 6.9
+ * Domain Path: /languages
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

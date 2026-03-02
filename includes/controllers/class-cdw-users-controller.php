@@ -16,7 +16,7 @@ class CDW_Users_Controller extends CDW_Base_Controller {
     }
 
     public function get_users() {
-        $users = get_users();
+        $users = get_users( array( 'number' => 200 ) );
         $formatted = array();
 
         foreach ( $users as $user ) {

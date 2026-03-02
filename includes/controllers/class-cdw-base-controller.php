@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 abstract class CDW_Base_Controller {
     protected $namespace = 'cdw/v1';
 
-    protected $protected_options = array(
+    public static $protected_options = array(
         'siteurl',
         'home',
         'admin_email',
@@ -54,14 +54,16 @@ abstract class CDW_Base_Controller {
     }
 
     protected function is_option_protected( $option_name ) {
-        return in_array( $option_name, $this->protected_options, true );
+        return in_array( $option_name, self::$protected_options, true );
     }
 
     protected function success_response( $data, $status = 200 ) {
-        return rest_ensure_response( array(
+        $response = rest_ensure_response( array(
             'success' => true,
             'data'    => $data,
-        ), $status );
+        ) );
+        $response->set_status( $status );
+        return $response;
     }
 
     protected function error_response( $message, $status = 400 ) {
@@ -86,6 +88,9 @@ abstract class CDW_Base_Controller {
     protected function delete_transients_by_prefix( $prefix ) {
         global $wpdb;
 
+        // Derive the timeout prefix: _transient_foo_ → _transient_timeout_foo_
+        $timeout_prefix = str_replace( '_transient_', '_transient_timeout_', $prefix );
+
         $wpdb->query(
             $wpdb->prepare(
                 "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
@@ -96,7 +101,7 @@ abstract class CDW_Base_Controller {
         $wpdb->query(
             $wpdb->prepare(
                 "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
-                $wpdb->esc_like( $prefix . '_timeout_' ) . '%'
+                $wpdb->esc_like( $timeout_prefix ) . '%'
             )
         );
     }

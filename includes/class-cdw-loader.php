@@ -13,13 +13,37 @@ class CDW_Loader {
     private $widgets;
 
     public function run() {
-        $this->rest_api = new CDW_REST_API();
-        $this->rest_api->register();
+        // Load REST API and admin widgets only when needed.
+        if ( is_admin() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+            $this->rest_api = new CDW_REST_API();
+            $this->rest_api->register();
+        }
 
-        $this->widgets = new CDW_Widgets();
-        $this->widgets->register();
+        if ( is_admin() ) {
+            $this->widgets = new CDW_Widgets();
+            $this->widgets->register();
 
-        add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+            add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+        }
+
+        // Cache hooks must fire on all contexts (REST API saves, CLI, admin).
+        add_action( 'save_post',       array( $this, 'clear_content_cache' ) );
+        add_action( 'delete_post',     array( $this, 'clear_content_cache' ) );
+        add_action( 'add_attachment',  array( $this, 'clear_content_cache' ) );
+        add_action( 'edit_attachment', array( $this, 'clear_content_cache' ) );
+    }
+
+    public function clear_content_cache() {
+        delete_transient( 'cdw_stats_cache' );
+        global $wpdb;
+        $wpdb->query( $wpdb->prepare(
+            "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s
+             OR option_name LIKE %s OR option_name LIKE %s",
+            $wpdb->esc_like( '_transient_cdw_posts_cache_' ) . '%',
+            $wpdb->esc_like( '_transient_cdw_media_cache_' ) . '%',
+            $wpdb->esc_like( '_transient_timeout_cdw_posts_cache_' ) . '%',
+            $wpdb->esc_like( '_transient_timeout_cdw_media_cache_' ) . '%'
+        ) );
     }
 
     public function enqueue_assets( $hook_suffix ) {
@@ -54,6 +78,28 @@ class CDW_Loader {
             array(),
             $asset['version']
         );
+
+        $font_size         = get_option( 'cdw_font_size', '' );
+        $bg_color          = get_option( 'cdw_bg_color', '' );
+        $header_bg_color   = get_option( 'cdw_header_bg_color', '' );
+        $header_text_color = get_option( 'cdw_header_text_color', '' );
+
+        $css = '';
+        if ( is_numeric( $font_size ) && (int) $font_size > 0 ) {
+            $css .= '.cdw-widget { font-size: ' . (int) $font_size . 'px; }' . "\n";
+        }
+        if ( ! empty( $bg_color ) && preg_match( '/^#[0-9a-fA-F]{3,6}$/', $bg_color ) ) {
+            $css .= '.cdw-widget { background-color: ' . esc_attr( $bg_color ) . '; }' . "\n";
+        }
+        if ( ! empty( $header_bg_color ) && preg_match( '/^#[0-9a-fA-F]{3,6}$/', $header_bg_color ) ) {
+            $css .= '.cdw-widget .cdw-widget-header, .postbox .hndle { background: ' . esc_attr( $header_bg_color ) . ' !important; background-image: none !important; }' . "\n";
+        }
+        if ( ! empty( $header_text_color ) && preg_match( '/^#[0-9a-fA-F]{3,6}$/', $header_text_color ) ) {
+            $css .= '.cdw-widget .cdw-widget-header, .postbox .hndle { color: ' . esc_attr( $header_text_color ) . ' !important; }' . "\n";
+        }
+        if ( ! empty( $css ) ) {
+            wp_add_inline_style( 'cdw-style', $css );
+        }
 
         $is_settings_page = 'settings_page_cdw-settings' === $hook_suffix;
 

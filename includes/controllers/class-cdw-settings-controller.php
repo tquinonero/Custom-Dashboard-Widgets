@@ -61,6 +61,9 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 
         if ( isset( $settings['docs_url'] ) ) {
             $url = esc_url_raw( $settings['docs_url'] );
+            if ( ! empty( $url ) && ! preg_match( '#^https?://#i', $url ) ) {
+                $url = '';
+            }
             update_option( 'cdw_docs_url', $url );
             update_option( 'custom_dashboard_widget_docs_url', $url );
         }

@@ -5,14 +5,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class CDW_REST_API {
-    const DB_VERSION = '1.1';
-
     private $controllers = array();
 
     public function register() {
         $this->load_controllers();
         $this->register_routes();
-        add_action( 'init', array( $this, 'ensure_audit_table' ), 5 );
+        add_action( 'admin_init', array( $this, 'ensure_audit_table' ) );
     }
 
     private function load_controllers() {
@@ -55,13 +53,12 @@ class CDW_REST_API {
     }
 
     public function ensure_audit_table() {
-        if ( get_option( 'cdw_db_version' ) === self::DB_VERSION ) {
+        if ( get_option( 'cdw_db_version' ) === CDW_CLI_Service::DB_VERSION ) {
             return;
         }
 
-        require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-cli-service.php';
         $cli_service = new CDW_CLI_Service();
         $cli_service->create_audit_log_table();
-        update_option( 'cdw_db_version', self::DB_VERSION );
+        update_option( 'cdw_db_version', CDW_CLI_Service::DB_VERSION );
     }
 }

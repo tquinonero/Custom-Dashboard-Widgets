@@ -26,10 +26,7 @@ export default function CommandWidget() {
     const loadHistory = async () => {
         try {
             const result = await apiFetch({ 
-                path: `/cdw/v1/cli/history?t=${Date.now()}`,
-                headers: {
-                    'X-WP-Nonce': window.cdwData?.nonce
-                }
+                path: `/cdw/v1/cli/history?t=${Date.now()}`
             });
             if (Array.isArray(result)) {
                 setHistory(result);
@@ -45,16 +42,16 @@ export default function CommandWidget() {
     const loadCommandDefinitions = async () => {
         try {
             const result = await apiFetch({
-                path: `/cdw/v1/cli/commands?t=${Date.now()}`,
-                headers: {
-                    'X-WP-Nonce': window.cdwData?.nonce
-                }
+                path: `/cdw/v1/cli/commands?t=${Date.now()}`
             });
 
             if (Array.isArray(result)) {
-                setCommandDefinitions(result);
+                // result is an array of category objects: { category, commands[] }
+                // flatten to a single array of { name, description } for autocomplete
+                const flatCommands = result.flatMap(cat => Array.isArray(cat.commands) ? cat.commands : []);
+                setCommandDefinitions(flatCommands);
                 if (command.trim()) {
-                    updateSuggestions(command, result);
+                    updateSuggestions(command, flatCommands);
                 }
             }
         } catch (e) {
@@ -72,8 +69,8 @@ export default function CommandWidget() {
         }
 
         const matches = availableCommands.filter((cmd) => {
-            const usage = cmd.usage.toLowerCase();
-            return usage.startsWith(normalized) || usage.includes(` ${normalized}`) || usage.includes(normalized);
+            const name = cmd.name.toLowerCase();
+            return name.startsWith(normalized) || name.includes(` ${normalized}`) || name.includes(normalized);
         });
 
         setSuggestions(matches.slice(0, 6));
@@ -85,7 +82,7 @@ export default function CommandWidget() {
             return;
         }
 
-        const normalized = suggestion.usage.endsWith(' ') ? suggestion.usage : `${suggestion.usage} `;
+        const normalized = suggestion.name.endsWith(' ') ? suggestion.name : `${suggestion.name} `;
         setCommand(normalized);
         updateSuggestions(normalized);
         setSuggestions([]);
@@ -108,10 +105,7 @@ export default function CommandWidget() {
             const result = await apiFetch({
                 path: '/cdw/v1/cli/execute',
                 method: 'POST',
-                data: { command: cmd },
-                headers: {
-                    'X-WP-Nonce': window.cdwData?.nonce
-                }
+                data: { command: cmd }
             });
 
             let output = '';
@@ -188,10 +182,7 @@ export default function CommandWidget() {
         try {
             await apiFetch({
                 path: '/cdw/v1/cli/history',
-                method: 'POST',
-                headers: {
-                    'X-WP-Nonce': window.cdwData?.nonce
-                }
+                method: 'DELETE'
             });
             setHistory([]);
             setSuggestions([]);
@@ -310,14 +301,14 @@ export default function CommandWidget() {
             {suggestions.length > 0 && (
                 <ul className="cdw-command-suggestions" role="listbox">
                     {suggestions.map((suggestion, index) => (
-                        <li key={`${suggestion.usage}-${index}`}>
+                        <li key={`${suggestion.name}-${index}`}>
                             <button
                                 type="button"
                                 className={`cdw-command-suggestion ${index === highlightedIndex ? 'is-active' : ''}`}
                                 onClick={() => selectSuggestion(suggestion)}
                                 onMouseEnter={() => setHighlightedIndex(index)}
                             >
-                                <span className="cdw-suggestion-usage">{suggestion.usage}</span>
+                                <span className="cdw-suggestion-usage">{suggestion.name}</span>
                                 <span className="cdw-suggestion-description">{suggestion.description}</span>
                             </button>
                         </li>

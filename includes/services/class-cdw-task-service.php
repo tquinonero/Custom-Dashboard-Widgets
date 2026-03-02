@@ -17,7 +17,8 @@ class CDW_Task_Service {
         }
 
         $tasks_json = get_user_meta( $user_id, self::META_KEY, true );
-        return $tasks_json ? json_decode( $tasks_json, true ) : array();
+        $tasks      = $tasks_json ? json_decode( $tasks_json, true ) : array();
+        return is_array( $tasks ) ? $tasks : array();
     }
 
     public function save_tasks( $tasks, $target_user_id = null, $current_user_id = null ) {
