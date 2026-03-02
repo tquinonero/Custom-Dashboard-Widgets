@@ -67,20 +67,26 @@ class CDW_CLI_Service {
 		$table_name      = $wpdb->prefix . self::TABLE_NAME;
 		$charset_collate = $wpdb->get_charset_collate();
 
-		$sql = "CREATE TABLE IF NOT EXISTS $table_name (
-            id bigint(20) NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) NOT NULL,
-            command varchar(500) NOT NULL,
-            success tinyint(1) DEFAULT 1,
-            outcome varchar(500) DEFAULT NULL,
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY  (id),
-            KEY idx_user_id (user_id),
-            KEY idx_created_at (created_at)
-        ) $charset_collate;";
+		// Use $wpdb->query() directly instead of dbDelta() because dbDelta
+		// misparses DEFAULT CURRENT_TIMESTAMP on MySQL 8 / PHPUnit environments,
+		// causing a silent no-op.  CREATE TABLE IF NOT EXISTS is idempotent and
+		// safe to call repeatedly (e.g. on every activation or DB version bump).
+		// $table_name comes from $wpdb->prefix (trusted) and $charset_collate
+		// from $wpdb->get_charset_collate() (trusted) — neither is user input.
+		$create_sql = "CREATE TABLE IF NOT EXISTS `{$table_name}` (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			user_id bigint(20) unsigned NOT NULL,
+			command varchar(500) NOT NULL,
+			success tinyint(1) NOT NULL DEFAULT 1,
+			outcome varchar(500) DEFAULT NULL,
+			created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (id),
+			KEY idx_user_id (user_id),
+			KEY idx_created_at (created_at)
+		) {$charset_collate}";
 
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-		dbDelta( $sql );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.SchemaChange -- CREATE TABLE cannot use placeholders; all interpolated values come from trusted $wpdb properties.
+		$wpdb->query( $create_sql );
 	}
 
 	/**

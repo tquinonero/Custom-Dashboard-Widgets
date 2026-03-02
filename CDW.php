@@ -18,9 +18,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CDW_VERSION', '3.0.0' );
-define( 'CDW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
-define( 'CDW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+if ( ! defined( 'CDW_VERSION' ) ) {
+	define( 'CDW_VERSION', '3.0.0' );
+}
+if ( ! defined( 'CDW_PLUGIN_DIR' ) ) {
+	define( 'CDW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+}
+if ( ! defined( 'CDW_PLUGIN_URL' ) ) {
+	define( 'CDW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+}
 
 register_activation_hook( __FILE__, 'CDW_activate' );
 register_deactivation_hook( __FILE__, 'CDW_deactivate' );
