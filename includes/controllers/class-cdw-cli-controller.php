@@ -44,23 +44,31 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
         $user_id = get_current_user_id();
         $history = $this->cli_service->get_history( $user_id );
 
-        return rest_ensure_response( is_array( $history ) ? $history : array() );
+        return new WP_REST_Response( is_array( $history ) ? $history : array(), 200 );
     }
 
     public function clear_cli_history() {
         $user_id = get_current_user_id();
         $this->cli_service->clear_history( $user_id );
 
-        return rest_ensure_response( array( 'success' => true, 'cleared' => true ) );
+        return new WP_REST_Response( array( 'success' => true, 'cleared' => true ), 200 );
     }
 
     public function get_cli_commands() {
-        return rest_ensure_response( $this->get_command_definitions() );
+        return new WP_REST_Response( $this->get_command_definitions(), 200 );
     }
 
     public function execute_cli_command( WP_REST_Request $request ) {
         $command = $request->get_param( 'command' );
         $user_id = get_current_user_id();
+
+        if ( empty( $command ) ) {
+            return new WP_Error(
+                'empty_command',
+                'Command cannot be empty',
+                array( 'status' => 400 )
+            );
+        }
 
         $result = $this->cli_service->execute( $command, $user_id );
 
@@ -70,7 +78,7 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 
         delete_transient( 'cdw_stats_cache' );
 
-        return rest_ensure_response( $result );
+        return new WP_REST_Response( $result, 200 );
     }
 
     private function get_command_definitions() {
