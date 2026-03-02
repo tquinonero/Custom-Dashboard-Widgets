@@ -23,10 +23,10 @@ register_activation_hook( __FILE__, 'CDW_activate' );
 register_deactivation_hook( __FILE__, 'CDW_deactivate' );
 
 function CDW_activate() {
-    require_once CDW_PLUGIN_DIR . 'includes/class-cdw-rest-api.php';
-    $rest_api = new CDW_REST_API();
-    $rest_api->create_audit_log_table();
-    update_option( 'cdw_db_version', CDW_REST_API::DB_VERSION );
+    require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-cli-service.php';
+    $cli_service = new CDW_CLI_Service();
+    $cli_service->create_audit_log_table();
+    update_option( 'cdw_db_version', CDW_CLI_Service::DB_VERSION );
     update_option( 'cdw_cli_enabled', true );
     update_option( 'cdw_remove_default_widgets', true );
 }
