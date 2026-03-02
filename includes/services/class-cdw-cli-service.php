@@ -12,9 +12,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Handles CLI command execution, audit logging, and command history.
  */
-/**
- * Handles CLI command execution, audit logging, and command history.
- */
 class CDW_CLI_Service {
 	const DB_VERSION        = '1.1';
 	const TABLE_NAME        = 'cdw_cli_logs';
@@ -27,18 +24,8 @@ class CDW_CLI_Service {
 	 *
 	 * @var bool
 	 */
-	/**
-	 * Whether the audit log table has been confirmed to exist.
-	 *
-	 * @var bool
-	 */
 	private static $audit_table_confirmed = false;
 
-	/**
-	 * Ensure the audit log table exists, creating it if needed.
-	 *
-	 * @return void
-	 */
 	/**
 	 * Ensure the audit log table exists, creating it if needed.
 	 *
@@ -52,11 +39,6 @@ class CDW_CLI_Service {
 		update_option( 'cdw_db_version', self::DB_VERSION );
 	}
 
-	/**
-	 * Create the CDW CLI audit log database table.
-	 *
-	 * @return void
-	 */
 	/**
 	 * Create the CDW CLI audit log database table.
 	 *
@@ -80,19 +62,7 @@ class CDW_CLI_Service {
 		) {$charset_collate}";
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.SchemaChange -- CREATE TABLE cannot use placeholders; all interpolated values come from trusted $wpdb properties.
-		$result = $wpdb->query( $create_sql );
-
-		// DIAGNOSTIC: emit to PHP error log when running on a real DB (not Brain\Monkey stub).
-		if ( isset( $wpdb->ready ) ) {
-			$diag_last_error = isset( $wpdb->last_error ) ? $wpdb->last_error : '';
-			// Verify table existence immediately using the same $wpdb handle.
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.NoCaching
-			$diag_current_db  = $wpdb->get_var( 'SELECT DATABASE()' );
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.DirectQuery
-			$diag_show_tables = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) );
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log,WordPress.PHP.DevelopmentFunctions.error_log_var_export
-			error_log( '[CDW-DIAG] table=' . $table_name . ' current_db=' . $diag_current_db . ' result=' . var_export( $result, true ) . ' last_error=' . $diag_last_error . ' show_tables=' . var_export( $diag_show_tables, true ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-		}
+		$wpdb->query( $create_sql );
 	}
 
 	/**
