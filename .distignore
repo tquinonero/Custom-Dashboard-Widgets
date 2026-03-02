@@ -32,5 +32,10 @@ composer.lock
 package.json
 package-lock.json
 
+# Static analysis config (dev-only)
+phpcs.xml
+phpstan.neon
+phpstan-bootstrap.php
+
 # Build tooling output (not needed if build/ is already compiled)
 # (build/ itself IS included — it contains the compiled JS/CSS)

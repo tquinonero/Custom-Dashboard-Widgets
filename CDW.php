@@ -3,6 +3,7 @@
  * Plugin Name: Custom Dashboard Widgets
  * Description: Modernized WordPress dashboard widgets with React and REST API
  * Author: Toni Quiñonero
+ * Author URI: https://tquinonero.github.io
  * Version: 3.0.0
  * License: GPLv3
  * Text Domain: cdw
