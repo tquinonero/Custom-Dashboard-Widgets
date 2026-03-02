@@ -79,19 +79,16 @@ class CDW_CLI_Service {
 			KEY idx_created_at (created_at)
 		) {$charset_collate}";
 
-		// Temporarily force errors to surface so any MySQL rejection (e.g. strict
-		// mode, syntax incompatibility) is visible in test output rather than being
-		// silently swallowed by $wpdb's error suppression.
-		$prev_show = $wpdb->show_errors;
-		$wpdb->show_errors();
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.SchemaChange -- CREATE TABLE cannot use placeholders; all interpolated values come from trusted $wpdb properties.
 		$result = $wpdb->query( $create_sql );
-		if ( false === $result && $wpdb->last_error ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_trigger_error,WordPress.Security.EscapeOutput.OutputNotEscaped
-			trigger_error( 'CDW create_audit_log_table failed: ' . $wpdb->last_error, E_USER_WARNING );
-		}
-		if ( ! $prev_show ) {
-			$wpdb->hide_errors();
+
+		// DIAGNOSTIC: emit to PHP error log when running on a real DB connection
+		// (i.e. integration/CI contexts).  Skipped in Brain\Monkey unit tests
+		// where $wpdb->ready is not set.
+		if ( isset( $wpdb->ready ) ) {
+			$diag_last_error = isset( $wpdb->last_error ) ? $wpdb->last_error : '';
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log,WordPress.PHP.DevelopmentFunctions.error_log_var_export
+			error_log( '[CDW-DIAG] create_audit_log_table: table=' . $table_name . ' charset_collate=' . $charset_collate . ' result=' . var_export( $result, true ) . ' last_error=' . $diag_last_error ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
 	}
 
