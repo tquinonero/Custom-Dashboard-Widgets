@@ -1,10 +1,11 @@
-# Custom Dashboard Widgets (v2)
+# Custom Dashboard Widgets (v3)
 
 **Contributors:** toniquinonero
 **Tags:** dashboard, admin, widgets, customization  
-**Requires at least:** 5.0  
+**Requires at least:** 6.0  
+**Requires PHP:** 8.0
 **Tested up to:** 6.7  
-**Stable tag:** 2.0.0  
+**Stable tag:** 3.0.0  
 **License:** GPLv3 or later  
 **License URI:** https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -156,6 +157,17 @@ Examples:
   
 ## Changelog
 
+### 3.0.0
+- **Major Architecture Refactor** - Complete rewrite of REST API architecture
+- Split 2,500+ line REST API class into separate controllers and services
+- Added service layer for better separation of concerns
+- Created dedicated controllers for each endpoint (stats, media, posts, users, updates, tasks, settings, cli)
+- Added WP-CLI command support (`wp cdw stats`, `wp cdw tasks`, `wp cdw cli`)
+- Added deactivation hook for proper cleanup
+- Updated minimum PHP version to 8.0
+- Updated minimum WordPress version to 6.0
+- Improved code maintainability and testability
+
 ### 2.0.0
 - Complete rewrite with React and REST API
 - Added Command Line widget for site management
@@ -178,6 +190,13 @@ Examples:
 - Initial releases
 
 ## Upgrade Notice
+
+### 3.0.0
+This is a major architectural update with no breaking changes:
+- REST API endpoints remain the same
+- New WP-CLI commands available
+- Improved code organization and maintainability
+- Minimum PHP increased to 8.0
 
 ### 2.0.0
 This is a major update with significant changes:

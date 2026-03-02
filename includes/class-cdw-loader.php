@@ -6,6 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once CDW_PLUGIN_DIR . 'includes/class-cdw-rest-api.php';
 require_once CDW_PLUGIN_DIR . 'includes/class-cdw-widgets.php';
+require_once CDW_PLUGIN_DIR . 'includes/cli/class-cdw-cli-command.php';
 
 class CDW_Loader {
     private $rest_api;

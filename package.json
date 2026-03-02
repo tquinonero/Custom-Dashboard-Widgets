@@ -1,6 +1,6 @@
 {
   "name": "cdw-custom-dashboard-widgets",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Custom Dashboard Widgets - Modernized with React and REST API",
   "author": "Toni Quiñonero",
   "license": "GPL-3.0",
