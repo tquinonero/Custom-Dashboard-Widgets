@@ -209,6 +209,10 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 				'category' => 'Theme Management',
 				'commands' => array(
 					array(
+						'name'        => 'theme info',
+						'description' => 'Show active theme details',
+					),
+					array(
 						'name'        => 'theme list',
 						'description' => 'List all themes',
 					),
@@ -226,12 +230,37 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 				'category' => 'User Management',
 				'commands' => array(
 					array(
+						'name'        => 'user get <username|id>',
+						'description' => 'Get user details',
+					),
+					array(
 						'name'        => 'user list',
 						'description' => 'List all users',
 					),
 					array(
 						'name'        => 'user create <user> <email> <role>',
 						'description' => 'Create user',
+					),
+					array(
+						'name'        => 'user role <user> <role>',
+						'description' => 'Change user role',
+					),
+				),
+			),
+			array(
+				'category' => 'Post Management',
+				'commands' => array(
+					array(
+						'name'        => 'post get <id>',
+						'description' => 'Get post details',
+					),
+					array(
+						'name'        => 'post list [<type>]',
+						'description' => 'List posts',
+					),
+					array(
+						'name'        => 'post status <id> <status>',
+						'description' => 'Change post status',
 					),
 				),
 			),
@@ -285,6 +314,10 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 					array(
 						'name'        => 'site info',
 						'description' => 'Show site info',
+					),
+					array(
+						'name'        => 'site settings',
+						'description' => 'Show WordPress settings',
 					),
 					array(
 						'name'        => 'site status',

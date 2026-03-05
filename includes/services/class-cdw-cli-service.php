@@ -13,11 +13,24 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Handles CLI command execution, audit logging, and command history.
  */
 class CDW_CLI_Service {
-	const DB_VERSION        = '1.1';
+	const DB_VERSION        = '1.2';
 	const TABLE_NAME        = 'cdw_cli_logs';
 	const HISTORY_META_KEY  = 'cdw_cli_history';
 	const RATE_LIMIT_COUNT  = 20;
 	const RATE_LIMIT_WINDOW = 60;
+
+	/**
+	 * Commands that are always blocked when executed via the AI agentic loop,
+	 * regardless of the current user's role or execution mode.
+	 *
+	 * Format: [ [cmd, subcmd], … ]. An empty subcmd ('') matches any subcmd.
+	 *
+	 * @var array<int,array<int,string>>
+	 */
+	const BLOCKED_AI_COMMANDS = array(
+		array( 'db', 'export' ),
+		array( 'db', 'import' ),
+	);
 
 	/**
 	 * Whether the audit log table has been confirmed to exist.
@@ -40,7 +53,10 @@ class CDW_CLI_Service {
 	}
 
 	/**
-	 * Create the CDW CLI audit log database table.
+	 * Create or upgrade the CDW CLI audit log database table.
+	 *
+	 * Uses dbDelta() so that new columns are added to pre-existing tables
+	 * without losing any existing rows.
 	 *
 	 * @return void
 	 */
@@ -49,20 +65,21 @@ class CDW_CLI_Service {
 		$table_name      = $wpdb->prefix . self::TABLE_NAME;
 		$charset_collate = $wpdb->get_charset_collate();
 
-		$create_sql = "CREATE TABLE IF NOT EXISTS `{$table_name}` (
+		$create_sql = "CREATE TABLE {$table_name} (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			user_id bigint(20) unsigned NOT NULL,
 			command varchar(500) NOT NULL,
 			success tinyint(1) NOT NULL DEFAULT 1,
 			outcome varchar(500) DEFAULT NULL,
 			created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			PRIMARY KEY (id),
+			PRIMARY KEY  (id),
 			KEY idx_user_id (user_id),
 			KEY idx_created_at (created_at)
-		) {$charset_collate}";
+		) {$charset_collate};";
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.SchemaChange -- CREATE TABLE cannot use placeholders; all interpolated values come from trusted $wpdb properties.
-		$wpdb->query( $create_sql );
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- dbDelta is the canonical WP way to create/upgrade tables.
+		dbDelta( $create_sql );
 	}
 
 	/**
@@ -242,6 +259,54 @@ class CDW_CLI_Service {
 			return in_array( $option_name, CDW_Base_Controller::$protected_options, true );
 		}
 		return false;
+	}
+
+	/**
+	 * Check whether a command is permitted in the AI agentic context.
+	 *
+	 * Consults BLOCKED_AI_COMMANDS — an allow-all list minus explicitly blocked
+	 * operations (e.g. db export/import) that are too risky to execute autonomously.
+	 *
+	 * @param string $cmd    Top-level command token.
+	 * @param string $subcmd Subcommand token.
+	 * @return bool True if the command may be executed; false if blocked.
+	 */
+	public function is_safe_for_ai( $cmd, $subcmd ) {
+		foreach ( self::BLOCKED_AI_COMMANDS as $blocked ) {
+			if ( $cmd === $blocked[0] && $subcmd === $blocked[1] ) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Execute a CLI command on behalf of the AI agentic loop.
+	 *
+	 * Identical to execute() but:
+	 * - Checks is_safe_for_ai() and rejects blocked commands with a 403 WP_Error.
+	 * - Bypasses the CLI rate limit (the AI layer has its own per-user rate limit).
+	 *
+	 * @param string $command The command string to execute.
+	 * @param int    $user_id WordPress user ID running the command.
+	 * @return array<string,mixed>|WP_Error Result array or WP_Error.
+	 */
+	public function execute_as_ai( $command, $user_id ) {
+		$parts  = preg_split( '/\s+/', trim( (string) $command ) );
+		$cmd    = strtolower( $parts[0] ?? '' );
+		$subcmd = strtolower( $parts[1] ?? '' );
+
+		if ( ! $this->is_safe_for_ai( $cmd, $subcmd ) ) {
+			return new WP_Error(
+				'ai_blocked_command',
+				/* translators: %1$s: command token, %2$s: subcommand token */
+				sprintf( __( 'Command "%1$s %2$s" is not permitted in AI mode.', 'cdw' ), $cmd, $subcmd ),
+				array( 'status' => 403 )
+			);
+		}
+
+		// AI has its own rate limit; bypass the CLI-level rate limit here.
+		return $this->execute( $command, $user_id, true );
 	}
 
 	/**
@@ -900,6 +965,25 @@ class CDW_CLI_Service {
 	 */
 	private function handle_theme_command( $subcmd, $args, $raw_args = array() ) {
 		switch ( $subcmd ) {
+			case 'info':
+				$active_theme = wp_get_theme();
+				$updates      = get_site_transient( 'update_themes' );
+				$has_update   = ! empty( $updates->response[ $active_theme->get_stylesheet() ] );
+				$output       = "Active Theme:\n";
+				$output      .= 'Name:        ' . $active_theme->get( 'Name' ) . "\n";
+				$output      .= 'Slug:        ' . $active_theme->get_stylesheet() . "\n";
+				$output      .= 'Version:     ' . $active_theme->get( 'Version' ) . "\n";
+				$output      .= 'Author:      ' . wp_strip_all_tags( (string) $active_theme->get( 'Author' ) ) . "\n";
+				$output      .= 'Description: ' . wp_strip_all_tags( (string) $active_theme->get( 'Description' ) ) . "\n";
+				$output      .= 'Template:    ' . $active_theme->get_template() . "\n";
+				$tags         = (array) $active_theme->get( 'Tags' );
+				$output      .= 'Tags:        ' . ( ! empty( $tags ) ? implode( ', ', $tags ) : '(none)' ) . "\n";
+				$output      .= 'Update:      ' . ( $has_update ? 'Available' : 'Up to date' ) . "\n";
+				return array(
+					'output'  => $output,
+					'success' => true,
+				);
+
 			case 'list':
 				$themes  = wp_get_themes();
 				$current = wp_get_theme();
@@ -1160,7 +1244,7 @@ class CDW_CLI_Service {
 
 			default:
 				return array(
-					'output'  => "Available theme commands:\n  theme list               - List all themes\n  theme status <slug>     - Show status for a theme\n  theme install <slug>   - Install a theme\n  theme activate <slug>  - Activate a theme\n  theme update <slug>    - Update a theme\n  theme update --all    - Update all themes\n  theme delete <slug>    - Delete a theme (requires --force)",
+					'output'  => "Available theme commands:\n  theme info               - Show active theme details\n  theme list               - List all themes\n  theme status <slug>     - Show status for a theme\n  theme install <slug>   - Install a theme\n  theme activate <slug>  - Activate a theme\n  theme update <slug>    - Update a theme\n  theme update --all    - Update all themes\n  theme delete <slug>    - Delete a theme (requires --force)",
 					'success' => true,
 				);
 		}
@@ -1184,6 +1268,40 @@ class CDW_CLI_Service {
 	 */
 	private function handle_user_command( $subcmd, $args, $raw_args = array() ) {
 		switch ( $subcmd ) {
+			case 'get':
+				if ( empty( $args[0] ) ) {
+					return array(
+						'output'  => 'Usage: user get <username|id>',
+						'success' => false,
+					);
+				}
+				$identifier  = sanitize_text_field( $args[0] );
+				$target_user = get_user_by( 'login', $identifier );
+				if ( ! $target_user ) {
+					$target_user = get_user_by( 'id', intval( $identifier ) );
+				}
+				if ( ! $target_user ) {
+					return array(
+						'output'  => "User not found: $identifier",
+						'success' => false,
+					);
+				}
+				$roles      = implode( ', ', $target_user->roles );
+				$post_count = (int) count_user_posts( $target_user->ID );
+				$author_url = get_author_posts_url( $target_user->ID );
+				$output     = "ID:          {$target_user->ID}\n";
+				$output    .= "Username:    {$target_user->user_login}\n";
+				$output    .= "Display:     {$target_user->display_name}\n";
+				$output    .= "Email:       {$target_user->user_email}\n";
+				$output    .= "Role:        $roles\n";
+				$output    .= "Registered:  {$target_user->user_registered}\n";
+				$output    .= "Posts:       $post_count\n";
+				$output    .= "URL:         $author_url\n";
+				return array(
+					'output'  => $output,
+					'success' => true,
+				);
+
 			case 'list':
 				$users  = get_users( array( 'number' => 200 ) );
 				$output = "Users:\n";
@@ -1340,7 +1458,7 @@ class CDW_CLI_Service {
 
 			default:
 				return array(
-					'output'  => "Available user commands:\n  user list                - List all users\n  user create <user> <email> <role> - Create user\n  user delete <user>      - Delete user\n  user role <user> <role>  - Change user role",
+					'output'  => "Available user commands:\n  user get <username|id>   - Get user details\n  user list                - List all users\n  user create <user> <email> <role> - Create user\n  user delete <user>      - Delete user\n  user role <user> <role>  - Change user role",
 					'success' => true,
 				);
 		}
@@ -1364,6 +1482,39 @@ class CDW_CLI_Service {
 	 */
 	private function handle_post_command( $subcmd, $args, $raw_args = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		switch ( $subcmd ) {
+			case 'get':
+				if ( empty( $args[0] ) ) {
+					return array(
+						'output'  => 'Usage: post get <post-id>',
+						'success' => false,
+					);
+				}
+				$post_id = absint( $args[0] );
+				$post    = get_post( $post_id );
+				if ( ! $post ) {
+					return array(
+						'output'  => "Post not found: $post_id",
+						'success' => false,
+					);
+				}
+				$author_name = get_the_author_meta( 'display_name', (int) $post->post_author );
+				$permalink   = get_permalink( $post_id );
+				$excerpt     = ! empty( $post->post_excerpt ) ? $post->post_excerpt : wp_trim_words( $post->post_content, 20 );
+				$output      = "Post ID:     {$post->ID}\n";
+				$output     .= "Title:       {$post->post_title}\n";
+				$output     .= "Type:        {$post->post_type}\n";
+				$output     .= "Status:      {$post->post_status}\n";
+				$output     .= "Author:      $author_name (ID: {$post->post_author})\n";
+				$output     .= "Date:        {$post->post_date}\n";
+				$output     .= "Modified:    {$post->post_modified}\n";
+				$output     .= "Slug:        {$post->post_name}\n";
+				$output     .= "URL:         $permalink\n";
+				$output     .= "Excerpt:     $excerpt\n";
+				return array(
+					'output'  => $output,
+					'success' => true,
+				);
+
 			case 'list':
 				$post_type = ! empty( $args[0] ) ? sanitize_text_field( $args[0] ) : 'post';
 				$posts     = get_posts(
@@ -1457,7 +1608,7 @@ class CDW_CLI_Service {
 
 			default:
 				return array(
-					'output'  => "Available post commands:\n  post list [<type>]       - List posts\n  post delete <id>        - Delete post\n  post status <id> <status> - Change post status",
+					'output'  => "Available post commands:\n  post get <id>            - Get post details\n  post list [<type>]       - List posts\n  post delete <id>        - Delete post\n  post status <id> <status> - Change post status",
 					'success' => true,
 				);
 		}
@@ -1490,6 +1641,24 @@ class CDW_CLI_Service {
 					'success' => true,
 				);
 
+			case 'settings':
+				$output  = "WordPress Settings:\n";
+				$output .= 'Tagline:       ' . get_option( 'blogdescription' ) . "\n";
+				$output .= 'Admin Email:   ' . get_option( 'admin_email' ) . "\n";
+				$wplang  = get_option( 'WPLANG' );
+				$output .= 'Language:      ' . ( $wplang ? $wplang : 'en_US' ) . "\n";
+				$output .= 'Timezone:      ' . get_option( 'timezone_string' ) . "\n";
+				$output .= 'Date Format:   ' . get_option( 'date_format' ) . "\n";
+				$output .= 'Time Format:   ' . get_option( 'time_format' ) . "\n";
+				$output .= 'Permalink:     ' . get_option( 'permalink_structure' ) . "\n";
+				$output .= 'Comments:      ' . ( 'open' === get_option( 'default_comment_status' ) ? 'Open' : 'Closed' ) . "\n";
+				$output .= 'Registration:  ' . ( get_option( 'users_can_register' ) ? 'Open' : 'Closed' ) . "\n";
+				$output .= 'Default Role:  ' . get_option( 'default_role' ) . "\n";
+				return array(
+					'output'  => $output,
+					'success' => true,
+				);
+
 			case 'status':
 				$output  = "Site Status:\n";
 				$output .= 'Multisite: ' . ( is_multisite() ? 'Yes' : 'No' ) . "\n";
@@ -1514,7 +1683,7 @@ class CDW_CLI_Service {
 
 			default:
 				return array(
-					'output'  => "Available site commands:\n  site info                - Show site info\n  site status             - Show site status\n  site empty              - Optimize database",
+					'output'  => "Available site commands:\n  site info                - Show site info\n  site settings            - Show WordPress settings\n  site status             - Show site status\n  site empty              - Optimize database",
 					'success' => true,
 				);
 		}
@@ -2196,6 +2365,7 @@ Plugin Management:
   plugin delete <slug>    - Delete a plugin
 
 Theme Management:
+  theme info              - Show active theme details
   theme list              - List all themes
   theme status <slug>     - Show theme status
   theme install <slug>   - Install a theme
@@ -2203,18 +2373,21 @@ Theme Management:
   theme delete <slug>    - Delete a theme
 
 User Management:
+  user get <username|id>  - Get user details
   user list               - List all users
   user create <user> <email> <role> - Create user
   user delete <user>     - Delete user
   user role <user> <role> - Change user role
 
 Post Management:
+  post get <id>           - Get post details
   post list [<type>]      - List posts
   post delete <id>        - Delete post
   post status <id> <status> - Change post status
 
 Site Management:
   site info               - Show site info
+  site settings           - Show WordPress settings
   site status            - Show site status
   site empty             - Optimize database
 

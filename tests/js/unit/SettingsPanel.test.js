@@ -5,6 +5,22 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import SettingsPanel from '../../../src/components/SettingsPanel';
 import { useSelect, useDispatch } from '@wordpress/data';
+import apiFetch from '@wordpress/api-fetch';
+
+// ── Default apiFetch mock: return hanging promises for AI endpoints ───────────
+// AI calls (loadAiSettings, loadUsage) are not tested here; return promises
+// that never resolve so no out-of-act() state updates fire.
+function mockApiFetch() {
+    apiFetch.mockImplementation((opts) => {
+        if (opts && opts.path && (
+            opts.path.includes('/cdw/v1/ai/settings') ||
+            opts.path.includes('/cdw/v1/ai/usage')
+        )) {
+            return new Promise(() => {}); // intentionally never resolves in unit tests
+        }
+        return Promise.resolve({});
+    });
+}
 
 // ── Helper: configure useSelect return value ──────────────────────────────────
 function mockStore({ settings = {}, isLoading = false } = {}) {
@@ -32,6 +48,7 @@ function mockActions({ fetchSettings, saveSettings } = {}) {
 beforeEach(() => {
     mockStore();
     mockActions();
+    mockApiFetch();
 });
 
 afterEach(() => {

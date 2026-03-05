@@ -38,6 +38,10 @@ function cdw_do_uninstall() {
 		'cdw_remove_default_widgets',
 		'cdw_delete_on_uninstall',
 		'cdw_db_version',
+		// AI options.
+		'cdw_ai_enabled',
+		'cdw_ai_execution_mode',
+		'cdw_ai_custom_system_prompt',
 		// Legacy option names (v1/v2 backwards compatibility).
 		'custom_dashboard_widget_email',
 		'custom_dashboard_widget_docs_url',
@@ -63,6 +67,9 @@ function cdw_do_uninstall() {
 		$wpdb->esc_like( '_transient_cdw_cli_rate_' ) . '%',
 		$wpdb->esc_like( '_transient_timeout_cdw_cli_rate_' ) . '%',
 		$wpdb->esc_like( 'cdw_cli_rate_start_' ) . '%',
+		// AI rate-limit transients.
+		$wpdb->esc_like( '_transient_cdw_ai_rate_' ) . '%',
+		$wpdb->esc_like( '_transient_timeout_cdw_ai_rate_' ) . '%',
 	);
 
 	foreach ( $patterns as $pattern ) {
@@ -79,8 +86,29 @@ function cdw_do_uninstall() {
 	// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.SchemaChange -- table name is prefix + constant string, safe; DROP TABLE is intentional on uninstall.
 	$wpdb->query( "DROP TABLE IF EXISTS `{$table_name}`" );
 
-	// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- bulk delete on uninstall, performance is acceptable.
-	$wpdb->delete( $wpdb->usermeta, array( 'meta_key' => 'cdw_tasks' ), array( '%s' ) );
-	// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- bulk delete on uninstall, performance is acceptable.
-	$wpdb->delete( $wpdb->usermeta, array( 'meta_key' => 'cdw_cli_history' ), array( '%s' ) );
+	// --- User meta (exact keys) ---
+	$user_meta_keys = array(
+		'cdw_tasks',
+		'cdw_cli_history',
+		// AI per-user settings.
+		'cdw_ai_provider',
+		'cdw_ai_model',
+		'cdw_ai_execution_mode',
+		'cdw_ai_token_usage',
+		'cdw_ai_base_url',
+	);
+
+	foreach ( $user_meta_keys as $meta_key ) {
+		// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- bulk delete on uninstall, performance is acceptable.
+		$wpdb->delete( $wpdb->usermeta, array( 'meta_key' => $meta_key ), array( '%s' ) );
+	}
+
+	// --- User meta (pattern-matched via SQL) — encrypted AI API keys ---
+	// Keys are stored as cdw_ai_api_key_{provider} (one row per user per provider).
+	$wpdb->query(
+		$wpdb->prepare(
+			"DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE %s",
+			$wpdb->esc_like( 'cdw_ai_api_key_' ) . '%'
+		)
+	);
 }

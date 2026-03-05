@@ -50,27 +50,33 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_settings() {
-		$email                  = get_option( 'cdw_support_email', get_option( 'custom_dashboard_widget_email', '' ) );
-		$docs_url               = get_option( 'cdw_docs_url', get_option( 'custom_dashboard_widget_docs_url', '' ) );
-		$font_size              = get_option( 'cdw_font_size', get_option( 'custom_dashboard_widget_font_size', '' ) );
-		$bg_color               = get_option( 'cdw_bg_color', get_option( 'custom_dashboard_widget_background_color', '' ) );
-		$header_bg_color        = get_option( 'cdw_header_bg_color', get_option( 'custom_dashboard_widget_header_background_color', '' ) );
-		$header_text_color      = get_option( 'cdw_header_text_color', get_option( 'custom_dashboard_widget_header_text_color', '' ) );
-		$cli_enabled            = get_option( 'cdw_cli_enabled', true );
-		$remove_default_widgets = get_option( 'cdw_remove_default_widgets', true );
-		$delete_on_uninstall    = get_option( 'cdw_delete_on_uninstall', true );
+		$email                   = get_option( 'cdw_support_email', get_option( 'custom_dashboard_widget_email', '' ) );
+		$docs_url                = get_option( 'cdw_docs_url', get_option( 'custom_dashboard_widget_docs_url', '' ) );
+		$font_size               = get_option( 'cdw_font_size', get_option( 'custom_dashboard_widget_font_size', '' ) );
+		$bg_color                = get_option( 'cdw_bg_color', get_option( 'custom_dashboard_widget_background_color', '' ) );
+		$header_bg_color         = get_option( 'cdw_header_bg_color', get_option( 'custom_dashboard_widget_header_background_color', '' ) );
+		$header_text_color       = get_option( 'cdw_header_text_color', get_option( 'custom_dashboard_widget_header_text_color', '' ) );
+		$cli_enabled             = get_option( 'cdw_cli_enabled', true );
+		$remove_default_widgets  = get_option( 'cdw_remove_default_widgets', true );
+		$delete_on_uninstall     = get_option( 'cdw_delete_on_uninstall', true );
+		$ai_enabled              = get_option( 'cdw_ai_enabled', false );
+		$ai_execution_mode       = get_option( 'cdw_ai_execution_mode', 'confirm' );
+		$ai_custom_system_prompt = get_option( 'cdw_ai_custom_system_prompt', '' );
 
 		return rest_ensure_response(
 			array(
-				'email'                  => $email,
-				'docs_url'               => $docs_url,
-				'font_size'              => $font_size,
-				'bg_color'               => $bg_color,
-				'header_bg_color'        => $header_bg_color,
-				'header_text_color'      => $header_text_color,
-				'cli_enabled'            => $cli_enabled,
-				'remove_default_widgets' => $remove_default_widgets,
-				'delete_on_uninstall'    => $delete_on_uninstall,
+				'email'                   => $email,
+				'docs_url'                => $docs_url,
+				'font_size'               => $font_size,
+				'bg_color'                => $bg_color,
+				'header_bg_color'         => $header_bg_color,
+				'header_text_color'       => $header_text_color,
+				'cli_enabled'             => $cli_enabled,
+				'remove_default_widgets'  => $remove_default_widgets,
+				'delete_on_uninstall'     => $delete_on_uninstall,
+				'ai_enabled'              => $ai_enabled,
+				'ai_execution_mode'       => $ai_execution_mode,
+				'ai_custom_system_prompt' => $ai_custom_system_prompt,
 			)
 		);
 	}
@@ -140,6 +146,21 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 
 		if ( isset( $settings['delete_on_uninstall'] ) ) {
 			update_option( 'cdw_delete_on_uninstall', (bool) $settings['delete_on_uninstall'] );
+		}
+
+		if ( isset( $settings['ai_enabled'] ) ) {
+			update_option( 'cdw_ai_enabled', (bool) $settings['ai_enabled'] );
+		}
+
+		if ( isset( $settings['ai_execution_mode'] ) ) {
+			$mode = sanitize_text_field( $settings['ai_execution_mode'] );
+			if ( in_array( $mode, array( 'auto', 'confirm' ), true ) ) {
+				update_option( 'cdw_ai_execution_mode', $mode );
+			}
+		}
+
+		if ( isset( $settings['ai_custom_system_prompt'] ) ) {
+			update_option( 'cdw_ai_custom_system_prompt', sanitize_textarea_field( $settings['ai_custom_system_prompt'] ) );
 		}
 
 		return rest_ensure_response( array( 'success' => true ) );

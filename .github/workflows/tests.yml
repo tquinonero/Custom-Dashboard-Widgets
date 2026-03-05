@@ -54,6 +54,16 @@ jobs:
       - name: Run JS unit tests
         run: npm run test:js -- --ci
 
+      - name: Build assets
+        run: npm run build
+
+      - name: Check build is up to date
+        run: |
+          if ! git diff --exit-code build/; then
+            echo "ERROR: build/ files are out of date. Run 'npm run build' and commit the result."
+            exit 1
+          fi
+
   # ---------------------------------------------------------------------------
   # PHP integration tests — requires a real WordPress + MySQL environment.
   # Run locally with DDEV:  ddev exec vendor/bin/phpunit --config phpunit-integration.xml

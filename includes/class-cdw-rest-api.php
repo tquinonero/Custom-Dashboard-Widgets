@@ -46,6 +46,7 @@ class CDW_REST_API {
 		require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-stats-service.php';
 		require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-task-service.php';
 		require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-cli-service.php';
+		require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-ai-service.php';
 
 		require_once CDW_PLUGIN_DIR . 'includes/controllers/class-cdw-base-controller.php';
 		require_once CDW_PLUGIN_DIR . 'includes/controllers/class-cdw-stats-controller.php';
@@ -56,6 +57,7 @@ class CDW_REST_API {
 		require_once CDW_PLUGIN_DIR . 'includes/controllers/class-cdw-tasks-controller.php';
 		require_once CDW_PLUGIN_DIR . 'includes/controllers/class-cdw-settings-controller.php';
 		require_once CDW_PLUGIN_DIR . 'includes/controllers/class-cdw-cli-controller.php';
+		require_once CDW_PLUGIN_DIR . 'includes/controllers/class-cdw-ai-controller.php';
 
 		$this->controllers = array(
 			new CDW_Stats_Controller(),
@@ -66,6 +68,7 @@ class CDW_REST_API {
 			new CDW_Tasks_Controller(),
 			new CDW_Settings_Controller(),
 			new CDW_CLI_Controller(),
+			new CDW_AI_Controller(),
 		);
 	}
 

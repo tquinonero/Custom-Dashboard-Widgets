@@ -940,3 +940,702 @@ $cdw-term-comment: #6272a4;
 @keyframes cdw-term-spin {
     to { transform: rotate(360deg); }
 }
+
+// =============================================================================
+// Phase 3 — AI Mode styles
+// =============================================================================
+
+// ---- Mode toggle (CLI / AI) --------------------------------------------------
+.cdw-mode-toggle {
+    display: flex;
+    gap: 0;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+
+    .cdw-mode-btn {
+        background: transparent;
+        border: none;
+        color: rgba($cdw-term-text, 0.55);
+        font-family: 'SF Mono', 'Monaco', monospace;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 0.25rem 0.6rem;
+        cursor: pointer;
+        transition: background 0.2s ease, color 0.2s ease;
+        letter-spacing: 0.02em;
+
+        &:hover {
+            color: $cdw-term-text;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        &.active {
+            background: $cdw-term-accent;
+            color: $cdw-term-bg;
+        }
+    }
+
+    &.cdw-mode-toggle--sm {
+        .cdw-mode-btn {
+            font-size: 0.65rem;
+            padding: 0.2rem 0.5rem;
+        }
+    }
+}
+
+// Update header to accommodate the toggle
+.cdw-command-widget {
+    .cdw-command-header {
+        gap: 0.5rem;
+    }
+
+    .cdw-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin-left: auto;
+    }
+
+    .cdw-command-btn.active {
+        background: rgba($cdw-term-accent, 0.2);
+        border-color: $cdw-term-accent;
+        color: $cdw-term-accent;
+    }
+}
+
+// ---- Gear panel -------------------------------------------------------------
+.cdw-gear-wrap {
+    position: relative;
+}
+
+.cdw-gear-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 100;
+    background: color.adjust($cdw-term-bg, $lightness: 5%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: $cdw-radius-sm;
+    padding: 0.75rem;
+    min-width: 220px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    animation: cdw-fade-in 0.15s ease;
+
+    .cdw-gear-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 0.6rem;
+
+        &:last-of-type {
+            margin-bottom: 0.5rem;
+        }
+    }
+
+    .cdw-gear-label {
+        color: rgba($cdw-term-text, 0.55);
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        white-space: nowrap;
+    }
+
+    .cdw-gear-select {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 3px;
+        color: $cdw-term-text;
+        font-family: inherit;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.4rem;
+        cursor: pointer;
+
+        option {
+            background: color.adjust($cdw-term-bg, $lightness: 8%);
+        }
+
+        &:focus {
+            outline: none;
+            border-color: $cdw-term-accent;
+        }
+    }
+
+    .cdw-gear-warn {
+        font-size: 0.72rem;
+        color: #ffb86c;
+        padding: 0.3rem 0;
+    }
+
+    .cdw-gear-link {
+        display: block;
+        font-size: 0.72rem;
+        color: $cdw-term-accent;
+        text-decoration: none;
+        padding-top: 0.4rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.07);
+        margin-top: 0.4rem;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+}
+
+// ---- AI Notice banner -------------------------------------------------------
+.cdw-ai-notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: rgba(#ffb86c, 0.12);
+    border-bottom: 1px solid rgba(#ffb86c, 0.25);
+    font-size: 0.75rem;
+    color: #ffb86c;
+
+    a {
+        color: $cdw-term-accent;
+        text-decoration: none;
+        white-space: nowrap;
+
+        &:hover { text-decoration: underline; }
+    }
+}
+
+// ---- AI output (chat area) --------------------------------------------------
+.cdw-ai-output {
+    height: 280px;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+
+    &::-webkit-scrollbar { width: 6px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+    }
+}
+
+// ---- AI welcome screen ------------------------------------------------------
+.cdw-ai-welcome {
+    text-align: center;
+    padding: 1.5rem 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+
+    .cdw-ai-welcome-icon {
+        font-size: 1.75rem;
+        color: $cdw-term-accent;
+        margin-bottom: 0.25rem;
+    }
+
+    .cdw-ai-welcome-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: $cdw-term-text;
+        letter-spacing: 0.5px;
+    }
+
+    .cdw-ai-welcome-text {
+        color: $cdw-term-comment;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        max-width: 260px;
+    }
+
+    .cdw-ai-welcome-examples {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        margin-top: 0.5rem;
+        width: 100%;
+        max-width: 300px;
+
+        button {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            color: rgba($cdw-term-text, 0.8);
+            font-family: inherit;
+            font-size: 0.75rem;
+            padding: 0.4rem 0.75rem;
+            cursor: pointer;
+            text-align: left;
+            transition: $cdw-transition;
+
+            &:hover {
+                background: rgba($cdw-term-accent, 0.15);
+                border-color: $cdw-term-accent;
+                color: $cdw-term-text;
+            }
+        }
+    }
+}
+
+// ---- Chat bubbles -----------------------------------------------------------
+.cdw-ai-bubble {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    max-width: 90%;
+    animation: cdw-fade-in 0.2s ease;
+
+    .cdw-ai-bubble-role {
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: $cdw-term-comment;
+    }
+
+    .cdw-ai-bubble-content {
+        padding: 0.6rem 0.85rem;
+        border-radius: $cdw-radius-sm;
+        font-size: 0.82rem;
+        line-height: 1.55;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    &--user {
+        align-self: flex-end;
+        align-items: flex-end;
+
+        .cdw-ai-bubble-role { color: rgba($cdw-term-prompt, 0.7); }
+
+        .cdw-ai-bubble-content {
+            background: rgba($cdw-term-prompt, 0.15);
+            border: 1px solid rgba($cdw-term-prompt, 0.25);
+            color: $cdw-term-text;
+        }
+    }
+
+    &--assistant {
+        align-self: flex-start;
+        align-items: flex-start;
+
+        .cdw-ai-bubble-content {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: $cdw-term-text;
+        }
+    }
+
+    &--error .cdw-ai-bubble-content {
+        background: rgba($cdw-term-error, 0.1);
+        border-color: rgba($cdw-term-error, 0.3);
+    }
+
+    .cdw-ai-error {
+        color: $cdw-term-error;
+    }
+}
+
+// ---- Typing indicator -------------------------------------------------------
+.cdw-ai-thinking {
+    .cdw-ai-bubble-content {
+        padding: 0.45rem 0.85rem;
+    }
+}
+
+.cdw-ai-dots {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0.35rem 0;
+
+    span {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: $cdw-term-comment;
+        animation: cdw-dot-bounce 1.2s ease-in-out infinite;
+
+        &:nth-child(2) { animation-delay: 0.2s; }
+        &:nth-child(3) { animation-delay: 0.4s; }
+    }
+}
+
+@keyframes cdw-dot-bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+    30% { transform: translateY(-4px); opacity: 1; }
+}
+
+// ---- Tool call sub-entries --------------------------------------------------
+.cdw-ai-tools {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-top: 0.4rem;
+    padding-left: 0.25rem;
+}
+
+.cdw-ai-tool-entry {
+    border-left: 2px solid rgba($cdw-term-accent, 0.35);
+    padding-left: 0.5rem;
+}
+
+.cdw-ai-tool-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: none;
+    border: none;
+    color: rgba($cdw-term-text, 0.55);
+    font-family: inherit;
+    font-size: 0.72rem;
+    cursor: pointer;
+    padding: 0.1rem 0;
+    transition: color 0.2s ease;
+
+    &:hover { color: $cdw-term-accent; }
+
+    .cdw-ai-tool-arrow { font-size: 0.65rem; }
+
+    .cdw-ai-tool-name { font-style: italic; }
+}
+
+.cdw-ai-tool-output {
+    margin-top: 0.3rem;
+    padding: 0.4rem 0.6rem;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 3px;
+    font-size: 0.72rem;
+    color: rgba($cdw-term-text, 0.75);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 140px;
+    overflow-y: auto;
+}
+
+// ---- Confirmation banner ----------------------------------------------------
+.cdw-ai-confirm {
+    padding: 0.75rem 1rem;
+    background: rgba(#ffb86c, 0.1);
+    border-top: 1px solid rgba(#ffb86c, 0.25);
+    border-bottom: 1px solid rgba(#ffb86c, 0.25);
+
+    .cdw-ai-confirm-text {
+        font-size: 0.8rem;
+        color: $cdw-term-text;
+        margin-bottom: 0.3rem;
+
+        strong { color: #ffb86c; }
+        em { color: rgba($cdw-term-text, 0.85); font-style: normal; }
+    }
+
+    .cdw-ai-confirm-note {
+        font-size: 0.72rem;
+        color: $cdw-term-comment;
+        margin-bottom: 0.6rem;
+    }
+
+    .cdw-ai-confirm-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .cdw-ai-confirm-yes {
+        background: $cdw-term-accent;
+        border: none;
+        border-radius: 3px;
+        color: $cdw-term-bg;
+        font-family: inherit;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 0.3rem 0.75rem;
+        cursor: pointer;
+        transition: opacity 0.2s ease;
+
+        &:hover { opacity: 0.85; }
+    }
+
+    .cdw-ai-confirm-no {
+        background: transparent;
+        border: 1px solid rgba($cdw-term-error, 0.5);
+        border-radius: 3px;
+        color: $cdw-term-error;
+        font-family: inherit;
+        font-size: 0.75rem;
+        padding: 0.3rem 0.75rem;
+        cursor: pointer;
+        transition: background 0.2s ease;
+
+        &:hover { background: rgba($cdw-term-error, 0.1); }
+    }
+}
+
+// ---- AI input bar -----------------------------------------------------------
+.cdw-ai-input-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: color.adjust($cdw-term-bg, $lightness: -5%);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+
+    .cdw-ai-field {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: $cdw-radius-sm;
+        color: $cdw-term-text;
+        font-family: inherit;
+        font-size: 0.85rem;
+        padding: 0.45rem 0.75rem;
+        outline: none;
+        transition: border-color 0.2s ease, background 0.2s ease;
+
+        &::placeholder { color: rgba(255, 255, 255, 0.3); }
+
+        &:focus {
+            border-color: rgba($cdw-term-accent, 0.6);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        &:disabled { opacity: 0.5; }
+    }
+
+    .cdw-ai-send-btn {
+        background: transparent;
+        border: none;
+        color: $cdw-term-accent;
+        cursor: pointer;
+        font-size: 1.1rem;
+        padding: 0.25rem 0.5rem;
+        opacity: 0.7;
+        transition: $cdw-transition;
+        flex-shrink: 0;
+
+        &:hover:not(:disabled) { opacity: 1; transform: scale(1.1); }
+        &:disabled { opacity: 0.3; cursor: not-allowed; }
+    }
+}
+
+// =============================================================================
+// Phase 3 — Settings AI section styles
+// =============================================================================
+
+.cdw-settings-panel {
+    .cdw-ai-section .cdw-section-icon {
+        background: linear-gradient(135deg, #3a0ca3 0%, #7209b7 100%);
+        color: white;
+    }
+
+    .cdw-select {
+        display: block;
+        width: 100%;
+        max-width: 400px;
+        padding: 0.75rem 1rem;
+        border: 2px solid $cdw-border;
+        border-radius: $cdw-radius-sm;
+        font-size: 0.95rem;
+        color: $cdw-text;
+        background: $cdw-bg;
+        transition: $cdw-transition;
+        cursor: pointer;
+
+        &:focus {
+            border-color: $cdw-accent;
+            outline: none;
+            background: $cdw-white;
+            box-shadow: 0 0 0 4px rgba($cdw-accent, 0.1);
+        }
+    }
+
+    .cdw-textarea {
+        display: block;
+        width: 100%;
+        max-width: 560px;
+        padding: 0.75rem 1rem;
+        border: 2px solid $cdw-border;
+        border-radius: $cdw-radius-sm;
+        font-size: 0.9rem;
+        color: $cdw-text;
+        background: $cdw-bg;
+        resize: vertical;
+        font-family: inherit;
+        line-height: 1.5;
+        transition: $cdw-transition;
+
+        &:focus {
+            border-color: $cdw-accent;
+            outline: none;
+            background: $cdw-white;
+            box-shadow: 0 0 0 4px rgba($cdw-accent, 0.1);
+        }
+    }
+
+    // Provider cards
+    .cdw-provider-cards {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .cdw-provider-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.75rem 1.25rem;
+        background: $cdw-bg;
+        border: 2px solid $cdw-border;
+        border-radius: $cdw-radius-sm;
+        cursor: pointer;
+        transition: $cdw-transition;
+        position: relative;
+        min-width: 90px;
+
+        .cdw-provider-icon {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        .cdw-provider-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: $cdw-secondary;
+        }
+
+        .cdw-provider-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 18px;
+            height: 18px;
+            background: #0a9e60;
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 700;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        &:hover {
+            border-color: $cdw-accent;
+            background: $cdw-white;
+            box-shadow: $cdw-shadow;
+        }
+
+        &.active {
+            border-color: $cdw-accent;
+            background: $cdw-white;
+            box-shadow: 0 0 0 3px rgba($cdw-accent, 0.15);
+
+            .cdw-provider-label { color: $cdw-accent; }
+        }
+    }
+
+    .cdw-ai-key-form {
+        .cdw-field input[type="password"] {
+            width: 100%;
+            max-width: 400px;
+        }
+    }
+
+    .cdw-key-saved {
+        font-weight: 400;
+        color: $cdw-text-muted;
+        font-size: 0.8rem;
+    }
+
+    .cdw-ai-keys-note {
+        color: $cdw-text-muted;
+        font-size: 0.85rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .cdw-ai-key-actions {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        padding-top: 0.5rem;
+    }
+
+    .cdw-inline-error {
+        font-size: 0.85rem;
+    }
+
+    // Usage dashboard
+    .cdw-ai-usage-section .cdw-section-icon {
+        background: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%);
+        color: white;
+    }
+
+    .cdw-usage-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .cdw-usage-stat {
+        background: $cdw-bg;
+        border: 1px solid $cdw-border;
+        border-radius: $cdw-radius-sm;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.3rem;
+        text-align: center;
+
+        .cdw-usage-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: $cdw-accent;
+            line-height: 1;
+        }
+
+        .cdw-usage-label {
+            font-size: 0.75rem;
+            color: $cdw-text-muted;
+            font-weight: 500;
+        }
+
+        &--total {
+            border-color: $cdw-accent;
+            background: rgba($cdw-accent, 0.04);
+
+            .cdw-usage-value { color: $cdw-accent; }
+        }
+    }
+
+    .cdw-no-usage,
+    .cdw-usage-note,
+    .cdw-loading-text {
+        color: $cdw-text-muted;
+        font-size: 0.85rem;
+        margin: 0;
+    }
+
+    .cdw-usage-note {
+        border-top: 1px solid $cdw-border;
+        padding-top: 0.75rem;
+        margin-top: 0.75rem;
+    }
+
+    .cdw-error {
+        color: $cdw-danger;
+        font-size: 0.9rem;
+    }
+}
