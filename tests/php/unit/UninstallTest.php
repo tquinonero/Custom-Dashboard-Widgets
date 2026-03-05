@@ -128,8 +128,8 @@ class UninstallTest extends CDWTestCase {
 
         \cdw_do_uninstall();
 
-        $this->assertSame( 7, $wpdb_override->prepareCalls,
-            'Expected prepare() to be called exactly 7 times (one per LIKE pattern)' );
+        $this->assertSame( 10, $wpdb_override->prepareCalls,
+            'Expected prepare() to be called exactly 10 times (one per LIKE pattern)' );
     }
 
     public function test_do_uninstall_calls_wpdb_query_for_drop_table(): void {
@@ -172,12 +172,17 @@ class UninstallTest extends CDWTestCase {
 
         \cdw_do_uninstall();
 
-        $this->assertCount( 2, $wpdb_override->deleteCalls,
-            'Expected $wpdb->delete to be called twice' );
+        $this->assertCount( 7, $wpdb_override->deleteCalls,
+            'Expected $wpdb->delete to be called 7 times (one per user meta key)' );
 
         $metaKeys = array_column( $wpdb_override->deleteCalls, 'meta_key' );
-        $this->assertContains( 'cdw_tasks',       $metaKeys );
-        $this->assertContains( 'cdw_cli_history',  $metaKeys );
+        $this->assertContains( 'cdw_tasks',             $metaKeys );
+        $this->assertContains( 'cdw_cli_history',        $metaKeys );
+        $this->assertContains( 'cdw_ai_provider',        $metaKeys );
+        $this->assertContains( 'cdw_ai_model',           $metaKeys );
+        $this->assertContains( 'cdw_ai_execution_mode',  $metaKeys );
+        $this->assertContains( 'cdw_ai_token_usage',     $metaKeys );
+        $this->assertContains( 'cdw_ai_base_url',        $metaKeys );
     }
 
     public function test_do_uninstall_default_true_runs_cleanup_even_when_option_never_set(): void {

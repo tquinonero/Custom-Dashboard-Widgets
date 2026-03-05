@@ -48,6 +48,10 @@ class CDW_Loader {
 		$this->rest_api = new CDW_REST_API();
 		$this->rest_api->register();
 
+		// Abilities API — unconditional, bails silently on WP < 6.9.
+		require_once CDW_PLUGIN_DIR . 'includes/class-cdw-abilities.php';
+		CDW_Abilities::register();
+
 		if ( is_admin() ) {
 			$this->widgets = new CDW_Widgets();
 			$this->widgets->register();

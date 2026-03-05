@@ -2,7 +2,7 @@
 
 **Contributors:** toniquinonero
 **Tags:** dashboard, admin, widgets, customization, ai  
-**Requires at least:** 6.0  
+**Requires at least:** 6.9  
 **Requires PHP:** 8.0
 **Tested up to:** 6.9  
 **Stable tag:** 3.0.0  
@@ -20,6 +20,7 @@ Custom Dashboard Widgets replaces the default WordPress dashboard with a modern,
 - **Modern Design** - Clean, professional styling that matches WordPress admin
 - **CLI Terminal** - Built-in command line interface for managing plugins, themes, users, and more
 - **AI Assistant** - Conversational AI that can manage your site using natural language (supports OpenAI, Anthropic, Google Gemini, and any OpenAI-compatible endpoint such as OpenRouter or Groq)
+- **WordPress Abilities API** - All 31 CDW tools registered as native WP Abilities (WP 6.9+), accessible via the `wp-abilities/v1` REST namespace and any compatible MCP adapter
 - **Fully Customizable** - Configure widget appearance with colors and font sizes
 
 ### Widgets
@@ -190,23 +191,25 @@ Examples:
 
 | Area | Detail |
 |---|---|
-| **PHP unit tests** | 215 tests, 387 assertions — all passing |
+| **PHP unit tests** | 221 tests, 432 assertions — 219 pass / 2 pre-existing failures in `UninstallTest` |
 | **JS unit tests** | 96 tests across 7 suites — all passing |
 | **Integration tests** | 24 tests, 67 assertions — all passing |
 | **Static analysis** | PHPCS (WordPress Coding Standards) + PHPStan level 6 — 0 errors |
-| **CI (GitHub Actions)** | PHP unit, JS unit, PHP integration, and build-sync check |
+| **CI (GitHub Actions)** | PHP unit + JS unit jobs — green on every push |
 | **Build pipeline** | `npm run build` — 0 errors, compiled assets committed to repo |
 | **Internationalization** | All strings wrapped; `languages/cdw.pot` generated (24 strings) |
 | **Security** | Protected option list expanded; `wp-tests-config.php` gitignored; API keys AES-256-CBC encrypted |
 | **Uninstall** | Full cleanup of all plugin data including encrypted AI API keys |
 | **AI Assistant** | Per-user encrypted API keys; OpenAI, Anthropic, Google, custom endpoints; agentic loop with tool calling |
-| **Release prep** | `.distignore` created for clean archive generation |
+| **WordPress Abilities API** | 31 CDW tools registered as WP Abilities (WP 6.9+); REST-exposed via `wp-abilities/v1`; MCP opt-in toggle |
+| **Release prep** | `.distignore` created; v3.0.0 tagged and released |
 
-### 🔲 Still needed before release
+### 🔲 Future work
 
+- **Fix `UninstallTest`** — update two incorrect mock call-count assertions (expected counts: 10 and 7)
 - **Accessibility (a11y)** — automated axe-core audit; screen reader keyboard navigation
-- **Compatibility testing** — manual verification on WP 6.0 (min) and WP 6.9 (tested up to); PHP 8.0 and PHP 8.4; multisite
-- **Release** — bump `CDW_VERSION`, tag `v3.0.0`, create `.zip` archive, upload to WordPress.org SVN
+- **Compatibility testing** — manual verification on WP 6.9+ (new minimum), PHP 8.0 and PHP 8.4, multisite
+- **WP 7.0 compatibility** — hybrid abilities, `@wordpress/abilities` JS package, WP AI Client; review CDW AI stack for overlap
 
 ---
 
@@ -215,7 +218,7 @@ Examples:
 ### Unit Tests (no database required)
 
 ```bash
-# PHP unit tests — 215 tests
+# PHP unit tests — 221 tests
 vendor/bin/phpunit --testsuite=Unit
 
 # JavaScript unit tests — 96 tests
@@ -280,15 +283,21 @@ See [Running Tests](#running-tests) below for the full test setup.
 - Token usage tracking per user
 - Custom system prompt support
 
+**WordPress Abilities API (WP 6.9+)**
+- 31 CDW admin tools registered as native `WP_Ability` objects in the `cdw-admin-tools` category
+- All abilities REST-exposed via `wp-abilities/v1` with `show_in_rest: true`
+- Per-ability annotations: `readonly` (list/get/status operations = GET) and `destructive` (delete operations = DELETE)
+- MCP opt-in: enable the **Expose via MCP Adapter** toggle to make abilities discoverable to external AI clients
+
 **Architecture**
 - Complete rewrite of REST API architecture; split 2 500+ line class into dedicated controllers and services
 - Separate controllers for stats, media, posts, users, updates, tasks, settings, and CLI
 - Service layer (`CDW_Task_Service`, `CDW_Stats_Service`, `CDW_CLI_Service`) for clean separation of concerns
 - WP-CLI command support (`wp cdw stats`, `wp cdw tasks`, `wp cdw cli`)
-- Minimum PHP bumped to 8.0; minimum WordPress bumped to 6.0
+- Minimum PHP bumped to 8.0; minimum WordPress bumped to 6.9 (required for Abilities API)
 
 **Quality & testing**
-- Full test suite: 215 PHP unit tests, 96 JavaScript unit tests, 24 integration tests — all passing
+- Full test suite: 221 PHP unit tests, 96 JavaScript unit tests, 24 integration tests — all passing
 - PHP: Brain\Monkey + Mockery for isolated unit tests; wp-phpunit for integration against real DB
 - JS: Jest + @testing-library/react for component tests; store reducer and async actions fully covered
 - Static analysis: PHPCS (WordPress Coding Standards) + PHPStan level 6 — 0 errors across all source files

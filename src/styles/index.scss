@@ -20,6 +20,15 @@ $cdw-radius: 12px;
 $cdw-radius-sm: 6px;
 $cdw-transition: all 0.2s ease;
 
+// Terminal palette (Command Widget + all other widgets)
+$cdw-term-bg: #1a1a2e;
+$cdw-term-text: #eaeaea;
+$cdw-term-prompt: #50fa7b;
+$cdw-term-success: #50fa7b;
+$cdw-term-error: #ff5555;
+$cdw-term-accent: #bd93f9;
+$cdw-term-comment: #6272a4;
+
 // Settings Panel
 .cdw-settings-panel {
     max-width: 720px;
@@ -217,19 +226,83 @@ $cdw-transition: all 0.2s ease;
     gap: 1rem;
 }
 
+// ---- Dark-theme all CDW postboxes (incl. title bar and WP .inside wrapper) --
+#cdw_help,
+#cdw_stats,
+#cdw_media,
+#cdw_posts,
+#cdw_tasks,
+#cdw_updates,
+#cdw_quicklinks,
+#cdw_command {
+    background: $cdw-term-bg;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: $cdw-radius;
+    overflow: hidden;
+    color: $cdw-term-text;
+
+    h2.hndle {
+        color: rgba(255, 255, 255, 0.88);
+    }
+
+    .hndle {
+        background: color.adjust($cdw-term-bg, $lightness: -3%);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        cursor: pointer;
+
+        h2 {
+            color: $cdw-term-accent;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+    }
+
+    .handlediv {
+        color: rgba(255, 255, 255, 0.35);
+
+        &:hover { color: $cdw-term-text; }
+
+        .toggle-indicator::before {
+            color: rgba(255, 255, 255, 0.35);
+        }
+    }
+
+    // Strip WP's default .inside padding so widget content fills the box cleanly
+    .inside {
+        background: $cdw-term-bg;
+        padding: 0;
+        margin: 0;
+    }
+
+    .cdw-widget {
+        background: $cdw-term-bg;
+        color: $cdw-term-text;
+        padding: 1rem;
+        box-sizing: border-box;
+    }
+}
+
+// Command widget manages its own internal padding
+#cdw_command .cdw-widget {
+    padding: 0;
+}
+
 .cdw-loading {
     padding: 2rem;
     text-align: center;
-    color: $cdw-text-muted;
-    font-size: 0.95rem;
+    color: $cdw-term-comment;
+    font-size: 0.85rem;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace;
 
     &::before {
         content: '';
         display: inline-block;
-        width: 20px;
-        height: 20px;
-        border: 2px solid $cdw-border;
-        border-top-color: $cdw-accent;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.15);
+        border-top-color: $cdw-term-accent;
         border-radius: 50%;
         animation: cdw-spin 0.8s linear infinite;
         margin-right: 0.5rem;
@@ -245,6 +318,9 @@ $cdw-transition: all 0.2s ease;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace;
+    font-size: 13px;
+    color: $cdw-term-text;
 
     @media (min-width: 768px) {
         flex-direction: row;
@@ -267,7 +343,7 @@ $cdw-transition: all 0.2s ease;
         flex: 1;
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 0.75rem;
+        gap: 0.5rem;
 
         @media (min-width: 768px) {
             grid-template-columns: repeat(1, 1fr);
@@ -278,59 +354,66 @@ $cdw-transition: all 0.2s ease;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0.85rem 1rem;
-        background: $cdw-bg;
+        padding: 0.65rem 0.85rem;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.07);
         border-radius: $cdw-radius-sm;
         transition: $cdw-transition;
 
         &:hover {
-            background: color.adjust($cdw-bg, $lightness: -2%);
-            transform: translateX(4px);
+            background: rgba(255, 255, 255, 0.07);
+            transform: translateX(3px);
+            border-color: rgba($cdw-term-accent, 0.3);
         }
 
         .cdw-stat-label {
             font-weight: 500;
-            color: $cdw-secondary;
-            font-size: 0.9rem;
+            color: $cdw-term-comment;
+            font-size: 0.82rem;
         }
 
         .cdw-stat-value {
-            color: $cdw-accent;
+            color: $cdw-term-prompt;
             font-weight: 700;
-            font-size: 1.1rem;
+            font-size: 1rem;
         }
     }
 }
 
 .cdw-tasks-widget {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace;
+    font-size: 13px;
+    color: $cdw-term-text;
+
     .cdw-tasks-table {
         width: 100%;
         border-collapse: separate;
-        border-spacing: 0 0.5rem;
+        border-spacing: 0 0.35rem;
 
         th {
-            padding: 0.5rem 0.75rem;
+            padding: 0.4rem 0.75rem;
             text-align: left;
             font-weight: 600;
-            color: $cdw-secondary;
-            font-size: 0.8rem;
+            color: $cdw-term-comment;
+            font-size: 0.72rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.07em;
         }
 
         td {
-            padding: 0.85rem 0.75rem;
-            background: $cdw-white;
-            border-top: 1px solid $cdw-border;
-            border-bottom: 1px solid $cdw-border;
+            padding: 0.65rem 0.75rem;
+            background: rgba(255, 255, 255, 0.04);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            color: $cdw-term-text;
 
             &:first-child {
-                border-left: 1px solid $cdw-border;
+                border-left: 1px solid rgba(255, 255, 255, 0.06);
                 border-radius: $cdw-radius-sm 0 0 $cdw-radius-sm;
             }
 
             &:last-child {
-                border-right: 1px solid $cdw-border;
+                border-right: 1px solid rgba(255, 255, 255, 0.06);
                 border-radius: 0 $cdw-radius-sm $cdw-radius-sm 0;
                 text-align: right;
             }
@@ -340,91 +423,103 @@ $cdw-transition: all 0.2s ease;
             transition: $cdw-transition;
 
             &:hover td {
-                background: $cdw-bg;
+                background: rgba(255, 255, 255, 0.07);
             }
         }
 
         .cdw-no-tasks {
             text-align: center;
-            color: $cdw-text-muted;
+            color: $cdw-term-comment;
             font-style: italic;
         }
 
         .cdw-task-time {
-            color: $cdw-text-muted;
-            font-size: 0.85rem;
+            color: $cdw-term-comment;
+            font-size: 0.78rem;
         }
 
         .cdw-remove-task {
             background: none;
             border: none;
-            color: $cdw-danger;
+            color: $cdw-term-error;
             cursor: pointer;
-            font-size: 1.25rem;
-            padding: 0.25rem 0.5rem;
+            font-size: 1.1rem;
+            padding: 0.2rem 0.4rem;
             line-height: 1;
-            border-radius: 4px;
+            border-radius: 3px;
             transition: $cdw-transition;
 
             &:hover {
-                background: rgba($cdw-danger, 0.1);
+                background: rgba($cdw-term-error, 0.15);
                 transform: scale(1.1);
             }
         }
     }
 
     .cdw-task-input {
-        margin-top: 1.25rem;
-        padding: 1rem;
-        background: $cdw-bg;
+        margin-top: 1rem;
+        padding: 0.75rem;
+        background: rgba(0, 0, 0, 0.2);
         border-radius: $cdw-radius-sm;
+        border: 1px solid rgba(255, 255, 255, 0.06);
 
         .cdw-task-input-field {
             width: 100%;
-            padding: 0.75rem 1rem;
-            border: 2px solid transparent;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: $cdw-radius-sm;
-            font-size: 0.95rem;
-            background: $cdw-white;
+            font-size: 0.85rem;
+            font-family: inherit;
+            background: rgba(255, 255, 255, 0.05);
+            color: $cdw-term-text;
             transition: $cdw-transition;
             box-sizing: border-box;
 
+            &::placeholder { color: rgba(255, 255, 255, 0.3); }
+
             &:focus {
-                border-color: $cdw-accent;
+                border-color: rgba($cdw-term-accent, 0.6);
                 outline: none;
+                background: rgba(255, 255, 255, 0.08);
             }
         }
 
         .cdw-task-input-actions {
             display: flex;
             gap: 0.5rem;
-            margin-top: 0.75rem;
+            margin-top: 0.5rem;
 
             .cdw-task-assignee-select {
                 flex: 1;
-                padding: 0.5rem;
-                border: 1px solid #ddd;
+                padding: 0.4rem 0.5rem;
+                border: 1px solid rgba(255, 255, 255, 0.1);
                 border-radius: $cdw-radius-sm;
-                background: $cdw-white;
-                font-size: 0.875rem;
+                background: rgba(255, 255, 255, 0.05);
+                color: $cdw-term-text;
+                font-family: inherit;
+                font-size: 0.8rem;
+
+                option { background: color.adjust($cdw-term-bg, $lightness: 8%); }
             }
 
             .cdw-task-add-btn {
-                padding: 0.5rem 1rem;
-                background: $cdw-accent;
-                color: white;
+                padding: 0.4rem 0.85rem;
+                background: $cdw-term-accent;
+                color: $cdw-term-bg;
                 border: none;
                 border-radius: $cdw-radius-sm;
-                font-weight: 600;
+                font-family: inherit;
+                font-weight: 700;
+                font-size: 0.8rem;
                 cursor: pointer;
                 transition: $cdw-transition;
 
                 &:hover:not(:disabled) {
-                    background: $cdw-accent-hover;
+                    opacity: 0.85;
                 }
 
                 &:disabled {
-                    opacity: 0.5;
+                    opacity: 0.4;
                     cursor: not-allowed;
                 }
             }
@@ -437,16 +532,20 @@ $cdw-transition: all 0.2s ease;
 .cdw-updates-widget,
 .cdw-help-widget,
 .cdw-quicklinks-widget {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace;
+    font-size: 13px;
+    color: $cdw-term-text;
+
     .cdw-posts-list,
     .cdw-media-list,
     .cdw-updates-list {
         list-style: none;
         padding: 0;
-        margin: 0 0 1rem;
+        margin: 0 0 0.75rem;
 
         li {
-            padding: 0.65rem 0;
-            border-bottom: 1px solid $cdw-border;
+            padding: 0.55rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
             transition: $cdw-transition;
 
             &:last-child {
@@ -458,13 +557,13 @@ $cdw-transition: all 0.2s ease;
             }
 
             a {
-                color: $cdw-accent;
+                color: $cdw-term-accent;
                 text-decoration: none;
                 font-weight: 500;
                 transition: $cdw-transition;
 
                 &:hover {
-                    color: $cdw-accent-hover;
+                    color: $cdw-term-prompt;
                 }
             }
         }
@@ -475,92 +574,95 @@ $cdw-transition: all 0.2s ease;
         display: flex;
         flex-wrap: wrap;
         gap: 0.5rem;
-        margin-top: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid $cdw-border;
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .button {
-        padding: 0.5rem 1rem;
-        font-size: 0.85rem;
+        padding: 0.4rem 0.85rem;
+        font-size: 0.78rem;
+        font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace;
         border-radius: $cdw-radius-sm;
         transition: $cdw-transition;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: $cdw-term-text;
 
         &:hover {
             transform: translateY(-1px);
+            background: rgba(255, 255, 255, 0.09);
+            border-color: rgba(255, 255, 255, 0.25);
+            color: $cdw-term-text;
         }
     }
 
     .button-primary {
-        background: $cdw-accent;
-        border-color: $cdw-accent;
+        background: $cdw-term-accent;
+        border-color: $cdw-term-accent;
+        color: $cdw-term-bg;
+        font-weight: 700;
 
         &:hover {
-            background: $cdw-accent-hover;
-            border-color: $cdw-accent-hover;
+            background: $cdw-term-accent;
+            border-color: $cdw-term-accent;
+            opacity: 0.85;
+            color: $cdw-term-bg;
         }
     }
 }
 
 .cdw-help-widget {
     p {
-        margin: 0 0 0.75rem;
-        line-height: 1.5;
+        margin: 0 0 0.65rem;
+        line-height: 1.6;
+        color: rgba($cdw-term-text, 0.85);
 
         &:last-of-type {
             margin-bottom: 0;
         }
 
         a {
-            color: $cdw-accent;
+            color: $cdw-term-accent;
             font-weight: 500;
 
             &:hover {
+                color: $cdw-term-prompt;
                 text-decoration: underline;
             }
         }
     }
 
     .button {
-        margin-top: 0.75rem;
+        margin-top: 0.65rem;
     }
 }
 
 .cdw-quicklinks-widget {
     .cdw-quicklinks-section {
-        margin-bottom: 1.25rem;
+        margin-bottom: 1rem;
 
         &:last-child {
             margin-bottom: 0;
         }
 
         h4 {
-            margin: 0 0 0.75rem;
-            color: $cdw-secondary;
+            margin: 0 0 0.5rem;
+            color: $cdw-term-accent !important;
             font-weight: 600;
-            font-size: 0.85rem;
+            font-size: 0.72rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.07em;
         }
 
         .cdw-quicklinks-buttons {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.5rem;
+            gap: 0.4rem;
 
             .button {
-                padding: 0.5rem 0.85rem;
-                font-size: 0.85rem;
-            }
-
-            .button-primary {
-                background: $cdw-accent;
-                border-color: $cdw-accent;
-
-                &:hover {
-                    background: $cdw-accent-hover;
-                    border-color: $cdw-accent-hover;
-                }
+                padding: 0.35rem 0.75rem;
+                font-size: 0.78rem;
             }
         }
     }
@@ -575,20 +677,12 @@ $cdw-transition: all 0.2s ease;
         gap: 0.5rem;
 
         strong {
-            color: $cdw-secondary;
+            color: $cdw-term-accent;
         }
     }
 }
 
 // Command Widget - Terminal Style
-$cdw-term-bg: #1a1a2e;
-$cdw-term-text: #eaeaea;
-$cdw-term-prompt: #50fa7b;
-$cdw-term-success: #50fa7b;
-$cdw-term-error: #ff5555;
-$cdw-term-accent: #bd93f9;
-$cdw-term-comment: #6272a4;
-
 .cdw-command-widget {
     background: $cdw-term-bg;
     border-radius: $cdw-radius;

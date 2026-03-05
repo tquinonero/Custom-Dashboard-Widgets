@@ -28,6 +28,7 @@ const DEFAULT_STATE = {
         cli_enabled: true,
         remove_default_widgets: true,
         delete_on_uninstall: true,
+        mcp_public: false,
     },
     isLoading: {
         stats: false,

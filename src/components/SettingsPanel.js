@@ -75,6 +75,7 @@ export default function SettingsPanel() {
         ai_enabled: false,
         ai_execution_mode: 'confirm',
         ai_custom_system_prompt: '',
+        mcp_public: false,
     });
 
     const [saved, setSaved] = useState(false);
@@ -123,6 +124,7 @@ export default function SettingsPanel() {
                 ai_enabled: settings.ai_enabled === true,
                 ai_execution_mode: settings.ai_execution_mode || 'confirm',
                 ai_custom_system_prompt: settings.ai_custom_system_prompt || '',
+                mcp_public: settings.mcp_public === true,
             });
         }
     }, [settings]);
@@ -431,6 +433,26 @@ export default function SettingsPanel() {
                         </label>
                         <span className="description">
                             When the plugin is deleted (not just deactivated), remove all settings, tasks, CLI history, audit logs, and the database table. Uncheck to preserve your data across reinstalls.
+                        </span>
+                    </div>
+
+                    <div className="cdw-field">
+                        <label className="cdw-checkbox-label">
+                            <input
+                                type="checkbox"
+                                name="mcp_public"
+                                checked={!!formData.mcp_public}
+                                onChange={handleChange}
+                            />
+                            <span>Expose CDW tools via MCP Adapter</span>
+                        </label>
+                        <span className="description">
+                            When enabled, all CDW abilities are marked as public for the WordPress MCP
+                            Adapter default server. Requires the{' '}
+                            <a href="https://github.com/WordPress/mcp-adapter/releases" target="_blank" rel="noreferrer">
+                                MCP Adapter plugin
+                            </a>
+                            {' '}to be installed. Only enable on trusted, secured sites.
                         </span>
                     </div>
                 </div>

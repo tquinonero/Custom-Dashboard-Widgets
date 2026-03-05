@@ -62,6 +62,7 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 		$ai_enabled              = get_option( 'cdw_ai_enabled', false );
 		$ai_execution_mode       = get_option( 'cdw_ai_execution_mode', 'confirm' );
 		$ai_custom_system_prompt = get_option( 'cdw_ai_custom_system_prompt', '' );
+		$mcp_public              = get_option( 'cdw_mcp_public', false );
 
 		return rest_ensure_response(
 			array(
@@ -77,6 +78,7 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 				'ai_enabled'              => $ai_enabled,
 				'ai_execution_mode'       => $ai_execution_mode,
 				'ai_custom_system_prompt' => $ai_custom_system_prompt,
+				'mcp_public'              => (bool) $mcp_public,
 			)
 		);
 	}
@@ -161,6 +163,10 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 
 		if ( isset( $settings['ai_custom_system_prompt'] ) ) {
 			update_option( 'cdw_ai_custom_system_prompt', sanitize_textarea_field( $settings['ai_custom_system_prompt'] ) );
+		}
+
+		if ( isset( $settings['mcp_public'] ) ) {
+			update_option( 'cdw_mcp_public', (bool) $settings['mcp_public'] );
 		}
 
 		return rest_ensure_response( array( 'success' => true ) );

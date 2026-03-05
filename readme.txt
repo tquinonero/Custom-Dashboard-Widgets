@@ -1,7 +1,7 @@
 === Custom Dashboard Widgets ===
 Contributors: toniquinonero
 Tags: dashboard, admin, widgets, cli, customization
-Requires at least: 6.0
+Requires at least: 6.9
 Tested up to: 6.9
 Stable tag: 3.0.0
 Requires PHP: 8.0
