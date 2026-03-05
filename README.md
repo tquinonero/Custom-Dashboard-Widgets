@@ -1,7 +1,7 @@
 # Custom Dashboard Widgets (v3)
 
 **Contributors:** toniquinonero
-**Tags:** dashboard, admin, widgets, customization  
+**Tags:** dashboard, admin, widgets, customization, ai  
 **Requires at least:** 6.0  
 **Requires PHP:** 8.0
 **Tested up to:** 6.9  
@@ -9,16 +9,17 @@
 **License:** GPLv3 or later  
 **License URI:** https://www.gnu.org/licenses/gpl-3.0.html
 
-Modernize your WordPress admin dashboard with custom React-powered widgets and a sleek design.
+Modernize your WordPress admin dashboard with custom React-powered widgets, a CLI terminal, and an AI assistant.
 
 ## Description
 
 Custom Dashboard Widgets replaces the default WordPress dashboard with a modern, customizable interface featuring:
 
-- **8 Custom Widgets** - Help & Support, Site Statistics, Latest Media, Latest Posts, Tasks, Updates, Quick Links, and Command Line
+- **9 Custom Widgets** - Help & Support, Site Statistics, Latest Media, Latest Posts, Tasks, Updates, Quick Links, Command Line, and AI Assistant
 - **React-Powered** - Fast, interactive widgets built with React
 - **Modern Design** - Clean, professional styling that matches WordPress admin
 - **CLI Terminal** - Built-in command line interface for managing plugins, themes, users, and more
+- **AI Assistant** - Conversational AI that can manage your site using natural language (supports OpenAI, Anthropic, Google Gemini, and any OpenAI-compatible endpoint such as OpenRouter or Groq)
 - **Fully Customizable** - Configure widget appearance with colors and font sizes
 
 ### Widgets
@@ -31,6 +32,7 @@ Custom Dashboard Widgets replaces the default WordPress dashboard with a modern,
 - **Updates** - View available plugin and theme updates (admin only)
 - **Quick Links** - Fast access to common admin pages (admin only)
 - **Command Line** - WP-CLI-like terminal for site management (admin only)
+- **AI Assistant** - Chat with an AI to manage plugins, themes, users, posts, and more (admin only)
 
 ### Features
 
@@ -43,13 +45,27 @@ Custom Dashboard Widgets replaces the default WordPress dashboard with a modern,
 
 ## Installation
 
-1. Upload the plugin folder to your WordPress installation:
-   - Via FTP/SFTP: copy this folder into `wp-content/plugins/`
-   - Via Git (for development): clone into `wp-content/plugins/CDW`
-2. In the WordPress admin, go to **Plugins → Installed Plugins**
-3. Activate **Custom Dashboard Widgets**
+### Option A — Download ZIP (recommended for most users)
 
-> Note: This plugin is designed for the admin area only. It does not affect the public front-end of your site.
+1. Go to the [GitHub repository](https://github.com/tquinonero/Custom-Dashboard-Widgets)
+2. Click **Code → Download ZIP**
+3. In your WordPress admin go to **Plugins → Add New → Upload Plugin**
+4. Upload the ZIP and click **Install Now**, then **Activate**
+
+### Option B — Git clone
+
+```bash
+cd wp-content/plugins
+git clone https://github.com/tquinonero/Custom-Dashboard-Widgets CDW
+cd CDW
+composer install --no-dev
+```
+
+Then activate the plugin from **Plugins → Installed Plugins**.
+
+> **Note:** The compiled JavaScript (`build/`) is included in the repository, so no Node.js build step is required to use the plugin. `composer install` is only needed for the git clone method — the ZIP download from GitHub includes all dependencies.
+
+> This plugin is designed for the admin area only. It does not affect the public front-end of your site.
 
 ## Frequently Asked Questions
 
@@ -77,6 +93,19 @@ Absolutely. Go to **Settings → Dashboard Widgets → Widget Appearance** to ad
 - **Settings** - Stored in WordPress options
 - **CLI History** - Stored in user meta (`cdw_cli_history`)
 - **Audit Logs** - Stored in custom database table (`wp_cdw_cli_logs`)
+- **AI API Keys** - Stored encrypted in user meta (`cdw_ai_api_key_{provider}`), using AES-256-CBC with a key derived from your WordPress salts. Never stored in plain text, never exposed via the API.
+- **AI Settings** - Provider, model, and execution mode stored in user meta (per user)
+- **AI Token Usage** - Accumulated token counts stored in user meta
+
+### How does the AI assistant work?
+
+The AI widget connects to your chosen provider (OpenAI, Anthropic, Google Gemini, or any OpenAI-compatible endpoint) using your own API key. It uses an agentic loop with function-calling tools that map to CDW CLI commands — so it can list plugins, manage users, check site status, and more, all through natural language.
+
+In **Confirm** mode (default) you approve each action before it runs. In **Auto** mode the AI executes commands immediately.
+
+### Is my API key safe?
+
+Yes. Your API key is encrypted with AES-256-CBC before being saved to the database, using a key derived from your site's `AUTH_SALT` and `SECURE_AUTH_SALT` constants. The raw key is never returned by any API endpoint — only a boolean `has_key` indicating whether one is saved.
 
 ### Does the CLI widget really run WP-CLI commands?
 
@@ -165,11 +194,12 @@ Examples:
 | **JS unit tests** | 96 tests across 7 suites — all passing |
 | **Integration tests** | 24 tests, 67 assertions — all passing |
 | **Static analysis** | PHPCS (WordPress Coding Standards) + PHPStan level 6 — 0 errors |
-| **CI (GitHub Actions)** | PHP unit, JS unit, and PHP integration jobs all enabled |
-| **Build pipeline** | `npm run build` — 0 errors, 0 warnings |
+| **CI (GitHub Actions)** | PHP unit, JS unit, PHP integration, and build-sync check |
+| **Build pipeline** | `npm run build` — 0 errors, compiled assets committed to repo |
 | **Internationalization** | All strings wrapped; `languages/cdw.pot` generated (24 strings) |
-| **Security** | Protected option list expanded; `wp-tests-config.php` gitignored |
-| **Uninstall** | Cleanup logic extracted to `includes/functions-uninstall.php` and fully tested |
+| **Security** | Protected option list expanded; `wp-tests-config.php` gitignored; API keys AES-256-CBC encrypted |
+| **Uninstall** | Full cleanup of all plugin data including encrypted AI API keys |
+| **AI Assistant** | Per-user encrypted API keys; OpenAI, Anthropic, Google, custom endpoints; agentic loop with tool calling |
 | **Release prep** | `.distignore` created for clean archive generation |
 
 ### 🔲 Still needed before release
@@ -222,9 +252,33 @@ ddev exec bash -c 'export WP_PHPUNIT__TESTS_CONFIG=/var/www/html/wp-content/plug
 > **Note:** The integration suite requires a dedicated test database. The test runner
 > will **drop and recreate tables** on each run — never point it at your production DB.
 
+## Development Setup
+
+If you want to modify the source and rebuild the assets:
+
+```bash
+git clone https://github.com/tquinonero/Custom-Dashboard-Widgets CDW
+cd CDW
+composer install
+npm install
+npm run build
+```
+
+See [Running Tests](#running-tests) below for the full test setup.
+
+---
+
 ## Changelog
 
 ### 3.0.0 (in development)
+
+**AI Assistant**
+- New AI assistant widget powered by OpenAI, Anthropic (Claude), Google Gemini, or any OpenAI-compatible endpoint (OpenRouter, Groq, etc.)
+- Per-user encrypted API keys (AES-256-CBC, derived from WordPress salts)
+- Agentic loop with function-calling tools mapped to CDW CLI commands
+- Confirm-first and auto execution modes
+- Token usage tracking per user
+- Custom system prompt support
 
 **Architecture**
 - Complete rewrite of REST API architecture; split 2 500+ line class into dedicated controllers and services
