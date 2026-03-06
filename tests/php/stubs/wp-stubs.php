@@ -161,6 +161,52 @@ if ( ! class_exists( 'wpdb' ) ) {
     }
 }
 
+if ( ! class_exists( 'WP_Query' ) ) {
+    /**
+     * Minimal WP_Query stub for unit tests.
+     *
+     * Set WP_Query::$mock_posts to an array of stdClass objects before
+     * instantiating so the query loop returns those items.
+     */
+    class WP_Query {
+        /** @var object[] Configurable post list; set in each test. */
+        public static $mock_posts = array();
+
+        /** @var object[] Internal copy held by this instance. */
+        private $posts;
+
+        /** @var int Current loop position (starts before first item). */
+        private $current = -1;
+
+        public function __construct( array $args = array() ) {
+            $this->posts = self::$mock_posts;
+        }
+
+        public function have_posts() {
+            return isset( $this->posts[ $this->current + 1 ] );
+        }
+
+        public function the_post() {
+            ++$this->current;
+        }
+    }
+}
+
+if ( ! class_exists( 'WP_User' ) ) {
+    /**
+     * Minimal WP_User stub.
+     */
+    class WP_User {
+        public $user_login = 'testuser';
+        public $ID         = 1;
+
+        public function __construct( $user_login = 'testuser', $id = 1 ) {
+            $this->user_login = $user_login;
+            $this->ID         = $id;
+        }
+    }
+}
+
 /**
  * Helper: initialise a fresh global $wpdb stub for tests that need one.
  */
@@ -216,4 +262,52 @@ if ( ! defined( 'ARRAY_A' ) ) {
 }
 if ( ! defined( 'ARRAY_N' ) ) {
     define( 'ARRAY_N', 'ARRAY_N' );
+}
+
+/**
+ * esc_html_e stub — echo escaped text as-is.
+ */
+if ( ! function_exists( 'esc_html_e' ) ) {
+    function esc_html_e( $text, $domain = 'default' ) {
+        echo htmlspecialchars( $text );
+    }
+}
+
+/**
+ * WP_CLI stub for CLI command unit tests.
+ *
+ * Captures output in static arrays so tests can assert on messages
+ * without any real WP-CLI infrastructure.
+ */
+if ( ! class_exists( 'WP_CLI' ) ) {
+    class WP_CLI {
+        /** @var string[] */
+        public static $lines     = array();
+        /** @var string[] */
+        public static $successes = array();
+        /** @var string[] */
+        public static $errors    = array();
+
+        public static function line( $msg ) {
+            self::$lines[] = $msg;
+        }
+
+        public static function success( $msg ) {
+            self::$successes[] = $msg;
+        }
+
+        /** Does NOT exit — tests keep running after an expected error. */
+        public static function error( $msg ) {
+            self::$errors[] = $msg;
+        }
+
+        public static function add_command( $cmd, $callback ) {}
+
+        /** Reset all captured output between tests. */
+        public static function reset() {
+            self::$lines     = array();
+            self::$successes = array();
+            self::$errors    = array();
+        }
+    }
 }

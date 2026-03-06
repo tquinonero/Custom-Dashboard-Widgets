@@ -544,13 +544,10 @@ class CDW_Abilities {
 			'category'            => 'cdw-admin-tools',
 			'permission_callback' => $permission_cb,
 			'execute_callback'    => $execute_cb,
-			'meta'                => array(
-				'show_in_rest' => true,
-				'annotations'  => array(
-					'readonly'    => $ability['readonly'],
-					'destructive' => $ability['destructive'],
-				),
-			),
+			'show_in_rest'        => true,
+			'readonly'            => $ability['readonly'],
+			'destructive'         => $ability['destructive'],
+			'idempotent'          => $ability['readonly'],
 		);
 
 		// Only add input_schema when the ability actually accepts parameters.
@@ -573,43 +570,60 @@ class CDW_Abilities {
 	 * @param array<string, mixed> $input        Validated input params from the caller.
 	 * @return string
 	 */
+	/**
+	 * Strips whitespace from a CLI argument to prevent token injection.
+	 *
+	 * The CLI service splits commands on whitespace, so any spaces inside a
+	 * user-supplied value would be parsed as separate tokens (extra flags or
+	 * arguments). Removing them closes that injection vector.
+	 *
+	 * @param string $value Raw user input.
+	 * @return string Sanitized single-token value.
+	 */
+	private static function sanitize_cli_arg( string $value ): string {
+		return preg_replace( '/\s+/', '', trim( $value ) );
+	}
+
 	private static function build_cli_command( string $ability_name, array $input ): string {
 		switch ( $ability_name ) {
 			case 'cdw/plugin-status':
-				return 'plugin status ' . $input['slug'];
+				return 'plugin status ' . self::sanitize_cli_arg( $input['slug'] );
 			case 'cdw/plugin-activate':
-				return 'plugin activate ' . $input['slug'];
+				return 'plugin activate ' . self::sanitize_cli_arg( $input['slug'] );
 			case 'cdw/plugin-deactivate':
-				return 'plugin deactivate ' . $input['slug'];
+				return 'plugin deactivate ' . self::sanitize_cli_arg( $input['slug'] );
 			case 'cdw/plugin-install':
-				return 'plugin install ' . $input['slug'] . ' --force';
+				return 'plugin install ' . self::sanitize_cli_arg( $input['slug'] ) . ' --force';
 			case 'cdw/plugin-update':
-				return 'plugin update ' . $input['slug'] . ' --force';
+				return 'plugin update ' . self::sanitize_cli_arg( $input['slug'] ) . ' --force';
 			case 'cdw/plugin-delete':
-				return 'plugin delete ' . $input['slug'] . ' --force';
+				return 'plugin delete ' . self::sanitize_cli_arg( $input['slug'] ) . ' --force';
 			case 'cdw/theme-activate':
-				return 'theme activate ' . $input['slug'];
+				return 'theme activate ' . self::sanitize_cli_arg( $input['slug'] );
 			case 'cdw/theme-install':
-				return 'theme install ' . $input['slug'] . ' --force';
+				return 'theme install ' . self::sanitize_cli_arg( $input['slug'] ) . ' --force';
 			case 'cdw/theme-update':
-				return 'theme update ' . $input['slug'] . ' --force';
+				return 'theme update ' . self::sanitize_cli_arg( $input['slug'] ) . ' --force';
 			case 'cdw/theme-status':
-				return 'theme status ' . $input['slug'];
+				return 'theme status ' . self::sanitize_cli_arg( $input['slug'] );
 			case 'cdw/user-create':
-				return 'user create ' . $input['username'] . ' ' . $input['email'] . ' ' . $input['role'];
+				return 'user create '
+					. self::sanitize_cli_arg( $input['username'] ) . ' '
+					. self::sanitize_cli_arg( $input['email'] ) . ' '
+					. self::sanitize_cli_arg( $input['role'] );
 			case 'cdw/user-delete':
-				return 'user delete ' . $input['user_id'] . ' --force';
+				return 'user delete ' . (int) $input['user_id'] . ' --force';
 			case 'cdw/user-get':
-				return 'user get ' . $input['identifier'];
+				return 'user get ' . self::sanitize_cli_arg( $input['identifier'] );
 			case 'cdw/option-get':
-				return 'option get ' . $input['name'];
+				return 'option get ' . self::sanitize_cli_arg( $input['name'] );
 			case 'cdw/option-set':
-				return 'option set ' . $input['name'] . ' ' . $input['value'];
+				return 'option set ' . self::sanitize_cli_arg( $input['name'] ) . ' ' . self::sanitize_cli_arg( $input['value'] );
 			case 'cdw/search-replace':
 				$flag = ! empty( $input['dry_run'] ) ? '--dry-run' : '--force';
-				return 'search-replace ' . $input['search'] . ' ' . $input['replace'] . ' ' . $flag;
+				return 'search-replace ' . self::sanitize_cli_arg( $input['search'] ) . ' ' . self::sanitize_cli_arg( $input['replace'] ) . ' ' . $flag;
 			case 'cdw/post-get':
-				return 'post get ' . $input['post_id'];
+				return 'post get ' . (int) $input['post_id'];
 			default:
 				return '';
 		}
