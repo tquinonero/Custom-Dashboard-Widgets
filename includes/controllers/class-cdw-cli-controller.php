@@ -251,6 +251,10 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 				'category' => 'Post Management',
 				'commands' => array(
 					array(
+						'name'        => 'post create <title>',
+						'description' => 'Create a draft post',
+					),
+					array(
 						'name'        => 'post get <id>',
 						'description' => 'Get post details',
 					),

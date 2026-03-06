@@ -1482,6 +1482,33 @@ class CDW_CLI_Service {
 	 */
 	private function handle_post_command( $subcmd, $args, $raw_args = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		switch ( $subcmd ) {
+			case 'create':
+				if ( empty( $args ) ) {
+					return array(
+						'output'  => 'Usage: post create <post title>',
+						'success' => false,
+					);
+				}
+				$title   = sanitize_text_field( implode( ' ', $args ) );
+				$post_id = wp_insert_post(
+					array(
+						'post_title'  => $title,
+						'post_status' => 'draft',
+						'post_type'   => 'post',
+					),
+					true
+				);
+				if ( is_wp_error( $post_id ) ) {
+					return array(
+						'output'  => 'Failed to create post: ' . $post_id->get_error_message(),
+						'success' => false,
+					);
+				}
+				return array(
+					'output'  => "Post created (draft): ID=$post_id, Title=\"$title\"",
+					'success' => true,
+				);
+
 			case 'get':
 				if ( empty( $args[0] ) ) {
 					return array(
@@ -1608,7 +1635,7 @@ class CDW_CLI_Service {
 
 			default:
 				return array(
-					'output'  => "Available post commands:\n  post get <id>            - Get post details\n  post list [<type>]       - List posts\n  post delete <id>        - Delete post\n  post status <id> <status> - Change post status",
+					'output'  => "Available post commands:\n  post create <title>      - Create a draft post\n  post get <id>            - Get post details\n  post list [<type>]       - List posts\n  post delete <id>         - Delete post\n  post status <id> <status> - Change post status",
 					'success' => true,
 				);
 		}
@@ -2380,6 +2407,7 @@ User Management:
   user role <user> <role> - Change user role
 
 Post Management:
+  post create <title>    - Create a draft post
   post get <id>           - Get post details
   post list [<type>]      - List posts
   post delete <id>        - Delete post

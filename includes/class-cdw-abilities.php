@@ -507,6 +507,20 @@ class CDW_Abilities {
 				'readonly'    => true,
 				'destructive' => false,
 			),
+			array(
+				'name'        => 'cdw/post-create',
+				'label'       => __( 'Create Post', 'cdw' ),
+				'desc'        => __( 'Creates a new WordPress post as a draft with the specified title.', 'cdw' ),
+				'input'       => array(
+					'title' => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => false,
+				'destructive' => false,
+			),
 		);
 
 		foreach ( $abilities as $ability ) {
@@ -544,10 +558,14 @@ class CDW_Abilities {
 			'category'            => 'cdw-admin-tools',
 			'permission_callback' => $permission_cb,
 			'execute_callback'    => $execute_cb,
-			'show_in_rest'        => true,
-			'readonly'            => $ability['readonly'],
-			'destructive'         => $ability['destructive'],
-			'idempotent'          => $ability['readonly'],
+			'meta'                => array(
+				'show_in_rest' => true,
+				'readonly'     => $ability['readonly'],
+				'idempotent'   => $ability['readonly'],
+				'annotations'  => array(
+					'destructive' => $ability['destructive'],
+				),
+			),
 		);
 
 		// Only add input_schema when the ability actually accepts parameters.
@@ -562,15 +580,6 @@ class CDW_Abilities {
 	}
 
 	/**
-	 * Builds a CLI command string from an ability name and user-supplied input.
-	 *
-	 * Only called for abilities whose CLI string depends on runtime input params.
-	 *
-	 * @param string               $ability_name Fully-qualified ability name, e.g. `cdw/plugin-activate`.
-	 * @param array<string, mixed> $input        Validated input params from the caller.
-	 * @return string
-	 */
-	/**
 	 * Strips whitespace from a CLI argument to prevent token injection.
 	 *
 	 * The CLI service splits commands on whitespace, so any spaces inside a
@@ -584,6 +593,15 @@ class CDW_Abilities {
 		return preg_replace( '/\s+/', '', trim( $value ) );
 	}
 
+	/**
+	 * Builds a CLI command string from an ability name and user-supplied input.
+	 *
+	 * Only called for abilities whose CLI string depends on runtime input params.
+	 *
+	 * @param string               $ability_name Fully-qualified ability name, e.g. `cdw/plugin-activate`.
+	 * @param array<string, mixed> $input        Validated input params from the caller.
+	 * @return string
+	 */
 	private static function build_cli_command( string $ability_name, array $input ): string {
 		switch ( $ability_name ) {
 			case 'cdw/plugin-status':
@@ -624,6 +642,8 @@ class CDW_Abilities {
 				return 'search-replace ' . self::sanitize_cli_arg( $input['search'] ) . ' ' . self::sanitize_cli_arg( $input['replace'] ) . ' ' . $flag;
 			case 'cdw/post-get':
 				return 'post get ' . (int) $input['post_id'];
+			case 'cdw/post-create':
+				return 'post create ' . sanitize_text_field( $input['title'] );
 			default:
 				return '';
 		}

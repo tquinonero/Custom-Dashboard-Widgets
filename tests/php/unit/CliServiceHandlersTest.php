@@ -806,4 +806,64 @@ class CliServiceHandlersTest extends CDWTestCase {
         $result = $this->callReplaceInValue( null, 'old', 'new' );
         $this->assertNull( $result );
     }
+
+    // -----------------------------------------------------------------------
+    // post create
+    // -----------------------------------------------------------------------
+
+    public function test_post_create_no_args_returns_usage_error(): void {
+        $this->stubExecute();
+
+        $result = $this->exec( 'post create' );
+
+        $this->assertFalse( $result['success'] );
+        $this->assertStringContainsStringIgnoringCase( 'Usage: post create', $result['output'] );
+    }
+
+    public function test_post_create_single_word_title_succeeds(): void {
+        $this->stubExecute();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_insert_post' )->justReturn( 99 );
+        Functions\when( 'is_wp_error' )->alias( function( $t ) { return $t instanceof \WP_Error; } );
+
+        $result = $this->exec( 'post create Hello' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsString( '99', $result['output'] );
+        $this->assertStringContainsStringIgnoringCase( 'draft', $result['output'] );
+    }
+
+    public function test_post_create_multi_word_title_joins_words_and_succeeds(): void {
+        $this->stubExecute();
+        $capturedArgs = null;
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_insert_post' )->alias(
+            function( $postarr, $wp_error = false ) use ( &$capturedArgs ) {
+                $capturedArgs = $postarr;
+                return 7;
+            }
+        );
+        Functions\when( 'is_wp_error' )->alias( function( $t ) { return $t instanceof \WP_Error; } );
+
+        $result = $this->exec( 'post create My New Post Title' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertSame( 'My New Post Title', $capturedArgs['post_title'] );
+        $this->assertSame( 'draft', $capturedArgs['post_status'] );
+    }
+
+    public function test_post_create_returns_error_on_wp_insert_post_failure(): void {
+        $this->stubExecute();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_insert_post' )->justReturn(
+            new \WP_Error( 'insert_failed', 'Could not insert post' )
+        );
+        Functions\when( 'is_wp_error' )->alias( function( $t ) { return $t instanceof \WP_Error; } );
+
+        $result = $this->exec( 'post create Bad Post' );
+
+        $this->assertFalse( $result['success'] );
+        $this->assertStringContainsStringIgnoringCase( 'Failed to create post', $result['output'] );
+        $this->assertStringContainsString( 'Could not insert post', $result['output'] );
+    }
 }

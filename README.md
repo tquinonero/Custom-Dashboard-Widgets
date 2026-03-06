@@ -191,7 +191,7 @@ Examples:
 
 | Area | Detail |
 |---|---|
-| **PHP unit tests** | 221 tests, 432 assertions — 219 pass / 2 pre-existing failures in `UninstallTest` |
+| **PHP unit tests** | 338 tests, 836 assertions — all pass |
 | **JS unit tests** | 96 tests across 7 suites — all passing |
 | **Integration tests** | 24 tests, 67 assertions — all passing |
 | **Static analysis** | PHPCS (WordPress Coding Standards) + PHPStan level 6 — 0 errors |
@@ -206,7 +206,6 @@ Examples:
 
 ### 🔲 Future work
 
-- **Fix `UninstallTest`** — update two incorrect mock call-count assertions (expected counts: 10 and 7)
 - **Accessibility (a11y)** — automated axe-core audit; screen reader keyboard navigation
 - **Compatibility testing** — manual verification on WP 6.9+ (new minimum), PHP 8.0 and PHP 8.4, multisite
 - **WP 7.0 compatibility** — hybrid abilities, `@wordpress/abilities` JS package, WP AI Client; review CDW AI stack for overlap
@@ -218,7 +217,7 @@ Examples:
 ### Unit Tests (no database required)
 
 ```bash
-# PHP unit tests — 221 tests
+# PHP unit tests — 338 tests, 836 assertions
 vendor/bin/phpunit --testsuite=Unit
 
 # JavaScript unit tests — 96 tests
@@ -273,7 +272,7 @@ See [Running Tests](#running-tests) below for the full test setup.
 
 ## Changelog
 
-### 3.0.0 (in development)
+### 3.0.0 (released)
 
 **AI Assistant**
 - New AI assistant widget powered by OpenAI, Anthropic (Claude), Google Gemini, or any OpenAI-compatible endpoint (OpenRouter, Groq, etc.)
@@ -285,8 +284,8 @@ See [Running Tests](#running-tests) below for the full test setup.
 
 **WordPress Abilities API (WP 6.9+)**
 - 31 CDW admin tools registered as native `WP_Ability` objects in the `cdw-admin-tools` category
-- All abilities REST-exposed via `wp-abilities/v1` with `show_in_rest: true`
-- Per-ability annotations: `readonly` (list/get/status operations = GET) and `destructive` (delete operations = DELETE)
+- All abilities REST-exposed via `wp-abilities/v1`; `show_in_rest`, `readonly`, and `idempotent` set under `meta`; `destructive` under `meta.annotations`
+- Per-ability HTTP method routing: `readonly: true` → GET; mutating → POST; `destructive: true` → DELETE
 - MCP opt-in: enable the **Expose via MCP Adapter** toggle to make abilities discoverable to external AI clients
 
 **Architecture**
@@ -297,7 +296,7 @@ See [Running Tests](#running-tests) below for the full test setup.
 - Minimum PHP bumped to 8.0; minimum WordPress bumped to 6.9 (required for Abilities API)
 
 **Quality & testing**
-- Full test suite: 221 PHP unit tests, 96 JavaScript unit tests, 24 integration tests — all passing
+- Full test suite: 338 PHP unit tests, 96 JavaScript unit tests, 24 integration tests — all passing
 - PHP: Brain\Monkey + Mockery for isolated unit tests; wp-phpunit for integration against real DB
 - JS: Jest + @testing-library/react for component tests; store reducer and async actions fully covered
 - Static analysis: PHPCS (WordPress Coding Standards) + PHPStan level 6 — 0 errors across all source files

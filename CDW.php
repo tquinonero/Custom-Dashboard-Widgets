@@ -8,7 +8,7 @@
  * License: GPLv3
  * Text Domain: cdw
  * Requires at least: 6.9
- * Requires PHP: 8.0
+ * Requires PHP: 8.1
  * Tested up to: 6.9
  * Domain Path: /languages
  *

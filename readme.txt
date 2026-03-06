@@ -68,8 +68,8 @@ A "Delete all data on uninstall" toggle in settings controls whether your tasks,
 
 **Requirements**
 
-* WordPress 6.0 or higher
-* PHP 8.0 or higher
+* WordPress 6.9 or higher
+* PHP 8.1 or higher
 
 == Screenshots ==
 
@@ -114,6 +114,17 @@ Make sure "Delete all data on uninstall" is checked in **Settings → Dashboard 
 Deactivation intentionally does not remove data. Only deletion (uninstall) removes data, and only when the "Delete all data on uninstall" option is enabled.
 
 == Changelog ==
+
+= 3.0.0 =
+* New: AI Assistant widget with support for OpenAI, Anthropic (Claude), Google Gemini, and any OpenAI-compatible endpoint (OpenRouter, Groq, etc.)
+* New: Per-user AES-256-CBC encrypted API key storage — keys never returned by any REST endpoint
+* New: Agentic loop with function-calling tools; Confirm (default) and Auto execution modes
+* New: 31 CDW admin tools registered as native WP Abilities (WP 6.9+) in the `cdw-admin-tools` category
+* New: All abilities REST-exposed via `wp-abilities/v1` with full `meta` (show_in_rest, readonly, idempotent) and `meta.annotations` (destructive)
+* New: Opt-in MCP exposure — enable the "Expose via MCP Adapter" toggle to make abilities available to external AI clients
+* New: CLI commands `post get`, `user get`, `theme info`, `site settings` added
+* New: AI safety middleware — `db export` and `db import` blocked from AI execution
+* Minimum WordPress raised to 6.9 (required for Abilities API)
 
 = 3.0.1 =
 * Fix: REST API routes were not registered during REST requests (REST_REQUEST constant is not defined at plugins_loaded time)

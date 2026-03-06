@@ -19,3 +19,6 @@ wp-tests-config.php
 
 # Development session notes — may contain local filesystem paths.
 prompt.txt
+
+# VS Code editor settings — may contain local machine paths (e.g. MCP server paths).
+.vscode/
