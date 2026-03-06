@@ -1,4 +1,7 @@
 <?php
+/**
+ * Unit tests for CDW REST API.
+ */
 
 namespace CDW\Tests\Unit;
 

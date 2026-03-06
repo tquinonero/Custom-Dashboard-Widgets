@@ -104,15 +104,15 @@ class CDW_CLI_Service {
 		global $wpdb;
 		$table_name = $wpdb->prefix . self::TABLE_NAME;
 
-		if ( ! self::$audit_table_confirmed ) {
-			$exists = $wpdb->get_var(
-				"SHOW TABLES LIKE '" . $wpdb->esc_like( $table_name ) . "'" // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- esc_like sanitizes the value; SHOW TABLES does not support placeholders.
-			);
-			if ( $table_name !== $exists ) {
-				return;
-			}
-			self::$audit_table_confirmed = true;
-		}
+		   if ( ! self::$audit_table_confirmed ) {
+			   $exists = $wpdb->get_var(
+				   "SHOW TABLES LIKE '" . $wpdb->esc_like( $table_name ) . "'" // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- esc_like sanitizes the value; SHOW TABLES does not support placeholders.
+			   );
+			   if ( $table_name !== $exists ) {
+				   return;
+			   }
+			   self::$audit_table_confirmed = true;
+		   }
 
 		$wpdb->insert(
 			$table_name,
@@ -2200,96 +2200,96 @@ class CDW_CLI_Service {
 		$output .= $dry_run ? "(DRY RUN - no changes made)\n" : "(APPLYING CHANGES)\n";
 
 		$count = 0;
-		foreach ( $tables as $table ) {
-			$table_name         = $table[0];
-			$table_name_escaped = preg_replace( '/[^a-zA-Z0-9_]/', '', $table_name );
-			if ( empty( $table_name_escaped ) ) {
-				continue;
-			}
-			$columns = $wpdb->get_results( "SHOW COLUMNS FROM `$table_name_escaped`", ARRAY_N ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table_name_escaped is sanitized via preg_replace to alphanumeric+underscore only. // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table_name_escaped is sanitized via preg_replace to alphanumeric+underscore only.
+			   foreach ( $tables as $table ) {
+				   $table_name         = $table[0];
+				   $table_name_escaped = preg_replace( '/[^a-zA-Z0-9_]/', '', $table_name );
+				   if ( empty( $table_name_escaped ) ) {
+					   continue;
+				   }
+				   $columns = $wpdb->get_results( "SHOW COLUMNS FROM `$table_name_escaped`", ARRAY_N ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table_name_escaped is sanitized via preg_replace to alphanumeric+underscore only. // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table_name_escaped is sanitized via preg_replace to alphanumeric+underscore only.
 
-			foreach ( $columns as $column ) {
-				$col_name         = $column[0];
-				$col_name_escaped = preg_replace( '/[^a-zA-Z0-9_]/', '', $col_name );
-				if ( empty( $col_name_escaped ) ) {
-					continue;
-				}
-				$col_type = $column[1];
+				   foreach ( $columns as $column ) {
+					   $col_name         = $column[0];
+					   $col_name_escaped = preg_replace( '/[^a-zA-Z0-9_]/', '', $col_name );
+					   if ( empty( $col_name_escaped ) ) {
+						   continue;
+					   }
+					   $col_type = $column[1];
 
-				if ( stripos( $col_type, 'char' ) === false && stripos( $col_type, 'text' ) === false ) {
-					continue;
-				}
+					   if ( stripos( $col_type, 'char' ) === false && stripos( $col_type, 'text' ) === false ) {
+						   continue;
+					   }
 
-				if ( $dry_run ) {
-					$result = $wpdb->get_results(
-						$wpdb->prepare(
-							"SELECT COUNT(*) as cnt FROM `$table_name_escaped` WHERE `$col_name_escaped` LIKE %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- backtick-quoted identifiers sanitized via preg_replace.
-							'%' . $wpdb->esc_like( $old ) . '%'
-						)
-					);
-					if ( $result && $result[0]->cnt > 0 ) {
-						$output .= "  $table_name.$col_name: {$result[0]->cnt} matches\n";
-						$count  += $result[0]->cnt;
-					}
-				} else {
-					// Find the primary key column for this table.
-					$pk_col = null;
-					foreach ( $columns as $col_def ) {
-						if ( strtoupper( $col_def[3] ) === 'PRI' ) {
-							$pk_col = preg_replace( '/[^a-zA-Z0-9_]/', '', $col_def[0] );
-							break;
-						}
-					}
+					   if ( $dry_run ) {
+						   $result = $wpdb->get_results(
+							   $wpdb->prepare(
+								   "SELECT COUNT(*) as cnt FROM `$table_name_escaped` WHERE `$col_name_escaped` LIKE %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- backtick-quoted identifiers sanitized via preg_replace.
+								   '%' . $wpdb->esc_like( $old ) . '%'
+							   )
+						   );
+						   if ( $result && $result[0]->cnt > 0 ) {
+							   $output .= "  $table_name.$col_name: {$result[0]->cnt} matches\n";
+							   $count  += $result[0]->cnt;
+						   }
+					   } else {
+						   // Find the primary key column for this table.
+						   $pk_col = null;
+						   foreach ( $columns as $col_def ) {
+							   if ( strtoupper( $col_def[3] ) === 'PRI' ) {
+								   $pk_col = preg_replace( '/[^a-zA-Z0-9_]/', '', $col_def[0] );
+								   break;
+							   }
+						   }
 
-					if ( ! $pk_col ) {
-						// No PK — use bulk SQL REPLACE as best-effort fallback.
-						$affected = (int) $wpdb->query(
-							$wpdb->prepare(
-								"UPDATE `$table_name_escaped` SET `$col_name_escaped` = REPLACE(`$col_name_escaped`, %s, %s) WHERE `$col_name_escaped` LIKE %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- backtick-quoted identifiers sanitized via preg_replace.
-								$old,
-								$new,
-								'%' . $wpdb->esc_like( $old ) . '%'
-							)
-						);
-						if ( $affected > 0 ) {
-							$output .= "  $table_name.$col_name: $affected changes (no PK, bulk)\n";
-							$count  += $affected;
-						}
-						continue;
-					}
+						   if ( ! $pk_col ) {
+							   // No PK — use bulk SQL REPLACE as best-effort fallback.
+							   $affected = (int) $wpdb->query(
+								   $wpdb->prepare(
+									   "UPDATE `$table_name_escaped` SET `$col_name_escaped` = REPLACE(`$col_name_escaped`, %s, %s) WHERE `$col_name_escaped` LIKE %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- backtick-quoted identifiers sanitized via preg_replace.
+									   $old,
+									   $new,
+									   '%' . $wpdb->esc_like( $old ) . '%'
+								   )
+							   );
+							   if ( $affected > 0 ) {
+								   $output .= "  $table_name.$col_name: $affected changes (no PK, bulk)\n";
+								   $count  += $affected;
+							   }
+							   continue;
+						   }
 
-					$rows = $wpdb->get_results(
-						$wpdb->prepare(
-							"SELECT `$pk_col`, `$col_name_escaped` FROM `$table_name_escaped` WHERE `$col_name_escaped` LIKE %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- backtick-quoted identifiers sanitized via preg_replace.
-							'%' . $wpdb->esc_like( $old ) . '%'
-						),
-						ARRAY_N
-					);
+						   $rows = $wpdb->get_results(
+							   $wpdb->prepare(
+								   "SELECT `$pk_col`, `$col_name_escaped` FROM `$table_name_escaped` WHERE `$col_name_escaped` LIKE %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- backtick-quoted identifiers sanitized via preg_replace.
+								   '%' . $wpdb->esc_like( $old ) . '%'
+							   ),
+							   ARRAY_N
+						   );
 
-					$changed = 0;
-					foreach ( (array) $rows as $row ) {
-						$pk_val   = $row[0];
-						$original = $row[1];
-						$replaced = $this->replace_in_value( $original, $old, $new );
-						if ( $replaced !== $original ) {
-							$wpdb->update(
-								$table_name_escaped,
-								array( $col_name_escaped => $replaced ),
-								array( $pk_col => $pk_val ),
-								array( '%s' ),
-								array( '%s' )
-							);
-							++$changed;
-						}
-					}
+						   $changed = 0;
+						   foreach ( (array) $rows as $row ) {
+							   $pk_val   = $row[0];
+							   $original = $row[1];
+							   $replaced = $this->replace_in_value( $original, $old, $new );
+							   if ( $replaced !== $original ) {
+								   $wpdb->update(
+									   $table_name_escaped,
+									   array( $col_name_escaped => $replaced ),
+									   array( $pk_col => $pk_val ),
+									   array( '%s' ),
+									   array( '%s' )
+								   );
+								   ++$changed;
+							   }
+						   }
 
-					if ( $changed > 0 ) {
-						$output .= "  $table_name.$col_name: $changed changes\n";
-						$count  += $changed;
-					}
-				}
-			}
-		}
+						   if ( $changed > 0 ) {
+							   $output .= "  $table_name.$col_name: $changed changes\n";
+							   $count  += $changed;
+						   }
+					   }
+				   }
+			   }
 
 		$output .= "Total: $count replacements";
 		return array(

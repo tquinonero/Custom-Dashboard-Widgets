@@ -19,6 +19,9 @@
  *     && npm run test:integration'
  */
 
+// Prevent direct access — ABSPATH must be defined by the caller (wp-phpunit).
+if ( ! defined( 'ABSPATH' ) ) {
+
 // ---------------------------------------------------------------------------
 // Database credentials for the WordPress test environment.
 // The test runner will DROP and recreate tables on each run — use a dedicated
@@ -45,3 +48,4 @@ define( 'WP_TESTS_TITLE',   'CDW Test Site' );
 define( 'WP_DEFAULT_THEME', 'twentytwentyfive' );
 define( 'WP_PHP_BINARY',    'php' );
 define( 'WPLANG',           '' );
+}

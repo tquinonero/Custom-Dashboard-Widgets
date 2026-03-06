@@ -82,7 +82,6 @@ class CDW_Posts_Controller extends CDW_Base_Controller {
 						'numberposts'      => $per_page,
 						'post_status'      => $status,
 						'post_type'        => $post_type,
-						'suppress_filters' => true,
 					)
 				);
 

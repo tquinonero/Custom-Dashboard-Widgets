@@ -57,6 +57,10 @@ class CDW_Loader {
 			$this->widgets->register();
 
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_floating_button' ), 20 );
+			add_filter( 'admin_body_class', function( $classes ) {
+				return $classes . ' cdw-sidebar-hidden';
+			} );
 		}
 
 		// Cache hooks must fire on all contexts (REST API saves, CLI, admin).
@@ -156,17 +160,228 @@ class CDW_Loader {
 		}
 
 		$is_settings_page = 'settings_page_cdw-settings' === $hook_suffix;
+		$is_dashboard     = 'index.php' === $hook_suffix;
+		$admin_menu_data = $this->get_admin_menu_data();
 
 		wp_localize_script(
 			'cdw-script',
 			'cdwData',
 			array(
-				'root'       => esc_url_raw( rest_url() ),
-				'nonce'      => wp_create_nonce( 'wp_rest' ),
-				'pluginUrl'  => CDW_PLUGIN_URL,
-				'adminUrl'   => admin_url(),
-				'isSettings' => $is_settings_page,
+				'root'          => esc_url_raw( rest_url() ),
+				'nonce'         => wp_create_nonce( 'wp_rest' ),
+				'pluginUrl'     => CDW_PLUGIN_URL,
+				'adminUrl'      => admin_url(),
+				'isSettings'    => $is_settings_page,
+				'isDashboard'   => $is_dashboard,
+				'adminMenuData' => $admin_menu_data,
 			)
 		);
+	}
+
+	/**
+	 * Enqueues floating dashboard button on all admin pages except dashboard.
+	 *
+	 * @param string $hook_suffix The current admin page hook suffix.
+	 * @return void
+	 */
+	public function enqueue_floating_button( $hook_suffix ) {
+		if ( 'index.php' === $hook_suffix ) {
+			return;
+		}
+
+		$admin_url = admin_url( 'index.php' );
+
+		$button_css = '
+			.cdw-floating-btn {
+				position: fixed;
+				bottom: 32px;
+				right: 32px;
+				z-index: 9990;
+				background: #0073aa;
+				color: #fff;
+				border-radius: 50%;
+				width: 56px;
+				height: 56px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+				text-decoration: none;
+				transition: transform 0.2s ease, box-shadow 0.2s ease;
+			}
+			.cdw-floating-btn:hover {
+				transform: scale(1.1);
+				box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+			}
+			.cdw-floating-btn svg {
+				width: 24px;
+				height: 24px;
+			}
+		';
+
+		wp_add_inline_style( 'wp-admin', $button_css );
+
+		$button_html = sprintf(
+			'<a href="%s" class="cdw-floating-btn" title="Back to Dashboard">
+				<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+					<polyline points="9 22 9 12 15 12 15 22"></polyline>
+				</svg>
+			</a>',
+			esc_url( $admin_url )
+		);
+
+		add_action( 'admin_footer', function() use ( $button_html ) {
+			echo wp_kses_post( $button_html );
+		} );
+	}
+
+	/**
+	 * Get admin menu data grouped by category for Quick Links.
+	 *
+	 * @return array
+	 */
+	private function get_admin_menu_data() {
+		global $menu, $submenu;
+
+		$categories = array(
+			'content'   => array(
+				'label' => 'Content',
+				'items' => array(),
+				'icon'  => 'dashicons-admin-post',
+			),
+			'appearance' => array(
+				'label' => 'Appearance',
+				'items' => array(),
+				'icon'  => 'dashicons-admin-appearance',
+			),
+			'plugins'   => array(
+				'label' => 'Plugins',
+				'items' => array(),
+				'icon'  => 'dashicons-admin-plugins',
+			),
+			'users'     => array(
+				'label' => 'Users',
+				'items' => array(),
+				'icon'  => 'dashicons-admin-users',
+			),
+			'settings'  => array(
+				'label' => 'Settings',
+				'items' => array(),
+				'icon'  => 'dashicons-admin-settings',
+			),
+			'tools'     => array(
+				'label' => 'Tools',
+				'items' => array(),
+				'icon'  => 'dashicons-admin-tools',
+			),
+			'other'     => array(
+				'label' => 'Other',
+				'items' => array(),
+				'icon'  => 'dashicons-admin-generic',
+			),
+		);
+
+		$category_map = array(
+			'edit.php'                => 'content',
+			'upload.php'              => 'content',
+			'edit.php?post_type=page' => 'content',
+			'themes.php'              => 'appearance',
+			'widgets.php'             => 'appearance',
+			'nav-menus.php'           => 'appearance',
+			'customize.php'           => 'appearance',
+			'site-editor.php'         => 'appearance',
+			'plugins.php'             => 'plugins',
+			'plugin-install.php'      => 'plugins',
+			'users.php'               => 'users',
+			'user-new.php'            => 'users',
+			'profile.php'             => 'users',
+			'options-general.php'     => 'settings',
+			'tools.php'               => 'tools',
+			'import.php'              => 'tools',
+			'export.php'              => 'tools',
+			'site-health.php'         => 'tools',
+		);
+
+		if ( ! empty( $submenu ) ) {
+			foreach ( $submenu as $parent_file => $items ) {
+				$category = isset( $category_map[ $parent_file ] ) ? $category_map[ $parent_file ] : 'other';
+
+				foreach ( $items as $item ) {
+					if ( empty( $item[0] ) || empty( $item[1] ) ) {
+						continue;
+					}
+
+					$capability = $item[1];
+
+					if ( ! current_user_can( $capability ) ) {
+						continue;
+					}
+
+					$submenu_href = $item[2];
+					if ( strpos( $submenu_href, 'http' ) === 0 || strpos( $submenu_href, '//' ) === 0 ) {
+						$full_submenu_href = $submenu_href;
+					} elseif ( strpos( $submenu_href, '.php' ) !== false || strpos( $submenu_href, '?' ) !== false ) {
+						$full_submenu_href = admin_url( $submenu_href );
+					} else {
+						$full_submenu_href = admin_url( 'admin.php?page=' . $submenu_href );
+					}
+
+					$categories[ $category ]['items'][] = array(
+						'label' => wp_strip_all_tags( $item[0] ),
+						'href'  => $full_submenu_href,
+					);
+				}
+			}
+		}
+
+		if ( ! empty( $menu ) ) {
+			foreach ( $menu as $menu_item ) {
+				if ( empty( $menu_item[0] ) || empty( $menu_item[1] ) ) {
+					continue;
+				}
+
+				if ( $menu_item[0] === '' || $menu_item[0] === ' ' ) {
+					continue;
+				}
+
+				$capability = $menu_item[1];
+				if ( ! current_user_can( $capability ) ) {
+					continue;
+				}
+
+				$href = $menu_item[2];
+				if ( empty( $href ) || $href === 'index.php' ) {
+					continue;
+				}
+
+				if ( ! empty( $submenu ) && isset( $submenu[ $href ] ) ) {
+					continue;
+				}
+
+				$full_href = '';
+				if ( strpos( $href, 'http' ) === 0 || strpos( $href, '//' ) === 0 ) {
+					$full_href = $href;
+				} elseif ( strpos( $href, '.php' ) !== false || strpos( $href, '?' ) !== false ) {
+					$full_href = admin_url( $href );
+				} else {
+					$full_href = admin_url( 'admin.php?page=' . $href );
+				}
+
+				$categories['other']['items'][] = array(
+					'label' => wp_strip_all_tags( $menu_item[0] ),
+					'href'  => $full_href,
+				);
+			}
+		}
+
+		$categories = array_filter(
+			$categories,
+			function( $cat ) {
+				return ! empty( $cat['items'] );
+			}
+		);
+
+		return array_values( $categories );
 	}
 }

@@ -14,6 +14,10 @@
  *   ddev exec bash -c 'export WP_PHPUNIT__TESTS_CONFIG=/var/www/html/wp-content/plugins/CDW/wp-tests-config.php && vendor/bin/phpunit --config phpunit-integration.xml'
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 // Provide the config path if not already set in the environment.
 if ( false === getenv( 'WP_PHPUNIT__TESTS_CONFIG' ) || '' === getenv( 'WP_PHPUNIT__TESTS_CONFIG' ) ) {
     putenv( 'WP_PHPUNIT__TESTS_CONFIG=' . dirname( __DIR__, 3 ) . '/wp-tests-config.php' );

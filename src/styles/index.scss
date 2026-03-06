@@ -1733,3 +1733,20 @@ $cdw-term-comment: #6272a4;
         font-size: 0.9rem;
     }
 }
+
+// Hide WP Admin sidebar on all admin pages
+body.cdw-sidebar-hidden {
+    #adminmenuwrap,
+    #adminmenuback {
+        display: none;
+    }
+
+    #wpbody {
+        margin-left: 0;
+    }
+
+    #wpcontent,
+    #wpbody-content {
+        margin-left: 0;
+    }
+}

@@ -103,7 +103,6 @@ class CDW_Plugin {
 	 * @return void
 	 */
 	private function __construct() {
-		load_plugin_textdomain( 'cdw', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
 		$this->loader = new CDW_Loader();
 		$this->loader->run();
 	}

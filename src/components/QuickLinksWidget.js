@@ -1,37 +1,47 @@
 export default function QuickLinksWidget() {
     const adminUrl = window.cdwData?.adminUrl || '';
-    
-    const quickLinks = [
-        { label: 'Appearance', href: adminUrl + 'themes.php', primary: true },
-        { label: 'Users', href: adminUrl + 'users.php', primary: true },
-        { label: 'Tools', href: adminUrl + 'tools.php', primary: false },
-        { label: 'Settings', href: adminUrl + 'options-general.php', primary: false },
-    ];
+    const adminMenuData = window.cdwData?.adminMenuData || [];
+
+    const getHref = (href) => {
+        if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//')) {
+            return href;
+        }
+        return adminUrl + href;
+    };
+
+    const renderCategory = (category) => (
+        <div key={category.label} className="cdw-quicklinks-section">
+            <h4>
+                <span className={`dashicons ${category.icon}`} style={{ marginRight: '6px', fontSize: '16px' }}></span>
+                {category.label}
+            </h4>
+            <div className="cdw-quicklinks-buttons">
+                {category.items.map((item) => (
+                    <a key={item.href} href={getHref(item.href)} className="button">
+                        {item.label}
+                    </a>
+                ))}
+            </div>
+        </div>
+    );
+
+    if (adminMenuData.length > 0) {
+        return (
+            <div className="cdw-quicklinks-widget">
+                {adminMenuData.map(renderCategory)}
+            </div>
+        );
+    }
 
     return (
         <div className="cdw-quicklinks-widget">
             <div className="cdw-quicklinks-section">
-                <h4>Quick Access</h4>
+                <h4>Content</h4>
                 <div className="cdw-quicklinks-buttons">
-                    {quickLinks.map((link, index) => (
-                        <a
-                            key={index}
-                            href={link.href}
-                            className={`button ${link.primary ? 'button-primary' : ''}`}
-                        >
-                            {link.label}
-                        </a>
-                    ))}
-                </div>
-            </div>
-
-            <div className="cdw-quicklinks-section">
-                <h4>Tools</h4>
-                <div className="cdw-quicklinks-buttons">
-                    <a href={adminUrl + 'tools.php'} className="button">Tools</a>
-                    <a href={adminUrl + 'import.php'} className="button">Import</a>
-                    <a href={adminUrl + 'export.php'} className="button">Export</a>
-                    <a href={adminUrl + 'site-health.php'} className="button">Site Health</a>
+                    <a href={adminUrl + 'edit.php'} className="button">Posts</a>
+                    <a href={adminUrl + 'post-new.php'} className="button">Add New</a>
+                    <a href={adminUrl + 'edit.php?post_type=page'} className="button">Pages</a>
+                    <a href={adminUrl + 'upload.php'} className="button">Media</a>
                 </div>
             </div>
         </div>

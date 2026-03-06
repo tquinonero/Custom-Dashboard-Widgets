@@ -1,4 +1,7 @@
 <?php
+/**
+ * Bootstrap for CDW unit tests.
+ */
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 

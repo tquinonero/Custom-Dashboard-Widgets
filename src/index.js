@@ -26,12 +26,11 @@ if ( window.cdwData?.nonce ) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // ...original code restored, no sidebar or layout manipulation...
     // Render dashboard widgets
     const dashboardWidgets = document.querySelectorAll('.cdw-widget[data-widget]');
-    
     dashboardWidgets.forEach(container => {
         const widgetType = container.dataset.widget;
-        
         switch (widgetType) {
             case 'stats':
                 createRoot(container).render(<StatsWidget />);
@@ -73,4 +72,5 @@ document.addEventListener('DOMContentLoaded', () => {
             settingsRoot.appendChild(errorDiv);
         }
     }
+
 });
