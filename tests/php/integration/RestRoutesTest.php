@@ -108,4 +108,36 @@ class RestRoutesTest extends \WP_UnitTestCase {
     public function test_cli_execute_post_route_registered(): void {
         $this->assertRouteExists( '/cdw/v1/cli/execute', 'POST' );
     }
+
+    // -----------------------------------------------------------------------
+    // AI routes
+    // -----------------------------------------------------------------------
+
+    public function test_ai_settings_get_route_registered(): void {
+        $this->assertRouteExists( '/cdw/v1/ai/settings', 'GET' );
+    }
+
+    public function test_ai_settings_post_route_registered(): void {
+        $this->assertRouteExists( '/cdw/v1/ai/settings', 'POST' );
+    }
+
+    public function test_ai_chat_post_route_registered(): void {
+        $this->assertRouteExists( '/cdw/v1/ai/chat', 'POST' );
+    }
+
+    public function test_ai_execute_post_route_registered(): void {
+        $this->assertRouteExists( '/cdw/v1/ai/execute', 'POST' );
+    }
+
+    public function test_ai_providers_get_route_registered(): void {
+        $this->assertRouteExists( '/cdw/v1/ai/providers', 'GET' );
+    }
+
+    public function test_ai_test_post_route_registered(): void {
+        $this->assertRouteExists( '/cdw/v1/ai/test', 'POST' );
+    }
+
+    public function test_ai_usage_get_route_registered(): void {
+        $this->assertRouteExists( '/cdw/v1/ai/usage', 'GET' );
+    }
 }

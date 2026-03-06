@@ -402,6 +402,71 @@ class CDW_Abilities {
 				'destructive' => false,
 			),
 			array(
+				'name'        => 'cdw/core-version',
+				'label'       => __( 'Core Version', 'cdw' ),
+				'desc'        => __( 'Returns the current WordPress version, PHP version, and whether a core update is available.', 'cdw' ),
+				'input'       => array(),
+				'cli'         => 'core version',
+				'readonly'    => true,
+				'destructive' => false,
+			),
+			array(
+				'name'        => 'cdw/comment-list',
+				'label'       => __( 'List Comments', 'cdw' ),
+				'desc'        => __( 'Lists comments filtered by status: pending (default), approved, or spam.', 'cdw' ),
+				'input'       => array(
+					'status' => array(
+						'type'     => 'string',
+						'required' => false,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => true,
+				'destructive' => false,
+			),
+			array(
+				'name'        => 'cdw/comment-approve',
+				'label'       => __( 'Approve Comment', 'cdw' ),
+				'desc'        => __( 'Approves a comment by ID.', 'cdw' ),
+				'input'       => array(
+					'id' => array(
+						'type'     => 'integer',
+						'required' => true,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => false,
+				'destructive' => false,
+			),
+			array(
+				'name'        => 'cdw/comment-spam',
+				'label'       => __( 'Spam Comment', 'cdw' ),
+				'desc'        => __( 'Marks a comment as spam by ID.', 'cdw' ),
+				'input'       => array(
+					'id' => array(
+						'type'     => 'integer',
+						'required' => true,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => false,
+				'destructive' => false,
+			),
+			array(
+				'name'        => 'cdw/comment-delete',
+				'label'       => __( 'Delete Comment', 'cdw' ),
+				'desc'        => __( 'Permanently deletes a comment by ID. Requires --force.', 'cdw' ),
+				'input'       => array(
+					'id' => array(
+						'type'     => 'integer',
+						'required' => true,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => false,
+				'destructive' => true,
+			),
+			array(
 				'name'        => 'cdw/site-status',
 				'label'       => __( 'Site Status', 'cdw' ),
 				'desc'        => __( 'Returns the current health and configuration status of the WordPress site.', 'cdw' ),

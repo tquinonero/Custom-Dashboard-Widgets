@@ -690,9 +690,8 @@ class CliServiceHandlersTest extends CDWTestCase {
             public function get_results( $sql, $type = 'OBJECT' ) {
                 // Return a fake table with a text column.
                 if ( strpos( $sql, 'SHOW TABLES' ) !== false ) {
-                    $row    = new \stdClass();
-                    $row->{0} = 'wp_options';
-                    return array( $row );
+                    // Service uses $table[0]; return a real array row, not stdClass.
+                    return array( array( 0 => 'wp_options' ) );
                 }
                 if ( strpos( $sql, 'SHOW COLUMNS' ) !== false ) {
                     // One text column named 'option_value'
@@ -710,8 +709,11 @@ class CliServiceHandlersTest extends CDWTestCase {
         };
         $GLOBALS['wpdb'] = $wpdb;
 
-        $this->service->execute( 'search-replace old new --dry-run', 1, true );
+        $result = $this->service->execute( 'search-replace old new --dry-run', 1, true );
 
+        $this->assertIsArray( $result );
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsString( 'DRY RUN', $result['output'] );
         $this->assertEmpty( $wpdb->updateCalls, 'UPDATE should not be called in --dry-run mode' );
     }
 
@@ -719,17 +721,16 @@ class CliServiceHandlersTest extends CDWTestCase {
         $this->stubExecute();
 
         $wpdb = new class {
-            public $prefix     = 'wp_';
-            public array $updateCalls = array();
+            public $prefix        = 'wp_';
+            public array $queries = array(); // captures query() calls
 
             public function get_results( $sql, $type = 'OBJECT' ) {
                 if ( strpos( $sql, 'SHOW TABLES' ) !== false ) {
-                    $row    = new \stdClass();
-                    $row->{0} = 'wp_posts';
-                    return array( $row );
+                    // Service uses $table[0]; return a real array row, not stdClass.
+                    return array( array( 0 => 'wp_posts' ) );
                 }
                 if ( strpos( $sql, 'SHOW COLUMNS' ) !== false ) {
-                    // post_content is a text column, no PK marked here to trigger bulk path
+                    // post_content is longtext with no PK (4th element empty) → bulk UPDATE path.
                     return array( array( 'post_content', 'longtext', 'YES', '', null, '' ) );
                 }
                 return array();
@@ -737,16 +738,20 @@ class CliServiceHandlersTest extends CDWTestCase {
 
             public function get_var( $sql ) { return null; }
             public function prepare( $sql, ...$args ) { return $sql; }
-            public function query( $sql ) { return 1; } // for bulk UPDATE path
+            public function query( $sql ) { $this->queries[] = $sql; return 1; }
             public function esc_like( $t ) { return $t; }
-            public function update( ...$args ) { $this->updateCalls[] = $args; return 1; }
+            public function update( ...$args ) { return 1; }
         };
         $GLOBALS['wpdb'] = $wpdb;
 
-        $this->service->execute( 'search-replace old new --force', 1, true );
+        $result = $this->service->execute( 'search-replace old new --force', 1, true );
 
-        // query() is called for the UPDATE (bulk path) — just verify no crash
-        $this->addToAssertionCount( 1 ); // command ran without throwing
+        $this->assertIsArray( $result );
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsString( 'APPLYING CHANGES', $result['output'] );
+        $this->assertNotEmpty( $wpdb->queries, 'Bulk UPDATE query should have been executed' );
+        $this->assertStringContainsStringIgnoringCase( 'UPDATE', $wpdb->queries[0] );
+        $this->assertStringContainsStringIgnoringCase( 'REPLACE', $wpdb->queries[0] );
     }
 
     // -----------------------------------------------------------------------
@@ -865,5 +870,287 @@ class CliServiceHandlersTest extends CDWTestCase {
         $this->assertFalse( $result['success'] );
         $this->assertStringContainsStringIgnoringCase( 'Failed to create post', $result['output'] );
         $this->assertStringContainsString( 'Could not insert post', $result['output'] );
+    }
+
+    // -----------------------------------------------------------------------
+    // comment list
+    // -----------------------------------------------------------------------
+
+    public function test_comment_list_pending_returns_comments(): void {
+        $this->stubExecute();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'get_comments' )->justReturn( array(
+            (object) array(
+                'comment_ID'      => 1,
+                'comment_date'    => '2026-01-15 10:00:00',
+                'comment_author'  => 'Alice',
+                'comment_content' => 'This is a test comment',
+            ),
+        ) );
+        Functions\when( 'date_i18n' )->alias( function( $format, $timestamp ) {
+            return date( $format, $timestamp );
+        } );
+        Functions\when( 'wp_trim_words' )->alias( function( $text, $num, $more ) {
+            return $text;
+        } );
+
+        $result = $this->exec( 'comment list' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsString( 'Alice', $result['output'] );
+        $this->assertStringContainsString( '[1]', $result['output'] );
+    }
+
+    public function test_comment_list_approved_filters_by_status(): void {
+        $this->stubExecute();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        $captured = null;
+        Functions\when( 'get_comments' )->alias( function( $args ) use ( &$captured ) {
+            $captured = $args;
+            return array();
+        } );
+
+        $result = $this->exec( 'comment list approved' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertSame( 'approve', $captured['status'] );
+        $this->assertStringContainsStringIgnoringCase( 'no comments', $result['output'] );
+    }
+
+    public function test_comment_list_spam_filters_by_status(): void {
+        $this->stubExecute();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        $captured = null;
+        Functions\when( 'get_comments' )->alias( function( $args ) use ( &$captured ) {
+            $captured = $args;
+            return array();
+        } );
+
+        $result = $this->exec( 'comment list spam' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertSame( 'spam', $captured['status'] );
+    }
+
+    // -----------------------------------------------------------------------
+    // comment approve
+    // -----------------------------------------------------------------------
+
+    public function test_comment_approve_succeeds(): void {
+        $this->stubExecute();
+        $capturedArgs = array();
+        Functions\when( 'wp_set_comment_status' )->alias(
+            function ( $id, $status ) use ( &$capturedArgs ) {
+                $capturedArgs = array( 'id' => $id, 'status' => $status );
+                return true;
+            }
+        );
+
+        $result = $this->exec( 'comment approve 42' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertSame( 'Comment approved: 42', $result['output'] );
+        $this->assertSame( 42, $capturedArgs['id'] );
+        $this->assertSame( 'approve', $capturedArgs['status'] );
+    }
+
+    public function test_comment_approve_returns_error_when_no_id(): void {
+        $this->stubExecute();
+
+        $result = $this->exec( 'comment approve' );
+
+        $this->assertFalse( $result['success'] );
+        $this->assertStringContainsStringIgnoringCase( 'usage', $result['output'] );
+    }
+
+    public function test_comment_approve_returns_error_when_comment_not_found(): void {
+        $this->stubExecute();
+        Functions\when( 'wp_set_comment_status' )->justReturn( false );
+
+        $result = $this->exec( 'comment approve 999' );
+
+        $this->assertFalse( $result['success'] );
+        $this->assertStringContainsStringIgnoringCase( 'not found', $result['output'] );
+    }
+
+    // -----------------------------------------------------------------------
+    // comment spam
+    // -----------------------------------------------------------------------
+
+    public function test_comment_spam_succeeds(): void {
+        $this->stubExecute();
+        $capturedArgs = array();
+        Functions\when( 'wp_set_comment_status' )->alias(
+            function ( $id, $status ) use ( &$capturedArgs ) {
+                $capturedArgs = array( 'id' => $id, 'status' => $status );
+                return true;
+            }
+        );
+
+        $result = $this->exec( 'comment spam 47' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertSame( 'Comment marked as spam: 47', $result['output'] );
+        $this->assertSame( 47, $capturedArgs['id'] );
+        $this->assertSame( 'spam', $capturedArgs['status'] );
+    }
+
+    public function test_comment_spam_returns_error_when_no_id(): void {
+        $this->stubExecute();
+
+        $result = $this->exec( 'comment spam' );
+
+        $this->assertFalse( $result['success'] );
+        $this->assertStringContainsStringIgnoringCase( 'usage', $result['output'] );
+    }
+
+    public function test_comment_spam_returns_error_when_comment_not_found(): void {
+        $this->stubExecute();
+        Functions\when( 'wp_set_comment_status' )->justReturn( false );
+
+        $result = $this->exec( 'comment spam 999' );
+
+        $this->assertFalse( $result['success'] );
+        $this->assertStringContainsStringIgnoringCase( 'not found', $result['output'] );
+    }
+
+    // -----------------------------------------------------------------------
+    // comment delete
+    // -----------------------------------------------------------------------
+
+    public function test_comment_delete_succeeds_with_force(): void {
+        $this->stubExecute();
+        $capturedArgs = array();
+        Functions\when( 'wp_delete_comment' )->alias(
+            function ( $id, $force ) use ( &$capturedArgs ) {
+                $capturedArgs = array( 'id' => $id, 'force' => $force );
+                return true;
+            }
+        );
+
+        $result = $this->exec( 'comment delete 53 --force' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertSame( 'Comment deleted: 53', $result['output'] );
+        $this->assertSame( 53, $capturedArgs['id'] );
+        $this->assertTrue( $capturedArgs['force'] );
+    }
+
+    public function test_comment_delete_requires_force_flag(): void {
+        $this->stubExecute();
+
+        $result = $this->exec( 'comment delete 5' );
+
+        $this->assertFalse( $result['success'] );
+        $this->assertStringContainsStringIgnoringCase( '--force', $result['output'] );
+    }
+
+    public function test_comment_delete_returns_error_when_no_id(): void {
+        $this->stubExecute();
+
+        $result = $this->exec( 'comment delete' );
+
+        $this->assertFalse( $result['success'] );
+        $this->assertStringContainsStringIgnoringCase( 'usage', $result['output'] );
+    }
+
+    public function test_comment_delete_returns_error_when_comment_not_found(): void {
+        $this->stubExecute();
+        Functions\when( 'wp_delete_comment' )->justReturn( false );
+
+        $result = $this->exec( 'comment delete 999 --force' );
+
+        $this->assertFalse( $result['success'] );
+        $this->assertStringContainsStringIgnoringCase( 'not found', $result['output'] );
+    }
+
+    // -----------------------------------------------------------------------
+    // rewrite
+    // -----------------------------------------------------------------------
+
+    public function test_rewrite_flush_succeeds(): void {
+        $this->stubExecute();
+        // Use expect() so the test fails if flush_rewrite_rules is never called
+        // or called with the wrong argument (true = hard flush, writes .htaccess).
+        Functions\expect( 'flush_rewrite_rules' )->once()->with( true );
+
+        $result = $this->exec( 'rewrite flush' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertSame( 'Rewrite rules flushed.', $result['output'] );
+    }
+
+    public function test_rewrite_unknown_subcmd_returns_help(): void {
+        $this->stubExecute();
+
+        $result = $this->exec( 'rewrite' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsString( 'rewrite flush', $result['output'] );
+    }
+
+    // -----------------------------------------------------------------------
+    // core
+    // -----------------------------------------------------------------------
+
+    public function test_core_version_shows_wp_and_php_version(): void {
+        $this->stubExecute();
+        Functions\when( 'get_bloginfo' )->alias(
+            function ( $key ) {
+                return 'version' === $key ? '6.7.1' : '';
+            }
+        );
+        Functions\when( 'get_core_updates' )->justReturn( array() );
+
+        $result = $this->exec( 'core version' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsString( '6.7.1', $result['output'] );
+        $this->assertStringContainsString( PHP_VERSION, $result['output'] );
+    }
+
+    public function test_core_version_shows_up_to_date_when_no_updates(): void {
+        $this->stubExecute();
+        Functions\when( 'get_bloginfo' )->alias(
+            function ( $key ) {
+                return 'version' === $key ? '6.7.1' : '';
+            }
+        );
+        $latest           = new \stdClass();
+        $latest->response = 'latest';
+        Functions\when( 'get_core_updates' )->justReturn( array( $latest ) );
+
+        $result = $this->exec( 'core version' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsStringIgnoringCase( 'up to date', $result['output'] );
+    }
+
+    public function test_core_version_shows_update_available(): void {
+        $this->stubExecute();
+        Functions\when( 'get_bloginfo' )->alias(
+            function ( $key ) {
+                return 'version' === $key ? '6.7.1' : '';
+            }
+        );
+        $latest           = new \stdClass();
+        $latest->response = 'upgrade';
+        $latest->version  = '6.8';
+        Functions\when( 'get_core_updates' )->justReturn( array( $latest ) );
+
+        $result = $this->exec( 'core version' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsStringIgnoringCase( 'available', $result['output'] );
+        $this->assertStringContainsString( '6.8', $result['output'] );
+    }
+
+    public function test_core_unknown_subcmd_returns_help(): void {
+        $this->stubExecute();
+
+        $result = $this->exec( 'core' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsString( 'core version', $result['output'] );
     }
 }

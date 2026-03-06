@@ -200,6 +200,10 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 						'description' => 'Update a plugin',
 					),
 					array(
+						'name'        => 'plugin update --all',
+						'description' => 'Update all plugins',
+					),
+					array(
 						'name'        => 'plugin delete <slug>',
 						'description' => 'Delete a plugin (requires --force)',
 					),
@@ -224,6 +228,22 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 						'name'        => 'theme activate <slug>',
 						'description' => 'Activate a theme',
 					),
+					array(
+						'name'        => 'theme install <slug>',
+						'description' => 'Install a theme',
+					),
+					array(
+						'name'        => 'theme update <slug>',
+						'description' => 'Update a theme',
+					),
+					array(
+						'name'        => 'theme update --all',
+						'description' => 'Update all themes',
+					),
+					array(
+						'name'        => 'theme delete <slug>',
+						'description' => 'Delete a theme',
+					),
 				),
 			),
 			array(
@@ -245,6 +265,10 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 						'name'        => 'user role <user> <role>',
 						'description' => 'Change user role',
 					),
+					array(
+						'name'        => 'user delete <id>',
+						'description' => 'Delete a user',
+					),
 				),
 			),
 			array(
@@ -265,6 +289,10 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 					array(
 						'name'        => 'post status <id> <status>',
 						'description' => 'Change post status',
+					),
+					array(
+						'name'        => 'post delete <id>',
+						'description' => 'Delete a post',
 					),
 				),
 			),
@@ -288,6 +316,10 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 						'name'        => 'db tables',
 						'description' => 'List all tables',
 					),
+					array(
+						'name'        => 'search-replace <old> <new>',
+						'description' => 'Search and replace in the database',
+					),
 				),
 			),
 			array(
@@ -301,6 +333,66 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 						'name'        => 'option list',
 						'description' => 'List CDW options',
 					),
+					array(
+						'name'        => 'option set <name> <value>',
+						'description' => 'Set option value',
+					),
+					array(
+						'name'        => 'option delete <name>',
+						'description' => 'Delete an option',
+					),
+				),
+			),
+			array(
+				'category' => 'Rewrite',
+				'commands' => array(
+					array(
+						'name'        => 'rewrite flush',
+						'description' => 'Flush rewrite rules',
+					),
+				),
+			),
+				array(
+				'category' => 'Core',
+				'commands' => array(
+					array(
+						'name'        => 'core version',
+						'description' => 'Show WP version, PHP version, and update status',
+					),
+				),
+			),
+			array(
+				'category' => 'Comments',
+				'commands' => array(
+					array(
+						'name'        => 'comment list [pending|approved|spam]',
+						'description' => 'List comments (default: pending)',
+					),
+					array(
+						'name'        => 'comment approve <id>',
+						'description' => 'Approve a comment',
+					),
+					array(
+						'name'        => 'comment spam <id>',
+						'description' => 'Mark a comment as spam',
+					),
+					array(
+						'name'        => 'comment delete <id> --force',
+						'description' => 'Permanently delete a comment',
+					),
+				),
+			),
+			array(
+				'category' => 'Transients',
+				'commands' => array(
+					array(
+						'name'        => 'transient list',
+						'description' => 'List all transients',
+					),
+					array(
+						'name'        => 'transient delete <name>',
+						'description' => 'Delete a transient',
+					),
 				),
 			),
 			array(
@@ -309,6 +401,10 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 					array(
 						'name'        => 'cron list',
 						'description' => 'List scheduled cron events',
+					),
+					array(
+						'name'        => 'cron run <hook>',
+						'description' => 'Run a cron hook immediately',
 					),
 				),
 			),
@@ -326,6 +422,27 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 					array(
 						'name'        => 'site status',
 						'description' => 'Show site status',
+					),
+					array(
+						'name'        => 'site empty',
+						'description' => 'Optimize database',
+					),
+				),
+			),
+			array(
+				'category' => 'Maintenance',
+				'commands' => array(
+					array(
+						'name'        => 'maintenance status',
+						'description' => 'Show maintenance mode status',
+					),
+					array(
+						'name'        => 'maintenance enable',
+						'description' => 'Enable maintenance mode',
+					),
+					array(
+						'name'        => 'maintenance disable',
+						'description' => 'Disable maintenance mode',
 					),
 				),
 			),

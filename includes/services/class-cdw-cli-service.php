@@ -426,6 +426,15 @@ class CDW_CLI_Service {
 				case 'search-replace':
 					$result = $this->handle_search_replace_command( $clean_args, $raw_args );
 					break;
+				case 'rewrite':
+					$result = $this->handle_rewrite_command( $subcmd );
+					break;
+				case 'core':
+					$result = $this->handle_core_command( $subcmd );
+					break;
+				case 'comment':
+					$result = $this->handle_comment_command( $subcmd, $clean_args, $raw_args );
+					break;
 				case 'help':
 					$result = $this->handle_help_command();
 					break;
@@ -2360,6 +2369,156 @@ class CDW_CLI_Service {
 	 *
 	 * @return array<string,mixed> Result array.
 	 */
+	/**
+	 * Handle rewrite commands.
+	 *
+	 * @param string $subcmd Subcommand (flush).
+	 * @return array<string,mixed> Result array.
+	 */
+	/**
+	 * Handle comment management commands.
+	 *
+	 * @param string            $subcmd   Subcommand (list|approve|spam|delete).
+	 * @param array<int,string> $args     Positional arguments.
+	 * @param array<int,string> $raw_args Full raw args including flags.
+	 * @return array<string,mixed> Result array.
+	 */
+	private function handle_comment_command( $subcmd, $args, $raw_args ) {
+		switch ( $subcmd ) {
+			case 'list':
+				$status  = ! empty( $args[0] ) ? sanitize_text_field( $args[0] ) : 'hold';
+				$map     = array(
+					'pending'  => 'hold',
+					'approved' => 'approve',
+					'spam'     => 'spam',
+					'hold'     => 'hold',
+					'approve'  => 'approve',
+				);
+				$status  = isset( $map[ $status ] ) ? $map[ $status ] : 'hold';
+				$comments = get_comments(
+					array(
+						'status' => $status,
+						'number' => 20,
+					)
+				);
+				if ( empty( $comments ) ) {
+					return array(
+						'output'  => 'No comments found.',
+						'success' => true,
+					);
+				}
+				$label  = array( 'hold' => 'Pending', 'approve' => 'Approved', 'spam' => 'Spam' );
+				$output = ( isset( $label[ $status ] ) ? $label[ $status ] : ucfirst( $status ) ) . " Comments:\n";
+				foreach ( $comments as $comment ) {
+					$date    = date_i18n( 'Y-m-d', strtotime( $comment->comment_date ) );
+					$author  = $comment->comment_author ? $comment->comment_author : '(anonymous)';
+					$excerpt = wp_trim_words( $comment->comment_content, 10, '…' );
+					$output .= sprintf( "  [%d] %s — %s: %s\n", $comment->comment_ID, $date, $author, $excerpt );
+				}
+				return array(
+					'output'  => rtrim( $output ),
+					'success' => true,
+				);
+
+			case 'approve':
+				if ( empty( $args[0] ) ) {
+					return array( 'output' => 'Usage: comment approve <id>', 'success' => false );
+				}
+				$id     = (int) $args[0];
+				$result = wp_set_comment_status( $id, 'approve' );
+				if ( ! $result ) {
+					return array( 'output' => "Comment not found: $id", 'success' => false );
+				}
+				return array( 'output' => "Comment approved: $id", 'success' => true );
+
+			case 'spam':
+				if ( empty( $args[0] ) ) {
+					return array( 'output' => 'Usage: comment spam <id>', 'success' => false );
+				}
+				$id     = (int) $args[0];
+				$result = wp_set_comment_status( $id, 'spam' );
+				if ( ! $result ) {
+					return array( 'output' => "Comment not found: $id", 'success' => false );
+				}
+				return array( 'output' => "Comment marked as spam: $id", 'success' => true );
+
+			case 'delete':
+				if ( empty( $args[0] ) ) {
+					return array( 'output' => 'Usage: comment delete <id> --force', 'success' => false );
+				}
+				if ( ! $this->has_force_flag( $raw_args ) ) {
+					return array( 'output' => 'Use --force to permanently delete a comment.', 'success' => false );
+				}
+				$id     = (int) $args[0];
+				$result = wp_delete_comment( $id, true );
+				if ( ! $result ) {
+					return array( 'output' => "Comment not found: $id", 'success' => false );
+				}
+				return array( 'output' => "Comment deleted: $id", 'success' => true );
+
+			default:
+				return array(
+					'output'  => "Available comment commands:\n  comment list [pending|approved|spam]  - List comments\n  comment approve <id>                  - Approve a comment\n  comment spam <id>                     - Mark as spam\n  comment delete <id> --force           - Permanently delete",
+					'success' => true,
+				);
+		}
+	}
+
+	/**
+	 * Handle core commands.
+	 *
+	 * @param string $subcmd Subcommand (version).
+	 * @return array<string,mixed> Result array.
+	 */
+	private function handle_core_command( $subcmd ) {
+		switch ( $subcmd ) {
+			case 'version':
+				require_once ABSPATH . 'wp-admin/includes/update.php';
+				$wp_version  = get_bloginfo( 'version' );
+				$php_version = PHP_VERSION;
+				$updates     = get_core_updates();
+				$update_info = 'Up to date';
+				if ( is_array( $updates ) && ! empty( $updates ) ) {
+					$latest = $updates[0];
+					if ( isset( $latest->response ) && 'upgrade' === $latest->response ) {
+						$update_info = isset( $latest->version )
+							? 'Available (v' . $latest->version . ')'
+							: 'Available';
+					}
+				}
+				$output  = "WordPress Version Info:\n";
+				$output .= 'WP Version:  ' . $wp_version . "\n";
+				$output .= 'PHP Version: ' . $php_version . "\n";
+				$output .= 'Core Update: ' . $update_info . "\n";
+				return array(
+					'output'  => $output,
+					'success' => true,
+				);
+			default:
+				return array(
+					'output'  => "Available core commands:\n  core version  - Show WP version, PHP version, and update status",
+					'success' => true,
+				);
+		}
+	}
+
+	private function handle_rewrite_command( $subcmd ) {
+		switch ( $subcmd ) {
+			case 'flush':
+				flush_rewrite_rules( true );
+				return array(
+					'output'  => 'Rewrite rules flushed.',
+					'success' => true,
+				);
+			default:
+				return array(
+					'output'  => 'Available rewrite commands:
+  rewrite flush  - Flush rewrite rules',
+					'success' => true,
+				);
+		}
+	}
+
 	private function handle_help_command() {
 		return array(
 			'output'  => $this->get_help_text(),
@@ -2396,6 +2555,8 @@ Theme Management:
   theme list              - List all themes
   theme status <slug>     - Show theme status
   theme install <slug>   - Install a theme
+  theme update <slug>    - Update a theme
+  theme update --all     - Update all themes
   theme activate <slug>  - Activate a theme
   theme delete <slug>    - Delete a theme
 
@@ -2441,8 +2602,21 @@ Cron:
   cron run <hook>        - Run cron hook
 
 Maintenance:
-  maintenance enable [msg] - Enable maintenance mode
+  maintenance status     - Show maintenance mode status
+  maintenance enable     - Enable maintenance mode
   maintenance disable    - Disable maintenance mode
+
+Rewrite:
+  rewrite flush          - Flush rewrite rules
+
+Core:
+  core version           - Show WP version, PHP version, and update status
+
+Comments:
+  comment list [pending|approved|spam]  - List comments (default: pending)
+  comment approve <id>                  - Approve a comment
+  comment spam <id>                     - Mark a comment as spam
+  comment delete <id> --force           - Permanently delete a comment
 
 Database Search & Replace:
   search-replace <old> <new> [--dry-run] [--force]

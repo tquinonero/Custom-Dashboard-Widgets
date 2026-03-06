@@ -1,0 +1,155 @@
+# CDW — Command Expansion Plan
+
+## Current command inventory
+
+### Fully implemented (service + autocomplete)
+
+| Category       | Commands                                                                                      |
+|----------------|-----------------------------------------------------------------------------------------------|
+| Plugin         | plugin list, plugin status <slug>, plugin install <slug>, plugin activate <slug>,             |
+|                | plugin deactivate <slug>, plugin update <slug>, plugin update --all, plugin delete <slug>    |
+| Theme          | theme info, theme list, theme status <slug>, theme activate <slug>,                           |
+|                | theme install <slug>, theme update <slug>, theme update --all, theme delete <slug>           |
+| User           | user list, user get <username|id>, user create <user> <email> <role>,                        |
+|                | user role <user> <role>, user delete <id>                                                     |
+| Post           | post create <title>, post get <id>, post list [<type>], post status <id> <status>,           |
+|                | post delete <id>                                                                              |
+| Cache          | cache flush                                                                                   |
+| Database       | db size, db tables, search-replace <old> <new>                                                |
+| Options        | option get <name>, option list, option set <name> <value>, option delete <name>              |
+| Transients     | transient list, transient delete <name>                                                       |
+| Cron           | cron list, cron run <hook>                                                                    |
+| Site           | site info, site settings, site status, site empty                                             |
+| Comments       | comment list [pending|approved|spam], comment approve <id>,                       |
+|                | comment spam <id>, comment delete <id> --force                                    |
+| Rewrite        | rewrite flush                                                                                 |
+| Core           | core version                                                                                  |
+| Maintenance    | maintenance status, maintenance enable, maintenance disable                                   |
+
+---
+
+## Implemented in the service but MISSING from the autocomplete catalogue
+
+All previously missing commands have been added to the autocomplete catalogue.
+No remaining gaps.
+
+---
+
+## Suggested new commands
+
+### HIGH VALUE — missing and very commonly needed
+
+~~1. rewrite flush~~ ✓ implemented
+
+2. email test <address>
+   - Diagnose SMTP/mailer configuration without leaving the dashboard.
+   - Calls wp_mail() with a simple test body and reports success/failure.
+   - Broken email is a top-3 support issue on every WP site.
+   - readonly: false, destructive: false
+
+~~3. core version~~ ✓ implemented
+
+~~4. comment list/approve/spam/delete~~ ✓ implemented
+
+5. db optimize
+   - Run OPTIMIZE TABLE across all tables. Common monthly maintenance to reclaim
+     fragmented space after mass deletes.
+   - Implementation: $wpdb->get_results('SHOW TABLES') loop + $wpdb->query('OPTIMIZE TABLE …')
+   - readonly: false, destructive: false
+
+---
+
+### MEDIUM VALUE — useful for power users
+
+6. user reset-password <username|id>
+   - Generate a password reset link without going to the Users screen.
+   - APIs: get_password_reset_key(), network_site_url('wp-login.php?action=rp')
+   - Output the full reset URL (show-once).
+   - readonly: false, destructive: false
+
+7. media list [<count>]
+   - List recent media attachments (ID, filename, mime type, upload date).
+   - API: get_posts(['post_type' => 'attachment'])
+   - Useful when debugging missing thumbnails or after media imports.
+   - readonly: true
+
+8. post count [<type>]
+   - Quick wp_count_posts($type) showing breakdown by status
+     (publish / draft / trash / pending).
+   - Instant health check for large sites.
+   - readonly: true
+
+9. plugin update-all
+   - Update every plugin that has a pending update in one command.
+   - The service already handles plugin update <slug>; this variant calls
+     wp_update_plugins() then iterates available updates.
+   - readonly: false, destructive: false
+
+10. db repair
+    - Run REPAIR TABLE on all tables — useful after a crash.
+    - Same pattern as db optimize.
+    - readonly: false, destructive: false
+
+11. db check
+    - Run CHECK TABLE on all tables and report errors.
+    - Pre-flight check before a migration or major upgrade.
+    - readonly: true
+
+---
+
+### LOWER PRIORITY — nice to have
+
+12. term list <taxonomy>
+    - get_terms(['taxonomy' => …]) — debug taxonomy issues (missing categories, orphaned tags)
+    - readonly: true
+
+13. user count
+    - count_users() — totals by role.
+    - One-liner diagnostic for auditing who has admin access.
+    - readonly: true
+
+14. post trash <id>
+    - wp_trash_post() — safer alternative to post delete (sends to trash, not hard delete)
+    - readonly: false, destructive: false
+
+15. site url
+    - Display siteurl and home options side by side.
+    - First thing to check after a migration/staging clone to find URL mismatches.
+    - APIs: get_site_url(), get_home_url()
+    - readonly: true
+
+---
+
+## NOT recommended
+
+- db query <sql>  — Even read-only SQL execution via a dashboard widget is a significant
+  injection risk surface. The existing db size / db tables / search-replace cover the safe subset.
+
+- media regenerate — Long-running (timeouts on large libraries), requires chunking. Better
+  handled by a dedicated plugin (Regenerate Thumbnails).
+
+---
+
+## Implementation checklist (per new command)
+
+For each new command, three files must be updated:
+
+1. includes/services/class-cdw-cli-service.php
+   - Add case to the relevant handle_*_command() switch, or create a new handle_*_command()
+     and wire it in the top-level switch in execute().
+   - Update inline help text (default: case) and global help (handle_help_command).
+
+2. includes/controllers/class-cdw-cli-controller.php
+   - Add entry to get_command_definitions() in the appropriate category array.
+
+3. includes/class-cdw-abilities.php
+   - Register a new cdw/* ability with correct readonly/destructive annotations.
+   - Add a build_cli_command() case to map input schema fields to the CLI string.
+   - Update ability count in AbilitiesTest.php.
+
+For AI tool coverage also update:
+   - includes/services/class-cdw-ai-service.php → get_tool_definitions() array.
+
+Tests to add (per command):
+   - tests/php/unit/CliServiceHandlersTest.php — success case, error/no-args case,
+     WP_Error propagation where applicable.

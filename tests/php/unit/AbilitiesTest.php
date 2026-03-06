@@ -57,10 +57,10 @@ class AbilitiesTest extends CDWTestCase {
 	}
 
 	// -----------------------------------------------------------------------
-	// 3. register_abilities() calls wp_register_ability exactly 31 times
+	// 3. register_abilities() calls wp_register_ability exactly 37 times
 	// -----------------------------------------------------------------------
 
-	public function test_register_abilities_registers_exactly_32_abilities(): void {
+	public function test_register_abilities_registers_exactly_37_abilities(): void {
 		$count = 0;
 
 		Functions\when( 'wp_register_ability' )->alias( function () use ( &$count ) {
@@ -70,7 +70,7 @@ class AbilitiesTest extends CDWTestCase {
 
 		\CDW_Abilities::register_abilities();
 
-		$this->assertSame( 32, $count );
+		$this->assertSame( 37, $count );
 	}
 
 	// -----------------------------------------------------------------------
