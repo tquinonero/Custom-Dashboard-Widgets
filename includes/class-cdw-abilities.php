@@ -997,21 +997,24 @@ class CDW_Abilities {
 			),
 		);
 
-		// Only add input_schema when at least one parameter is required.
-		// Abilities with only optional params must omit input_schema: WP REST
-		// decodes an empty JSON body ({}) as a PHP empty array [], which fails
-		// rest_is_object() validation — so registering a schema for all-optional
-		// abilities would block callers that legitimately pass no arguments.
-		$has_required = false;
-		foreach ( $ability['input'] as $param ) {
-			if ( ! empty( $param['required'] ) ) {
-				$has_required = true;
-				break;
+		// Register input_schema based on the ability's parameter requirements.
+		//
+		// - No params at all: omit schema entirely (WP handles it cleanly).
+		// - All params optional: use type=['object','null'] so GET requests with
+		//   no body (null input) pass schema validation alongside real calls with
+		//   an explicit object body.  WP routes readonly abilities as HTTP GET,
+		//   meaning there is no request body; null is the right "no input" value.
+		// - At least one required param: strict 'object' type.
+		if ( ! empty( $ability['input'] ) ) {
+			$has_required = false;
+			foreach ( $ability['input'] as $param ) {
+				if ( ! empty( $param['required'] ) ) {
+					$has_required = true;
+					break;
+				}
 			}
-		}
-		if ( $has_required ) {
 			$args['input_schema'] = array(
-				'type'       => 'object',
+				'type'       => $has_required ? 'object' : array( 'object', 'null' ),
 				'properties' => $ability['input'],
 			);
 		}
@@ -1042,7 +1045,8 @@ class CDW_Abilities {
 	 * @param array<string, mixed> $input        Validated input params from the caller.
 	 * @return string
 	 */
-	private static function build_cli_command( string $ability_name, array $input ): string {
+	private static function build_cli_command( string $ability_name, ?array $input ): string {
+		$input = $input ?? array();
 		switch ( $ability_name ) {
 			case 'cdw/plugin-status':
 				return 'plugin status ' . self::sanitize_cli_arg( $input['slug'] );
