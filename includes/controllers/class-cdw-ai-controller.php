@@ -102,6 +102,17 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 				'permission_callback' => array( $this, 'check_admin_permission' ),
 			)
 		);
+
+		// Reset token usage statistics for the current user.
+		register_rest_route(
+			$this->namespace,
+			'/ai/usage',
+			array(
+				'methods'             => 'DELETE',
+				'callback'            => array( $this, 'reset_usage' ),
+				'permission_callback' => array( $this, 'check_admin_permission' ),
+			)
+		);
 	}
 
 	// -------------------------------------------------------------------------
@@ -338,5 +349,20 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 		$user_id  = get_current_user_id();
 		$settings = CDW_AI_Service::get_user_ai_settings( $user_id );
 		return $this->success_response( $settings['usage'] );
+	}
+
+	// -------------------------------------------------------------------------
+	// DELETE /ai/usage
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Resets the token usage statistics for the current user.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function reset_usage() {
+		$user_id = get_current_user_id();
+		delete_user_meta( $user_id, CDW_AI_Service::USAGE_META_KEY );
+		return $this->success_response( array( 'reset' => true ) );
 	}
 }

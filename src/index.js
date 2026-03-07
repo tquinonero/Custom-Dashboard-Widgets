@@ -7,6 +7,7 @@ import MediaWidget from './components/MediaWidget';
 import HelpWidget from './components/HelpWidget';
 import UpdatesWidget from './components/UpdatesWidget';
 import QuickLinksWidget from './components/QuickLinksWidget';
+import ToolsOtherWidget from './components/ToolsOtherWidget';
 import CommandWidget from './components/CommandWidget';
 import SettingsPanel from './components/SettingsPanel';
 import './data/store';
@@ -52,6 +53,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             case 'quicklinks':
                 createRoot(container).render(<QuickLinksWidget />);
+                break;
+            case 'toolsother':
+                createRoot(container).render(<ToolsOtherWidget />);
                 break;
             case 'command':
                 createRoot(container).render(<CommandWidget />);

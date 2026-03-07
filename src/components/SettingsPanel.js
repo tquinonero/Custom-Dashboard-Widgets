@@ -102,6 +102,8 @@ export default function SettingsPanel() {
     // Usage stats
     const [usage, setUsage] = useState(null);
     const [usageLoading, setUsageLoading] = useState(false);
+    const [usageResetting, setUsageResetting] = useState(false);
+    const [usageResetDone, setUsageResetDone] = useState(false);
 
     useEffect(() => {
         fetchSettings();
@@ -161,7 +163,22 @@ export default function SettingsPanel() {
             setUsageLoading(false);
         }
     };
-
+    const resetUsage = async () => {
+        if ( ! window.confirm( 'Reset all AI usage statistics? This cannot be undone.' ) ) {
+            return;
+        }
+        setUsageResetting(true);
+        try {
+            await apiFetch({ path: '/cdw/v1/ai/usage', method: 'DELETE' });
+            setUsage(null);
+            setUsageResetDone(true);
+            setTimeout(() => setUsageResetDone(false), 3000);
+        } catch (e) {
+            // silently ignore
+        } finally {
+            setUsageResetting(false);
+        }
+    };
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
         setFormData((prev) => ({
@@ -700,6 +717,18 @@ export default function SettingsPanel() {
                     <p className="cdw-no-usage">No usage recorded yet. Start a conversation in the AI Assistant widget.</p>
                 )}
 
+                <div className="cdw-usage-actions">
+                    <button
+                        className="button"
+                        onClick={resetUsage}
+                        disabled={usageResetting}
+                    >
+                        {usageResetting ? 'Resetting…' : 'Reset Usage Stats'}
+                    </button>
+                    {usageResetDone && (
+                        <span className="cdw-save-success" style={{ marginLeft: '10px' }}>Stats reset.</span>
+                    )}
+                </div>
                 <p className="cdw-usage-note">
                     Usage is tracked per user and reset on plugin uninstall. Token counts are approximate.
                 </p>

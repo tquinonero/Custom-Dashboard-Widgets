@@ -734,6 +734,34 @@ class CDW_AI_Service {
 				),
 			),
 			array(
+				'name'        => 'post_create',
+				'description' => 'Create a new WordPress post as a draft with the given title.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'title' => array(
+							'type'        => 'string',
+							'description' => 'Title for the new post.',
+						),
+					),
+					'required'   => array( 'title' ),
+				),
+			),
+			array(
+				'name'        => 'page_create',
+				'description' => 'Create a new WordPress page as a draft with the given title.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'title' => array(
+							'type'        => 'string',
+							'description' => 'Title for the new page.',
+						),
+					),
+					'required'   => array( 'title' ),
+				),
+			),
+			array(
 				'name'        => 'user_get',
 				'description' => 'Get detailed information about a WordPress user (username, email, role, post count, registration date).',
 				'parameters'  => array(
@@ -807,7 +835,7 @@ class CDW_AI_Service {
 			"Current user: %s (Administrator)\n\n" .
 			"=== CAPABILITIES ===\n" .
 			"You have access to tools that let you manage plugins, themes, users, options, database, cron, and site settings.\n" .
-			"You can also search-replace content in the database.\n\n" .
+			"You can also create posts and pages (as drafts), search-replace content in the database, and query site/post/user details.\n\n" .
 			"=== RULES ===\n" .
 			"1. Always prefer read-only tools (list, status, info) before making changes.\n" .
 			"2. For destructive operations (delete, update, search-replace), explain what you plan to do and ask for confirmation UNLESS you are already in auto-execute mode.\n" .
@@ -941,6 +969,12 @@ class CDW_AI_Service {
 			case 'post_get':
 				$post_id = isset( $arguments['post_id'] ) ? (int) $arguments['post_id'] : 0;
 				return 'post get ' . $post_id;
+			case 'post_create':
+				$title = isset( $arguments['title'] ) ? sanitize_text_field( (string) $arguments['title'] ) : '';
+				return 'post create ' . $title;
+			case 'page_create':
+				$title = isset( $arguments['title'] ) ? sanitize_text_field( (string) $arguments['title'] ) : '';
+				return 'page create ' . $title;
 			case 'user_get':
 				$identifier = isset( $arguments['identifier'] ) ? trim( (string) $arguments['identifier'] ) : '';
 				return 'user get ' . $identifier;

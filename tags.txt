@@ -1,0 +1,374 @@
+<!-- wp:paragraph -->
+<p class="wp-block-paragraph"></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading"></h2>
+<!-- /wp:heading -->
+<!-- Alternative: h1, h3, h4, h5, h6 (via level attribute) -->
+
+<!-- wp:list {"ordered":false} -->
+<ul class="wp-block-list"></ul>
+<!-- /wp:list -->
+<!-- Alternative: <ol> when ordered=true -->
+
+<!-- wp:list-item -->
+<li class="wp-block-list-item"></li>
+<!-- /wp:list-item -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:pullquote -->
+<blockquote class="wp-block-pullquote"></blockquote>
+<!-- /wp:pullquote -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code></code></pre>
+<!-- /wp:code -->
+
+<!-- wp:preformatted -->
+<pre class="wp-block-preformatted"></pre>
+<!-- /wp:preformatted -->
+
+<!-- wp:verse -->
+<pre class="wp-block-verse"></pre>
+<!-- /wp:verse -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:details -->
+<details class="wp-block-details"></details>
+<!-- /wp:details -->
+
+<!-- wp:footnotes -->
+<aside class="wp-block-footnotes"></aside>
+<!-- /wp:footnotes -->
+
+<!-- wp:image -->
+<figure class="wp-block-image"><img alt=""/></figure>
+<!-- /wp:image -->
+
+<!-- wp:gallery {"linkTo":"none"} -->
+<figure class="wp-block-gallery has-nested-images columns-default is-cropped"></figure>
+<!-- /wp:gallery -->
+
+<!-- wp:cover -->
+<div class="wp-block-cover">
+  <img class="wp-block-cover__image-background" alt="" src="" data-object-fit="cover"/>
+  <span aria-hidden="true" class="wp-block-cover__background has-background-dim"></span>
+  <div class="wp-block-cover__inner-container">
+    <!-- inner blocks go here -->
+  </div>
+</div>
+<!-- /wp:cover -->
+<!-- Alternative: section (via tagName attribute) -->
+
+<!-- wp:video -->
+<video class="wp-block-video"></video>
+<!-- /wp:video -->
+
+<!-- wp:audio -->
+<audio class="wp-block-audio"></audio>
+<!-- /wp:audio -->
+
+<!-- wp:file -->
+<div class="wp-block-file"></div>
+<!-- /wp:file -->
+
+<!-- wp:media-text {"mediaPosition":"left"} -->
+<figure class="wp-block-media-text has-media-on-the-left"></figure>
+<!-- /wp:media-text -->
+<!-- Alternative: has-media-on-the-right when mediaPosition="right" -->
+
+<!-- wp:playlist -->
+<figure class="wp-block-playlist"></figure>
+<!-- /wp:playlist -->
+
+<!-- wp:group -->
+<div class="wp-block-group"></div>
+<!-- /wp:group -->
+<!-- Alternative: section, article, aside, main, header, footer, nav, hgroup (via tagName attribute) -->
+
+<!-- wp:columns -->
+<div class="wp-block-columns"></div>
+<!-- /wp:columns -->
+
+<!-- wp:column -->
+<div class="wp-block-column"></div>
+<!-- /wp:column -->
+
+<!-- wp:spacer -->
+<div class="wp-block-spacer"></div>
+<!-- /wp:spacer -->
+
+<!-- wp:separator -->
+<hr class="wp-block-separator"/>
+<!-- /wp:separator -->
+<!-- Alternative: div, section (via tagName attribute) -->
+
+<!-- wp:more -->
+<span class="wp-block-more"></span>
+<!-- /wp:more -->
+
+<!-- wp:nextpage -->
+<span class="wp-block-nextpage"></span>
+<!-- /wp:nextpage -->
+
+<!-- wp:button -->
+<a class="wp-block-button"></a>
+<!-- /wp:button -->
+<!-- Alternative: <button> (via tagName attribute) -->
+
+<!-- wp:buttons -->
+<div class="wp-block-buttons"></div>
+<!-- /wp:buttons -->
+
+<!-- wp:navigation -->
+<nav class="wp-block-navigation"></nav>
+<!-- /wp:navigation -->
+
+<!-- wp:navigation-link -->
+<a class="wp-block-navigation-link"></a>
+<!-- /wp:navigation-link -->
+
+<!-- wp:navigation-submenu -->
+<a class="wp-block-navigation-link__content"></a>
+<!-- /wp:navigation-submenu -->
+
+<!-- wp:home-link -->
+<a class="wp-block-home-link"></a>
+<!-- /wp:home-link -->
+
+<!-- wp:page-list -->
+<ul class="wp-block-page-list"></ul>
+<!-- /wp:page-list -->
+
+<!-- wp:page-list-item -->
+<li class="wp-block-page-list-item"></li>
+<!-- /wp:page-list-item -->
+
+<!-- wp:search -->
+<form class="wp-block-search"></form>
+<!-- /wp:search -->
+
+<!-- wp:breadcrumbs -->
+<nav class="wp-block-breadcrumbs"></nav>
+<!-- /wp:breadcrumbs -->
+
+<!-- wp:site-logo -->
+<a class="wp-block-site-logo"></a>
+<!-- /wp:site-logo -->
+
+<!-- wp:site-title -->
+<h1 class="wp-block-site-title"></h1>
+<!-- /wp:site-title -->
+<!-- Alternative: h1-h6 (via level attribute) -->
+
+<!-- wp:site-tagline -->
+<p class="wp-block-site-tagline"></p>
+<!-- /wp:site-tagline -->
+
+<!-- wp:post-title -->
+<h1 class="wp-block-post-title"></h1>
+<!-- /wp:post-title -->
+<!-- Alternative: h1-h6 (via level attribute) -->
+
+<!-- wp:post-content -->
+<div class="wp-block-post-content"></div>
+<!-- /wp:post-content -->
+<!-- Alternative: article, section, main (via tagName attribute) -->
+
+<!-- wp:post-excerpt -->
+<p class="wp-block-post-excerpt"></p>
+<!-- /wp:post-excerpt -->
+
+<!-- wp:post-date -->
+<time class="wp-block-post-date"></time>
+<!-- /wp:post-date -->
+
+<!-- wp:post-featured-image -->
+<figure class="wp-block-post-featured-image"></figure>
+<!-- /wp:post-featured-image -->
+
+<!-- wp:read-more -->
+<a class="wp-block-read-more"></a>
+<!-- /wp:read-more -->
+
+<!-- wp:post-navigation-link -->
+<a class="wp-block-post-navigation-link"></a>
+<!-- /wp:post-navigation-link -->
+
+<!-- wp:query -->
+<div class="wp-block-query"></div>
+<!-- /wp:query -->
+<!-- Alternative: main, section (via tagName attribute) -->
+
+<!-- wp:post-template -->
+<div class="wp-block-post-template"></div>
+<!-- /wp:post-template -->
+
+<!-- wp:query-pagination -->
+<nav class="wp-block-query-pagination"></nav>
+<!-- /wp:query-pagination -->
+
+<!-- wp:query-pagination-next -->
+<a class="wp-block-query-pagination-next"></a>
+<!-- /wp:query-pagination-next -->
+
+<!-- wp:query-pagination-previous -->
+<a class="wp-block-query-pagination-previous"></a>
+<!-- /wp:query-pagination-previous -->
+
+<!-- wp:query-pagination-numbers -->
+<nav class="wp-block-query-pagination-numbers"></nav>
+<!-- /wp:query-pagination-numbers -->
+
+<!-- wp:query-title -->
+<h1 class="wp-block-query-title"></h1>
+<!-- /wp:query-title -->
+<!-- Alternative: h1-h6 (via type attribute: search, archive, author, date, taxonomy) -->
+
+<!-- wp:query-total -->
+<span class="wp-block-query-total"></span>
+<!-- /wp:query-total -->
+
+<!-- wp:query-no-results -->
+<div class="wp-block-query-no-results"></div>
+<!-- /wp:query-no-results -->
+
+<!-- wp:post-author -->
+<div class="wp-block-post-author"></div>
+<!-- /wp:post-author -->
+
+<!-- wp:post-author-name -->
+<span class="wp-block-post-author-name"></span>
+<!-- /wp:post-author-name -->
+
+<!-- wp:post-author-biography -->
+<p class="wp-block-post-author-biography"></p>
+<!-- /wp:post-author-biography -->
+
+<!-- wp:post-terms -->
+<span class="wp-block-post-terms"></span>
+<!-- /wp:post-terms -->
+
+<!-- wp:post-time-to-read -->
+<span class="wp-block-post-time-to-read"></span>
+<!-- /wp:post-time-to-read -->
+
+<!-- wp:calendar -->
+<table class="wp-block-calendar"></table>
+<!-- /wp:calendar -->
+
+<!-- wp:archives -->
+<ul class="wp-block-archives"></ul>
+<!-- /wp:archives -->
+
+<!-- wp:categories -->
+<ul class="wp-block-categories"></ul>
+<!-- /wp:categories -->
+
+<!-- wp:latest-posts -->
+<ul class="wp-block-latest-posts"></ul>
+<!-- /wp:latest-posts -->
+
+<!-- wp:latest-comments -->
+<ul class="wp-block-latest-comments"></ul>
+<!-- /wp:latest-comments -->
+
+<!-- wp:rss -->
+<div class="wp-block-rss"></div>
+<!-- /wp:rss -->
+
+<!-- wp:tag-cloud -->
+<div class="wp-block-tag-cloud"></div>
+<!-- /wp:tag-cloud -->
+
+<!-- wp:shortcode -->
+<div class="wp-block-shortcode"></div>
+<!-- /wp:shortcode -->
+
+<!-- wp:html -->
+<!-- /wp:html -->
+
+<!-- wp:loginout -->
+<a class="wp-block-loginout"></a>
+<!-- /wp:loginout -->
+<!-- Alternative: <form> when displayLoginAsForm=true -->
+
+<!-- wp:avatar -->
+<figure class="wp-block-avatar"></figure>
+<!-- /wp:avatar -->
+
+<!-- wp:icon -->
+<div class="wp-block-icon"></div>
+<!-- /wp:icon -->
+
+<!-- wp:block -->
+<div class="wp-block"></div>
+<!-- /wp:block -->
+
+<!-- wp:term-description -->
+<div class="wp-block-term-description"></div>
+<!-- /wp:term-description -->
+
+<!-- wp:form -->
+<form class="wp-block-form"></form>
+<!-- /wp:form -->
+
+<!-- wp:form-input -->
+<input class="wp-block-form-input"/>
+<!-- /wp:form-input -->
+<!-- Alternative: select, textarea (via type attribute) -->
+
+<!-- wp:form-submit-button -->
+<button class="wp-block-form-submit-button"></button>
+<!-- /wp:form-submit-button -->
+
+<!-- wp:pattern -->
+<div class="wp-block-pattern"></div>
+<!-- /wp:pattern -->
+
+<!-- wp:query-loop -->
+<div class="wp-block-query"></div>
+<!-- /wp:query-loop -->
+
+<!-- wp:stack -->
+<div class="wp-block-stack"></div>
+<!-- /wp:stack -->
+
+<!-- wp:row -->
+<div class="wp-block-row"></div>
+<!-- /wp:row -->
+
+<!-- wp:accordion -->
+<div class="wp-block-accordion"></div>
+<!-- /wp:accordion -->
+
+<!-- wp:accordion-item -->
+<div class="wp-block-accordion-item"></div>
+<!-- /wp:accordion-item -->
+
+<!-- wp:accordion-heading -->
+<h2 class="wp-block-accordion-heading"></h2>
+<!-- /wp:accordion-heading -->
+
+<!-- wp:accordion-panel -->
+<div class="wp-block-accordion-panel"></div>
+<!-- /wp:accordion-panel -->
+
+<!-- wp:math -->
+<math class="wp-block-math"></math>
+<!-- /wp:math -->
+
+<!-- wp:social-links -->
+<ul class="wp-block-social-links"></ul>
+<!-- /wp:social-links -->
+
+<!-- wp:social-link -->
+<li class="wp-block-social-link"></li>
+<!-- /wp:social-link -->

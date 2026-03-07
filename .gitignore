@@ -22,3 +22,7 @@ prompt.txt
 
 # VS Code editor settings — may contain local machine paths (e.g. MCP server paths).
 .vscode/
+
+# Copilot skills repos
+agent-skills/
+.github/skills/

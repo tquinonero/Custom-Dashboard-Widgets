@@ -55,6 +55,7 @@ class CDW_Widgets {
 			wp_add_dashboard_widget( 'cdw_tasks', __( 'Pending Tasks', 'cdw' ), array( $this, 'render_tasks_widget' ) );
 			wp_add_dashboard_widget( 'cdw_updates', __( 'Updates', 'cdw' ), array( $this, 'render_updates_widget' ) );
 			wp_add_dashboard_widget( 'cdw_quicklinks', __( 'Quick Links', 'cdw' ), array( $this, 'render_quicklinks_widget' ) );
+			wp_add_dashboard_widget( 'cdw_toolsother', __( 'Tools & Other', 'cdw' ), array( $this, 'render_toolsother_widget' ) );
 
 			$cli_enabled = get_option( 'cdw_cli_enabled', true );
 			if ( $cli_enabled ) {
@@ -143,6 +144,15 @@ class CDW_Widgets {
 	 */
 	public function render_quicklinks_widget() {
 		echo '<div class="cdw-widget" data-widget="quicklinks"></div>';
+	}
+
+	/**
+	 * Renders the Tools & Other widget HTML container.
+	 *
+	 * @return void
+	 */
+	public function render_toolsother_widget() {
+		echo '<div class="cdw-widget" data-widget="toolsother"></div>';
 	}
 
 	/**

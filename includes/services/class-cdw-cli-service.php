@@ -402,6 +402,9 @@ class CDW_CLI_Service {
 				case 'post':
 					$result = $this->handle_post_command( $subcmd, $clean_args, $raw_args );
 					break;
+				case 'page':
+					$result = $this->handle_page_command( $subcmd, $clean_args );
+					break;
 				case 'site':
 					$result = $this->handle_site_command( $subcmd, $clean_args );
 					break;
@@ -1651,6 +1654,50 @@ class CDW_CLI_Service {
 	}
 
 	/**
+	 * Handle page management commands.
+	 *
+	 * @param string            $subcmd Subcommand (create).
+	 * @param array<int,string> $args   Positional arguments.
+	 * @return array<string,mixed> Result array.
+	 */
+	private function handle_page_command( $subcmd, $args ) {
+		switch ( $subcmd ) {
+			case 'create':
+				if ( empty( $args ) ) {
+					return array(
+						'output'  => 'Usage: page create <page title>',
+						'success' => false,
+					);
+				}
+				$title   = sanitize_text_field( implode( ' ', $args ) );
+				$post_id = wp_insert_post(
+					array(
+						'post_title'  => $title,
+						'post_status' => 'draft',
+						'post_type'   => 'page',
+					),
+					true
+				);
+				if ( is_wp_error( $post_id ) ) {
+					return array(
+						'output'  => 'Failed to create page: ' . $post_id->get_error_message(),
+						'success' => false,
+					);
+				}
+				return array(
+					'output'  => "Page created (draft): ID=$post_id, Title=\"$title\"",
+					'success' => true,
+				);
+
+			default:
+				return array(
+					'output'  => "Available page commands:\n  page create <title>      - Create a draft page",
+					'success' => true,
+				);
+		}
+	}
+
+	/**
 	 * Handle site management commands.
 	 *
 	 * @param string            $subcmd Subcommand (info, status, empty).
@@ -2573,6 +2620,9 @@ Post Management:
   post list [<type>]      - List posts
   post delete <id>        - Delete post
   post status <id> <status> - Change post status
+
+Page Management:
+  page create <title>    - Create a draft page
 
 Site Management:
   site info               - Show site info

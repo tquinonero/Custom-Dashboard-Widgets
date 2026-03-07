@@ -297,6 +297,15 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 				),
 			),
 			array(
+				'category' => 'Page Management',
+				'commands' => array(
+					array(
+						'name'        => 'page create <title>',
+						'description' => 'Create a draft page',
+					),
+				),
+			),
+			array(
 				'category' => 'Cache',
 				'commands' => array(
 					array(

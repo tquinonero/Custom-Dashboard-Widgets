@@ -161,19 +161,21 @@ class CDW_Loader {
 
 		$is_settings_page = 'settings_page_cdw-settings' === $hook_suffix;
 		$is_dashboard     = 'index.php' === $hook_suffix;
-		$admin_menu_data = $this->get_admin_menu_data();
+		$admin_menu_data  = $this->get_admin_menu_data();
+		$admin_tools_data = $this->get_admin_tools_data();
 
 		wp_localize_script(
 			'cdw-script',
 			'cdwData',
 			array(
-				'root'          => esc_url_raw( rest_url() ),
-				'nonce'         => wp_create_nonce( 'wp_rest' ),
-				'pluginUrl'     => CDW_PLUGIN_URL,
-				'adminUrl'      => admin_url(),
-				'isSettings'    => $is_settings_page,
-				'isDashboard'   => $is_dashboard,
-				'adminMenuData' => $admin_menu_data,
+				'root'           => esc_url_raw( rest_url() ),
+				'nonce'          => wp_create_nonce( 'wp_rest' ),
+				'pluginUrl'      => CDW_PLUGIN_URL,
+				'adminUrl'       => admin_url(),
+				'isSettings'     => $is_settings_page,
+				'isDashboard'    => $is_dashboard,
+				'adminMenuData'  => $admin_menu_data,
+				'adminToolsData' => $admin_tools_data,
 			)
 		);
 	}
@@ -237,11 +239,11 @@ class CDW_Loader {
 	}
 
 	/**
-	 * Get admin menu data grouped by category for Quick Links.
+	 * Build all admin menu categories (raw, unfiltered).
 	 *
 	 * @return array
 	 */
-	private function get_admin_menu_data() {
+	private function build_all_menu_categories() {
 		global $menu, $submenu;
 
 		$categories = array(
@@ -375,11 +377,44 @@ class CDW_Loader {
 			}
 		}
 
+		return $categories;
+	}
+
+	/**
+	 * Get admin menu data for the Quick Links widget (excludes Tools and Other).
+	 *
+	 * @return array
+	 */
+	private function get_admin_menu_data() {
+		$excluded   = array( 'tools', 'other' );
+		$categories = $this->build_all_menu_categories();
+
 		$categories = array_filter(
 			$categories,
-			function( $cat ) {
-				return ! empty( $cat['items'] );
-			}
+			function( $cat, $key ) use ( $excluded ) {
+				return ! empty( $cat['items'] ) && ! in_array( $key, $excluded, true );
+			},
+			ARRAY_FILTER_USE_BOTH
+		);
+
+		return array_values( $categories );
+	}
+
+	/**
+	 * Get admin menu data for the Tools & Other widget (tools and other categories only).
+	 *
+	 * @return array
+	 */
+	private function get_admin_tools_data() {
+		$included   = array( 'tools', 'other' );
+		$categories = $this->build_all_menu_categories();
+
+		$categories = array_filter(
+			$categories,
+			function( $cat, $key ) use ( $included ) {
+				return ! empty( $cat['items'] ) && in_array( $key, $included, true );
+			},
+			ARRAY_FILTER_USE_BOTH
 		);
 
 		return array_values( $categories );

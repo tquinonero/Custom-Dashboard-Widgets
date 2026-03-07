@@ -586,6 +586,20 @@ class CDW_Abilities {
 				'readonly'    => false,
 				'destructive' => false,
 			),
+			array(
+				'name'        => 'cdw/page-create',
+				'label'       => __( 'Create Page', 'cdw' ),
+				'desc'        => __( 'Creates a new WordPress page as a draft with the specified title.', 'cdw' ),
+				'input'       => array(
+					'title' => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => false,
+				'destructive' => false,
+			),
 		);
 
 		foreach ( $abilities as $ability ) {
@@ -709,6 +723,8 @@ class CDW_Abilities {
 				return 'post get ' . (int) $input['post_id'];
 			case 'cdw/post-create':
 				return 'post create ' . sanitize_text_field( $input['title'] );
+			case 'cdw/page-create':
+				return 'page create ' . sanitize_text_field( $input['title'] );
 			default:
 				return '';
 		}
