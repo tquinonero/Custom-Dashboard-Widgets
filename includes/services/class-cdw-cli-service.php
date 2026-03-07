@@ -2310,6 +2310,7 @@ class CDW_CLI_Service {
 					'success' => true,
 				);
 
+			case 'on':
 			case 'enable':
 				// WordPress checks .maintenance by including it as PHP and reading $upgrading.
 				// The file must define: $upgrading = time().
@@ -2327,6 +2328,7 @@ class CDW_CLI_Service {
 					'success' => true,
 				);
 
+			case 'off':
 			case 'disable':
 				if ( file_exists( ABSPATH . '.maintenance' ) ) {
 					if ( ! unlink( ABSPATH . '.maintenance' ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- wp_delete_file() wraps unlink but both require the file to exist; unlink gives direct return value needed here.

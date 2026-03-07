@@ -184,6 +184,15 @@ class CDW_Abilities {
 				'readonly'    => false,
 				'destructive' => true,
 			),
+			array(
+				'name'        => 'cdw/plugin-update-all',
+				'label'       => __( 'Update All Plugins', 'cdw' ),
+				'desc'        => __( 'Updates all installed plugins that have pending updates.', 'cdw' ),
+				'input'       => array(),
+				'cli'         => 'plugin update --all',
+				'readonly'    => false,
+				'destructive' => false,
+			),
 
 			// ---------------------------------------------------------------
 			// Theme management
@@ -761,6 +770,15 @@ class CDW_Abilities {
 				'cli'         => null,
 				'readonly'    => false,
 				'destructive' => true,
+			),
+			array(
+				'name'        => 'cdw/theme-update-all',
+				'label'       => __( 'Update All Themes', 'cdw' ),
+				'desc'        => __( 'Updates all installed themes that have pending updates.', 'cdw' ),
+				'input'       => array(),
+				'cli'         => 'theme update --all',
+				'readonly'    => false,
+				'destructive' => false,
 			),
 
 			// ---------------------------------------------------------------

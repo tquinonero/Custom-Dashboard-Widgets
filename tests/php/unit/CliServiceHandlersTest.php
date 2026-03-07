@@ -644,6 +644,25 @@ class CliServiceHandlersTest extends CDWTestCase {
         $this->assertStringContainsStringIgnoringCase( 'could not delete', $result['output'] );
     }
 
+    public function test_maintenance_on_alias_works_like_enable(): void {
+        $this->stubExecute();
+        Functions\when( 'file_put_contents' )->justReturn( 100 );
+
+        $result = $this->exec( 'maintenance on' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsStringIgnoringCase( 'maintenance mode enabled', $result['output'] );
+    }
+
+    public function test_maintenance_off_alias_works_like_disable(): void {
+        $this->stubExecute();
+        Functions\when( 'file_exists' )->justReturn( false );
+
+        $result = $this->exec( 'maintenance off' );
+
+        $this->assertTrue( $result['success'] );
+    }
+
     public function test_maintenance_status_shows_enabled_when_file_exists(): void {
         $this->stubExecute();
         Functions\when( 'file_exists' )->justReturn( true );

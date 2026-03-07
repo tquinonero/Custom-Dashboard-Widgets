@@ -475,6 +475,15 @@ class CDW_AI_Service {
 				),
 			),
 			array(
+				'name'        => 'plugin_update_all',
+				'description' => 'Update all installed plugins that have a pending update.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(),
+					'required'   => array(),
+				),
+			),
+			array(
 				'name'        => 'plugin_delete',
 				'description' => 'Delete (uninstall) a plugin. The plugin must be inactive first.',
 				'parameters'  => array(
@@ -537,6 +546,15 @@ class CDW_AI_Service {
 						),
 					),
 					'required'   => array( 'slug' ),
+				),
+			),
+			array(
+				'name'        => 'theme_update_all',
+				'description' => 'Update all installed themes that have a pending update.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(),
+					'required'   => array(),
 				),
 			),
 			array(
@@ -1268,6 +1286,8 @@ class CDW_AI_Service {
 				return 'plugin install ' . $slug . ' --force';
 			case 'plugin_update':
 				return 'plugin update ' . $slug . ' --force';
+			case 'plugin_update_all':
+				return 'plugin update --all';
 			case 'plugin_delete':
 				return 'plugin delete ' . $slug . ' --force';
 			case 'theme_list':
@@ -1278,6 +1298,8 @@ class CDW_AI_Service {
 				return 'theme install ' . $slug . ' --force';
 			case 'theme_update':
 				return 'theme update ' . $slug . ' --force';
+			case 'theme_update_all':
+				return 'theme update --all';
 			case 'user_list':
 				return 'user list';
 			case 'user_create':
