@@ -46,7 +46,7 @@ class CDW_Stats_Controller extends CDW_Base_Controller {
 			array(
 				'methods'             => 'GET',
 				'callback'            => array( $this, 'get_stats' ),
-				'permission_callback' => array( $this, 'check_read_permission' ),
+				'permission_callback' => array( $this, 'check_contributor_permission' ),
 			)
 		);
 	}

@@ -225,6 +225,34 @@ if ( ! function_exists( 'is_wp_error' ) ) {
 }
 
 /**
+ * sanitize_text_field() stub — trims and strips slashes, mirroring the
+ * whitespace-removal behaviour of the real WP function.
+ */
+if ( ! function_exists( 'sanitize_text_field' ) ) {
+    function sanitize_text_field( $str ) {
+        return trim( wp_unslash( (string) $str ) );
+    }
+}
+
+/**
+ * wp_unslash() stub — mirrors the real WP implementation.
+ */
+if ( ! function_exists( 'wp_unslash' ) ) {
+    function wp_unslash( $value ) {
+        return is_array( $value ) ? array_map( 'wp_unslash', $value ) : stripslashes( (string) $value );
+    }
+}
+
+/**
+ * update_option() stub — always returns true (no real DB in unit tests).
+ */
+if ( ! function_exists( 'update_option' ) ) {
+    function update_option( $option, $value, $autoload = null ) {
+        return true;
+    }
+}
+
+/**
  * i18n stubs — return text as-is.
  */
 if ( ! function_exists( '__' ) ) {

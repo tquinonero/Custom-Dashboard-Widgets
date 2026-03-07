@@ -44,6 +44,23 @@ export default function QuickLinksWidget() {
                     <a href={adminUrl + 'upload.php'} className="button">Media</a>
                 </div>
             </div>
+            <div className="cdw-quicklinks-section">
+                <h4>Quick Access</h4>
+                <div className="cdw-quicklinks-buttons">
+                    <a href={adminUrl + 'themes.php'} className="button">Appearance</a>
+                    <a href={adminUrl + 'users.php'} className="button">Users</a>
+                    <a href={adminUrl + 'tools.php'} className="button">Tools</a>
+                    <a href={adminUrl + 'options-general.php'} className="button">Settings</a>
+                </div>
+            </div>
+            <div className="cdw-quicklinks-section">
+                <h4>Tools</h4>
+                <div className="cdw-quicklinks-buttons">
+                    <a href={adminUrl + 'import.php'} className="button">Import</a>
+                    <a href={adminUrl + 'export.php'} className="button">Export</a>
+                    <a href={adminUrl + 'site-health.php'} className="button">Site Health</a>
+                </div>
+            </div>
         </div>
     );
 }

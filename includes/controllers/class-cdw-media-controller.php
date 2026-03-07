@@ -29,7 +29,7 @@ class CDW_Media_Controller extends CDW_Base_Controller {
 			array(
 				'methods'             => 'GET',
 				'callback'            => array( $this, 'get_media' ),
-				'permission_callback' => array( $this, 'check_read_permission' ),
+				'permission_callback' => array( $this, 'check_contributor_permission' ),
 				'args'                => array(
 					'per_page' => array(
 						'type'    => 'integer',

@@ -40,6 +40,11 @@ class CDW_Updates_Controller extends CDW_Base_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_updates() {
+		$rate_check = $this->check_rate_limit( 'updates_read' );
+		if ( is_wp_error( $rate_check ) ) {
+			return $rate_check;
+		}
+
 		$updates = array(
 			'core'    => $this->get_core_updates(),
 			'plugins' => $this->get_plugin_updates(),

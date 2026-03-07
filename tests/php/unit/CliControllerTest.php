@@ -212,4 +212,48 @@ class CliControllerTest extends CDWTestCase {
 
         $this->assertSame( 'cdw_stats_cache', $capturedKey );
     }
+
+    // -----------------------------------------------------------------------
+    // execute_cli_command() — nonce verification
+    // -----------------------------------------------------------------------
+
+    public function test_execute_cli_command_returns_401_when_nonce_missing(): void {
+        $_SERVER = array();
+
+        $request = new \WP_REST_Request();
+        $request->set_param( 'command', 'plugin list' );
+
+        $result = $this->controller->execute_cli_command( $request );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'rest_missing_nonce', $result->get_error_code() );
+        $this->assertSame( 401, $result->get_error_data()['status'] );
+    }
+
+    public function test_execute_cli_command_returns_403_when_nonce_invalid(): void {
+        $_SERVER['HTTP_X_WP_NONCE'] = 'invalid_nonce';
+        Functions\when( 'wp_verify_nonce' )->justReturn( false );
+
+        $request = new \WP_REST_Request();
+        $request->set_param( 'command', 'plugin list' );
+
+        $result = $this->controller->execute_cli_command( $request );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'rest_invalid_nonce', $result->get_error_code() );
+        $this->assertSame( 403, $result->get_error_data()['status'] );
+    }
+
+    // -----------------------------------------------------------------------
+    // clear_cli_history() — nonce verification
+    // -----------------------------------------------------------------------
+
+    public function test_clear_cli_history_returns_401_when_nonce_missing(): void {
+        $_SERVER = array();
+
+        $result = $this->controller->clear_cli_history();
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'rest_missing_nonce', $result->get_error_code() );
+    }
 }

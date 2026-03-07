@@ -40,6 +40,11 @@ class CDW_Users_Controller extends CDW_Base_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_users() {
+		$rate_check = $this->check_rate_limit( 'users_read' );
+		if ( is_wp_error( $rate_check ) ) {
+			return $rate_check;
+		}
+
 		$users     = get_users( array( 'number' => 200 ) );
 		$formatted = array();
 

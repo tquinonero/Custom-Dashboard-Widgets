@@ -90,6 +90,16 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function save_settings( WP_REST_Request $request ) {
+		$nonce_check = $this->verify_nonce();
+		if ( is_wp_error( $nonce_check ) ) {
+			return $nonce_check;
+		}
+
+		$rate_check = $this->check_rate_limit( 'settings_write', true );
+		if ( is_wp_error( $rate_check ) ) {
+			return $rate_check;
+		}
+
 		$settings = $request->get_json_params();
 
 		if ( ! is_array( $settings ) ) {

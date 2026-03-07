@@ -88,6 +88,16 @@ class CDW_Tasks_Controller extends CDW_Base_Controller {
 			return new WP_Error( 'no_user', 'User not logged in', array( 'status' => 401 ) );
 		}
 
+		$nonce_check = $this->verify_nonce();
+		if ( is_wp_error( $nonce_check ) ) {
+			return $nonce_check;
+		}
+
+		$rate_check = $this->check_rate_limit( 'tasks_write', true );
+		if ( is_wp_error( $rate_check ) ) {
+			return $rate_check;
+		}
+
 		$tasks       = $request->get_param( 'tasks' );
 		$assignee_id = $request->get_param( 'assignee_id' );
 

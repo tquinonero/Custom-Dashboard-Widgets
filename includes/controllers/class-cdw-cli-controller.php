@@ -87,6 +87,11 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 	 * @return WP_REST_Response
 	 */
 	public function get_cli_history() {
+		$rate_check = $this->check_rate_limit( 'cli_history_read' );
+		if ( is_wp_error( $rate_check ) ) {
+			return $rate_check;
+		}
+
 		$user_id = get_current_user_id();
 		$history = $this->cli_service->get_history( $user_id );
 
@@ -99,6 +104,16 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 	 * @return WP_REST_Response
 	 */
 	public function clear_cli_history() {
+		$nonce_check = $this->verify_nonce();
+		if ( is_wp_error( $nonce_check ) ) {
+			return $nonce_check;
+		}
+
+		$rate_check = $this->check_rate_limit( 'cli_history_write', true );
+		if ( is_wp_error( $rate_check ) ) {
+			return $rate_check;
+		}
+
 		$user_id = get_current_user_id();
 		$this->cli_service->clear_history( $user_id );
 
@@ -117,6 +132,11 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 	 * @return WP_REST_Response
 	 */
 	public function get_cli_commands() {
+		$rate_check = $this->check_rate_limit( 'cli_commands_read' );
+		if ( is_wp_error( $rate_check ) ) {
+			return $rate_check;
+		}
+
 		return new WP_REST_Response( $this->get_command_definitions(), 200 );
 	}
 
@@ -127,6 +147,11 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function execute_cli_command( WP_REST_Request $request ) {
+		$nonce_check = $this->verify_nonce();
+		if ( is_wp_error( $nonce_check ) ) {
+			return $nonce_check;
+		}
+
 		$command = $request->get_param( 'command' );
 		$user_id = get_current_user_id();
 

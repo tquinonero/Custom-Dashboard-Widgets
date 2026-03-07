@@ -127,6 +127,11 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 	 * @return WP_REST_Response
 	 */
 	public function get_ai_settings() {
+		$rate_check = $this->check_rate_limit( 'ai_settings_read' );
+		if ( is_wp_error( $rate_check ) ) {
+			return $rate_check;
+		}
+
 		$user_id  = get_current_user_id();
 		$settings = CDW_AI_Service::get_user_ai_settings( $user_id );
 		return $this->success_response( $settings );
@@ -143,6 +148,16 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function save_ai_settings( WP_REST_Request $request ) {
+		$nonce_check = $this->verify_nonce();
+		if ( is_wp_error( $nonce_check ) ) {
+			return $nonce_check;
+		}
+
+		$rate_check = $this->check_rate_limit( 'ai_settings_write', true );
+		if ( is_wp_error( $rate_check ) ) {
+			return $rate_check;
+		}
+
 		$params = $request->get_json_params();
 
 		if ( ! is_array( $params ) ) {
@@ -176,6 +191,11 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function chat( WP_REST_Request $request ) {
+		$nonce_check = $this->verify_nonce();
+		if ( is_wp_error( $nonce_check ) ) {
+			return $nonce_check;
+		}
+
 		$params = $request->get_json_params();
 
 		if ( ! is_array( $params ) ) {
@@ -248,6 +268,11 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function execute_tool( WP_REST_Request $request ) {
+		$nonce_check = $this->verify_nonce();
+		if ( is_wp_error( $nonce_check ) ) {
+			return $nonce_check;
+		}
+
 		$params = $request->get_json_params();
 
 		if ( ! is_array( $params ) ) {
@@ -288,6 +313,11 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 	 * @return WP_REST_Response
 	 */
 	public function get_providers() {
+		$rate_check = $this->check_rate_limit( 'ai_providers_read' );
+		if ( is_wp_error( $rate_check ) ) {
+			return $rate_check;
+		}
+
 		return $this->success_response( CDW_AI_Service::get_providers() );
 	}
 
@@ -305,6 +335,16 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function test_connection( WP_REST_Request $request ) {
+		$nonce_check = $this->verify_nonce();
+		if ( is_wp_error( $nonce_check ) ) {
+			return $nonce_check;
+		}
+
+		$rate_check = $this->check_rate_limit( 'ai_test_write', true );
+		if ( is_wp_error( $rate_check ) ) {
+			return $rate_check;
+		}
+
 		$params   = $request->get_json_params();
 		$user_id  = get_current_user_id();
 		$settings = CDW_AI_Service::get_user_ai_settings( $user_id );
@@ -346,6 +386,11 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 	 * @return WP_REST_Response
 	 */
 	public function get_usage() {
+		$rate_check = $this->check_rate_limit( 'ai_usage_read' );
+		if ( is_wp_error( $rate_check ) ) {
+			return $rate_check;
+		}
+
 		$user_id  = get_current_user_id();
 		$settings = CDW_AI_Service::get_user_ai_settings( $user_id );
 		return $this->success_response( $settings['usage'] );
@@ -361,6 +406,16 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 	 * @return WP_REST_Response
 	 */
 	public function reset_usage() {
+		$nonce_check = $this->verify_nonce();
+		if ( is_wp_error( $nonce_check ) ) {
+			return $nonce_check;
+		}
+
+		$rate_check = $this->check_rate_limit( 'ai_usage_write', true );
+		if ( is_wp_error( $rate_check ) ) {
+			return $rate_check;
+		}
+
 		$user_id = get_current_user_id();
 		delete_user_meta( $user_id, CDW_AI_Service::USAGE_META_KEY );
 		return $this->success_response( array( 'reset' => true ) );
