@@ -735,13 +735,22 @@ class CDW_AI_Service {
 			),
 			array(
 				'name'        => 'post_create',
-				'description' => 'Create a new WordPress post as a draft with the given title.',
+				'description' => 'Create a new WordPress post with the given title and optional content. Use status="publish" to publish immediately; defaults to draft.',
 				'parameters'  => array(
 					'type'       => 'object',
 					'properties' => array(
-						'title' => array(
+						'title'   => array(
 							'type'        => 'string',
 							'description' => 'Title for the new post.',
+						),
+						'content' => array(
+							'type'        => 'string',
+							'description' => 'Optional body text or HTML content for the post.',
+						),
+						'status'  => array(
+							'type'        => 'string',
+							'enum'        => array( 'draft', 'publish' ),
+							'description' => 'Post status: "draft" (default) or "publish".',
 						),
 					),
 					'required'   => array( 'title' ),
@@ -749,13 +758,22 @@ class CDW_AI_Service {
 			),
 			array(
 				'name'        => 'page_create',
-				'description' => 'Create a new WordPress page as a draft with the given title.',
+				'description' => 'Create a new WordPress page with the given title and optional content. Use status="publish" to publish immediately; defaults to draft.',
 				'parameters'  => array(
 					'type'       => 'object',
 					'properties' => array(
-						'title' => array(
+						'title'   => array(
 							'type'        => 'string',
 							'description' => 'Title for the new page.',
+						),
+						'content' => array(
+							'type'        => 'string',
+							'description' => 'Optional body text or HTML content for the page.',
+						),
+						'status'  => array(
+							'type'        => 'string',
+							'enum'        => array( 'draft', 'publish' ),
+							'description' => 'Page status: "draft" (default) or "publish".',
 						),
 					),
 					'required'   => array( 'title' ),
@@ -807,7 +825,311 @@ class CDW_AI_Service {
 					'required'   => array(),
 				),
 			),
-		);
+			array(
+				'name'        => 'task_list',
+				'description' => 'List pending tasks for a user. Omit user_id to list tasks for yourself.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'user_id' => array(
+							'type'        => 'integer',
+							'description' => 'WordPress user ID to list tasks for. Omit to use the current user.',
+						),
+					),
+					'required'   => array(),
+				),
+			),
+			array(
+				'name'        => 'task_create',
+				'description' => 'Create a new pending task. Optionally assign it to another user by their WordPress username (assignee_login) or user ID (assignee_id). Assigning to another user requires administrator privileges.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'name'           => array(
+							'type'        => 'string',
+							'description' => 'Task name/title.',
+						),
+						'assignee_login' => array(
+							'type'        => 'string',
+							'description' => 'WordPress username (user_login) to assign the task to.',
+						),
+						'assignee_id'    => array(
+							'type'        => 'integer',
+							'description' => 'WordPress user ID to assign the task to (use assignee_login when possible).',
+						),
+					),
+					'required'   => array( 'name' ),
+				),
+			),
+			array(
+				'name'        => 'task_delete',
+				'description' => 'Delete all tasks for a user. Omit user_id to delete tasks for yourself.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'user_id' => array(
+							'type'        => 'integer',
+							'description' => 'WordPress user ID whose tasks to delete. Omit to use the current user.',
+						),
+					),
+					'required'   => array(),
+				),
+			),
+
+		// ---------------------------------------------------------------
+		// Core
+		// ---------------------------------------------------------------
+		array(
+			'name'        => 'core_version',
+			'description' => 'Show WordPress version, PHP version, and whether a core update is available.',
+			'parameters'  => array(
+				'type'       => 'object',
+				'properties' => array(),
+				'required'   => array(),
+			),
+		),
+
+		// ---------------------------------------------------------------
+		// Comments
+		// ---------------------------------------------------------------
+		array(
+			'name'        => 'comment_list',
+			'description' => 'List comments filtered by status: pending (default), approved, or spam.',
+			'parameters'  => array(
+				'type'       => 'object',
+				'properties' => array(
+					'status' => array(
+						'type'        => 'string',
+						'enum'        => array( 'pending', 'approved', 'spam' ),
+						'description' => 'Comment status filter. Defaults to "pending".',
+					),
+				),
+				'required'   => array(),
+			),
+		),
+		array(
+			'name'        => 'comment_approve',
+			'description' => 'Approve a pending comment by its ID.',
+			'parameters'  => array(
+				'type'       => 'object',
+				'properties' => array(
+					'id' => array(
+						'type'        => 'integer',
+						'description' => 'Comment ID.',
+					),
+				),
+				'required'   => array( 'id' ),
+			),
+		),
+		array(
+			'name'        => 'comment_spam',
+			'description' => 'Mark a comment as spam by its ID.',
+			'parameters'  => array(
+				'type'       => 'object',
+				'properties' => array(
+					'id' => array(
+						'type'        => 'integer',
+						'description' => 'Comment ID.',
+					),
+				),
+				'required'   => array( 'id' ),
+			),
+		),
+		array(
+			'name'        => 'comment_delete',
+			'description' => 'Permanently delete a comment by its ID.',
+			'parameters'  => array(
+				'type'       => 'object',
+				'properties' => array(
+					'id' => array(
+						'type'        => 'integer',
+						'description' => 'Comment ID.',
+					),
+				),
+				'required'   => array( 'id' ),
+			),
+		),
+
+		// ---------------------------------------------------------------
+		// Posts (additional)
+		// ---------------------------------------------------------------
+		array(
+			'name'        => 'post_list',
+			'description' => 'List recent posts. Optionally filter by post type (default: "post").',
+			'parameters'  => array(
+				'type'       => 'object',
+				'properties' => array(
+					'type' => array(
+						'type'        => 'string',
+						'description' => 'Post type slug, e.g. "post", "page". Defaults to "post".',
+					),
+				),
+				'required'   => array(),
+			),
+		),
+		array(
+			'name'        => 'post_status',
+			'description' => 'Change the status of an existing post.',
+			'parameters'  => array(
+				'type'       => 'object',
+				'properties' => array(
+					'post_id' => array(
+						'type'        => 'integer',
+						'description' => 'WordPress post ID.',
+					),
+					'status'  => array(
+						'type'        => 'string',
+						'enum'        => array( 'draft', 'publish', 'pending', 'private', 'trash' ),
+						'description' => 'New post status.',
+					),
+				),
+				'required'   => array( 'post_id', 'status' ),
+			),
+		),
+		array(
+			'name'        => 'post_delete',
+			'description' => 'Permanently delete a post by ID.',
+			'parameters'  => array(
+				'type'       => 'object',
+				'properties' => array(
+					'post_id' => array(
+						'type'        => 'integer',
+						'description' => 'WordPress post ID.',
+					),
+				),
+				'required'   => array( 'post_id' ),
+			),
+		),
+
+		// ---------------------------------------------------------------
+		// Users (additional)
+		// ---------------------------------------------------------------
+		array(
+			'name'        => 'user_role',
+			'description' => 'Change the role of an existing WordPress user.',
+			'parameters'  => array(
+				'type'       => 'object',
+				'properties' => array(
+					'identifier' => array(
+						'type'        => 'string',
+						'description' => 'Username (login) or numeric user ID.',
+					),
+					'role'       => array(
+						'type'        => 'string',
+						'description' => 'WordPress role slug, e.g. "editor", "subscriber", "administrator".',
+					),
+				),
+				'required'   => array( 'identifier', 'role' ),
+			),
+		),
+
+		// ---------------------------------------------------------------
+		// Options (additional)
+		// ---------------------------------------------------------------
+		array(
+			'name'        => 'option_delete',
+			'description' => 'Delete a WordPress option from the database. Protected core options cannot be deleted.',
+			'parameters'  => array(
+				'type'       => 'object',
+				'properties' => array(
+					'name' => array(
+						'type'        => 'string',
+						'description' => 'Option name.',
+					),
+				),
+				'required'   => array( 'name' ),
+			),
+		),
+
+		// ---------------------------------------------------------------
+		// Themes (additional)
+		// ---------------------------------------------------------------
+		array(
+			'name'        => 'theme_delete',
+			'description' => 'Delete (uninstall) an inactive theme by slug. The theme must not be the currently active theme.',
+			'parameters'  => array(
+				'type'       => 'object',
+				'properties' => array(
+					'slug' => array(
+						'type'        => 'string',
+						'description' => 'Theme slug.',
+					),
+				),
+				'required'   => array( 'slug' ),
+			),
+		),
+
+		// ---------------------------------------------------------------
+		// Transients
+		// ---------------------------------------------------------------
+		array(
+			'name'        => 'transient_list',
+			'description' => 'List the first 20 WordPress transients stored in the database.',
+			'parameters'  => array(
+				'type'       => 'object',
+				'properties' => array(),
+				'required'   => array(),
+			),
+		),
+		array(
+			'name'        => 'transient_delete',
+			'description' => 'Delete a specific WordPress transient by name.',
+			'parameters'  => array(
+				'type'       => 'object',
+				'properties' => array(
+					'name' => array(
+						'type'        => 'string',
+						'description' => 'Transient key (without the _transient_ prefix).',
+					),
+				),
+				'required'   => array( 'name' ),
+			),
+		),
+
+		// ---------------------------------------------------------------
+		// Rewrite
+		// ---------------------------------------------------------------
+		array(
+			'name'        => 'rewrite_flush',
+			'description' => 'Flush WordPress rewrite rules (equivalent to saving permalink settings).',
+			'parameters'  => array(
+				'type'       => 'object',
+				'properties' => array(),
+				'required'   => array(),
+			),
+		),
+
+		// ---------------------------------------------------------------
+		// Maintenance (additional)
+		// ---------------------------------------------------------------
+		array(
+			'name'        => 'maintenance_status',
+			'description' => 'Check whether WordPress maintenance mode is currently enabled or disabled.',
+			'parameters'  => array(
+				'type'       => 'object',
+				'properties' => array(),
+				'required'   => array(),
+			),
+		),
+
+		// ---------------------------------------------------------------
+		// Cron (additional)
+		// ---------------------------------------------------------------
+		array(
+			'name'        => 'cron_run',
+			'description' => 'Manually trigger a scheduled WordPress cron hook immediately.',
+			'parameters'  => array(
+				'type'       => 'object',
+				'properties' => array(
+					'hook' => array(
+						'type'        => 'string',
+						'description' => 'Cron hook name to run immediately.',
+					),
+				),
+				'required'   => array( 'hook' ),
+			),
+		),
+	);
 	}
 
 	// -------------------------------------------------------------------------
@@ -835,7 +1157,7 @@ class CDW_AI_Service {
 			"Current user: %s (Administrator)\n\n" .
 			"=== CAPABILITIES ===\n" .
 			"You have access to tools that let you manage plugins, themes, users, options, database, cron, and site settings.\n" .
-			"You can also create posts and pages (as drafts), search-replace content in the database, and query site/post/user details.\n\n" .
+			"You can also create posts and pages (as drafts), manage personal task lists (create, list, delete), search-replace content in the database, and query site/post/user details.\n\n" .
 			"=== RULES ===\n" .
 			"1. Always prefer read-only tools (list, status, info) before making changes.\n" .
 			"2. For destructive operations (delete, update, search-replace), explain what you plan to do and ask for confirmation UNLESS you are already in auto-execute mode.\n" .
@@ -843,7 +1165,8 @@ class CDW_AI_Service {
 			"4. Never expose or request API keys, passwords, or secrets.\n" .
 			"5. If a tool returns an error, explain it clearly and suggest a fix.\n" .
 			"6. Keep responses concise and use markdown formatting where helpful.\n" .
-			"7. You can only use the provided tools — you cannot run arbitrary PHP or shell commands.\n",
+			"7. You can only use the provided tools — you cannot run arbitrary PHP or shell commands.\n" .
+			"8. After every tool call, ALWAYS write a short natural-language reply summarising the result — never return an empty response.\n",
 			site_url(),
 			get_bloginfo( 'version' ),
 			PHP_VERSION,
@@ -871,6 +1194,40 @@ class CDW_AI_Service {
 	 * @return string Text output of the command (or error message).
 	 */
 	public static function execute_tool_call( $function_name, $arguments, $user_id ) {
+		// post_create and page_create are handled directly here because the optional
+		// 'content' field can contain arbitrary multi-word text that cannot be safely
+		// passed through the whitespace-tokenised CLI command string.
+		if ( 'post_create' === $function_name || 'page_create' === $function_name ) {
+			$title       = isset( $arguments['title'] ) ? sanitize_text_field( (string) $arguments['title'] ) : '';
+			$content     = isset( $arguments['content'] ) ? wp_kses_post( (string) $arguments['content'] ) : '';
+			$raw_status  = isset( $arguments['status'] ) ? sanitize_text_field( (string) $arguments['status'] ) : 'draft';
+			$post_status = in_array( $raw_status, array( 'draft', 'publish' ), true ) ? $raw_status : 'draft';
+			$post_type   = ( 'page_create' === $function_name ) ? 'page' : 'post';
+
+			if ( empty( $title ) ) {
+				return 'Error: a title is required to create a ' . $post_type . '.';
+			}
+
+			$post_id = wp_insert_post(
+				array(
+					'post_title'   => $title,
+					'post_content' => $content,
+					'post_status'  => $post_status,
+					'post_type'    => $post_type,
+					'post_author'  => $user_id,
+				),
+				true
+			);
+
+			if ( is_wp_error( $post_id ) ) {
+				return 'Error: ' . $post_id->get_error_message();
+			}
+
+			$type_label   = ( 'page' === $post_type ) ? 'Page' : 'Post';
+			$status_label = ( 'publish' === $post_status ) ? 'published' : 'draft';
+			return "{$type_label} created ({$status_label}): ID={$post_id}, Title=\"{$title}\"";
+		}
+
 		$command = self::tool_name_to_cli_command( $function_name, $arguments );
 
 		if ( null === $command ) {
@@ -984,13 +1341,81 @@ class CDW_AI_Service {
 				return 'theme status ' . $slug;
 			case 'site_settings':
 				return 'site settings';
-			default:
-				return null;
-		}
+			case 'task_list':
+				$target_uid = isset( $arguments['user_id'] ) ? (int) $arguments['user_id'] : 0;
+				$cmd        = 'task list';
+				if ( $target_uid > 0 ) {
+					$cmd .= ' --user_id=' . $target_uid;
+				}
+				return $cmd;
+			case 'task_create':
+				$name           = isset( $arguments['name'] ) ? sanitize_text_field( (string) $arguments['name'] ) : '';
+				$assignee_login = isset( $arguments['assignee_login'] ) ? trim( (string) $arguments['assignee_login'] ) : '';
+				$assignee_id    = isset( $arguments['assignee_id'] ) ? (int) $arguments['assignee_id'] : 0;
+				$cmd            = 'task create ' . $name;
+				if ( ! empty( $assignee_login ) ) {
+					$cmd .= ' --assignee_login=' . $assignee_login;
+				} elseif ( $assignee_id > 0 ) {
+					$cmd .= ' --assignee_id=' . $assignee_id;
+				}
+				return $cmd;
+			case 'task_delete':
+				$target_uid = isset( $arguments['user_id'] ) ? (int) $arguments['user_id'] : 0;
+				$cmd        = 'task delete';
+				if ( $target_uid > 0 ) {
+					$cmd .= ' --user_id=' . $target_uid;
+				}
+				return $cmd;
+		case 'core_version':
+			return 'core version';
+		case 'comment_list':
+			$status = isset( $arguments['status'] ) ? trim( (string) $arguments['status'] ) : 'pending';
+			return 'comment list ' . $status;
+		case 'comment_approve':
+			$id = isset( $arguments['id'] ) ? (int) $arguments['id'] : 0;
+			return 'comment approve ' . $id;
+		case 'comment_spam':
+			$id = isset( $arguments['id'] ) ? (int) $arguments['id'] : 0;
+			return 'comment spam ' . $id;
+		case 'comment_delete':
+			$id = isset( $arguments['id'] ) ? (int) $arguments['id'] : 0;
+			return 'comment delete ' . $id . ' --force';
+		case 'post_list':
+			$type = isset( $arguments['type'] ) ? trim( (string) $arguments['type'] ) : 'post';
+			return 'post list ' . $type;
+		case 'post_status':
+			$post_id = isset( $arguments['post_id'] ) ? (int) $arguments['post_id'] : 0;
+			$status  = isset( $arguments['status'] ) ? trim( (string) $arguments['status'] ) : '';
+			return 'post status ' . $post_id . ' ' . $status;
+		case 'post_delete':
+			$post_id = isset( $arguments['post_id'] ) ? (int) $arguments['post_id'] : 0;
+			return 'post delete ' . $post_id . ' --force';
+		case 'user_role':
+			$identifier = isset( $arguments['identifier'] ) ? trim( (string) $arguments['identifier'] ) : '';
+			$role       = isset( $arguments['role'] ) ? trim( (string) $arguments['role'] ) : '';
+			return 'user role ' . $identifier . ' ' . $role;
+		case 'option_delete':
+			$name = isset( $arguments['name'] ) ? trim( (string) $arguments['name'] ) : '';
+			return 'option delete ' . $name;
+		case 'theme_delete':
+			return 'theme delete ' . $slug . ' --force';
+		case 'transient_list':
+			return 'transient list';
+		case 'transient_delete':
+			$name = isset( $arguments['name'] ) ? trim( (string) $arguments['name'] ) : '';
+			return 'transient delete ' . $name;
+		case 'rewrite_flush':
+			return 'rewrite flush';
+		case 'maintenance_status':
+			return 'maintenance status';
+		case 'cron_run':
+			$hook = isset( $arguments['hook'] ) ? trim( (string) $arguments['hook'] ) : '';
+			return 'cron run ' . $hook;
+		default:
+			return null;
+	}
 	}
 
-	// -------------------------------------------------------------------------
-	// Token usage tracking
 	// -------------------------------------------------------------------------
 
 	/**
@@ -1458,6 +1883,19 @@ class CDW_AI_Service {
 			$total_usage['total_tokens']      += $final_response['usage']['total_tokens'];
 
 			$final_content = $final_response['content'];
+
+			// Fallback: if the model returned empty content after the tool call
+			// (some providers stop without a text reply when the tool result is
+			// self-explanatory), synthesise a response from the tool output.
+			if ( '' === trim( $final_content ) && ! empty( $tool_calls_made ) ) {
+				$outputs = array_map(
+					function ( $tc ) {
+						return $tc['output'];
+					},
+					$tool_calls_made
+				);
+				$final_content = implode( "\n\n", $outputs );
+			}
 		} else {
 			$final_content = $api_response['content'];
 		}

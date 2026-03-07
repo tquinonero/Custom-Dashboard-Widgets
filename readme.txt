@@ -24,23 +24,29 @@ Custom Dashboard Widgets replaces the standard WordPress dashboard with a fast, 
 * **Updates** — Available core, plugin, and theme updates (admin only).
 * **Quick Links** — One-click access to Appearance, Users, Tools, and Settings.
 * **Command Line** — A WP-CLI-style terminal for managing your site without leaving the dashboard.
+* **AI Assistant** — Conversational AI that can manage your site using natural language (supports OpenAI, Anthropic, Google Gemini, and any OpenAI-compatible endpoint). Admin only.
 
 = Command Line widget =
 
-The CLI widget simulates WP-CLI commands through WordPress APIs. Available commands include:
+The CLI widget simulates WP-CLI commands through WordPress PHP APIs (no shell is opened). Available commands:
 
-`plugin list / install / activate / deactivate / update / delete`
-`theme list / install / activate / update / delete`
-`user list / get / create / update / delete`
-`post list / get / create / publish / unpublish / delete`
-`db optimize / repair / size / tables`
-`option get / set / delete`
-`transient get / delete / flush`
+`plugin list / status / install / activate / deactivate / update / update --all / delete`
+`theme list / info / status / activate / install / update / update --all / delete`
+`user list / get / create / role / delete`
+`post list [type] / get / create [--publish] / status <id> <status> / delete`
+`page create [--publish]`
+`comment list [pending|approved|spam] / approve / spam / delete`
+`task list / create / delete`
+`core version`
+`site info / settings / status`
+`cache flush`
+`db size / tables`
+`option get / set / list / delete`
+`transient list / delete / flush`
 `cron list / run`
 `maintenance on / off / status`
+`rewrite flush`
 `search-replace <old> <new> --dry-run | --force`
-`cache flush`
-`site info / status`
 `help`
 
 Security guardrails:
@@ -104,6 +110,9 @@ The plugin works on individual sites within a network. Network-wide activation i
 * **CLI history** — User meta (`cdw_cli_history`)
 * **Audit log** — Custom database table (`{prefix}cdw_cli_logs`)
 * **Settings** — WordPress options (`cdw_*`)
+* **AI API keys** — Encrypted in user meta (`cdw_ai_api_key_{provider}`), AES-256-CBC with a key derived from WordPress salts. Never stored in plain text, never returned by any REST endpoint.
+* **AI settings** — Provider, model, and execution mode in user meta (per user)
+* **AI token usage** — Accumulated token counts in user meta
 
 = How do I remove all plugin data? =
 
@@ -114,7 +123,12 @@ Make sure "Delete all data on uninstall" is checked in **Settings → Dashboard 
 Deactivation intentionally does not remove data. Only deletion (uninstall) removes data, and only when the "Delete all data on uninstall" option is enabled.
 
 == Changelog ==
-
+= 3.0.2 =
+* New: AI assistant can create posts and pages with body content (`content` parameter)
+* New: AI assistant can create posts and pages as published (`status: publish`)
+* New: CLI command `post create <title> --publish` creates and immediately publishes a post
+* New: CLI command `page create <title> [--publish]` creates a page (draft or published)
+* Fix: Post/page creation via AI now routes directly through `wp_insert_post` instead of the CLI tokeniser, preventing multi-word content from being truncated
 = 3.0.0 =
 * New: AI Assistant widget with support for OpenAI, Anthropic (Claude), Google Gemini, and any OpenAI-compatible endpoint (OpenRouter, Groq, etc.)
 * New: Per-user AES-256-CBC encrypted API key storage — keys never returned by any REST endpoint

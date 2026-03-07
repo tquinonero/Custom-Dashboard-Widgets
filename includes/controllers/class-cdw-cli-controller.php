@@ -279,6 +279,10 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 						'description' => 'Create a draft post',
 					),
 					array(
+						'name'        => 'post create <title> --publish',
+						'description' => 'Create and publish a post',
+					),
+					array(
 						'name'        => 'post get <id>',
 						'description' => 'Get post details',
 					),
@@ -302,6 +306,10 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 					array(
 						'name'        => 'page create <title>',
 						'description' => 'Create a draft page',
+					),
+					array(
+						'name'        => 'page create <title> --publish',
+						'description' => 'Create and publish a page',
 					),
 				),
 			),

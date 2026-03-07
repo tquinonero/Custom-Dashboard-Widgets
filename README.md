@@ -3,7 +3,7 @@
 **Contributors:** toniquinonero
 **Tags:** dashboard, admin, widgets, customization, ai  
 **Requires at least:** 6.9  
-**Requires PHP:** 8.0
+**Requires PHP:** 8.1
 **Tested up to:** 6.9  
 **Stable tag:** 3.0.0  
 **License:** GPLv3 or later  
@@ -20,7 +20,7 @@ Custom Dashboard Widgets replaces the default WordPress dashboard with a modern,
 - **Modern Design** - Clean, professional styling that matches WordPress admin
 - **CLI Terminal** - Built-in command line interface for managing plugins, themes, users, and more
 - **AI Assistant** - Conversational AI that can manage your site using natural language (supports OpenAI, Anthropic, Google Gemini, and any OpenAI-compatible endpoint such as OpenRouter or Groq)
-- **WordPress Abilities API** - All 31 CDW tools registered as native WP Abilities (WP 6.9+), accessible via the `wp-abilities/v1` REST namespace and any compatible MCP adapter
+- **WordPress Abilities API** - All 41 CDW tools registered as native WP Abilities (WP 6.9+), accessible via the `wp-abilities/v1` REST namespace and any compatible MCP adapter
 - **Fully Customizable** - Configure widget appearance with colors and font sizes
 
 ### Widgets
@@ -110,82 +110,91 @@ Yes. Your API key is encrypted with AES-256-CBC before being saved to the databa
 
 ### Does the CLI widget really run WP-CLI commands?
 
-The CLI widget simulates WP-CLI commands through WordPress APIs. It provides a subset of common commands:
-help                                  - Show this help message
+The CLI widget simulates WP-CLI commands through WordPress APIs. It does **not** call `exec()`, `shell_exec()`, or open any shell process. Supported commands:
 
-  plugin list                           - List all plugins (with update status)
-  plugin status <slug>                  - Show version, status, update info
-  plugin install <slug>                 - Install a plugin from wordpress.org
-  plugin activate <slug>                - Activate a plugin
-  plugin deactivate <slug>              - Deactivate a plugin
-  plugin update <slug>                  - Update a specific plugin
-  plugin update --all                   - Update all plugins
-  plugin delete <slug>                  - Delete a plugin (requires --force)
+```
+help
 
-  theme list                            - List all themes (with update status)
-  theme status <slug>                   - Show version, status, update info
-  theme install <slug>                  - Install a theme from wordpress.org
-  theme activate <slug>                 - Activate a theme
-  theme deactivate [slug]               - Switch to another theme
-  theme update <slug>                   - Update a specific theme
-  theme update --all                    - Update all themes
+  plugin list                             List all plugins (with update status)
+  plugin status <slug>                    Show version, status, update info
+  plugin install <slug>                   Install a plugin from wordpress.org
+  plugin activate <slug>                  Activate a plugin
+  plugin deactivate <slug>                Deactivate a plugin
+  plugin update <slug>                    Update a specific plugin
+  plugin update --all                     Update all plugins
+  plugin delete <slug>                    Delete a plugin (requires --force)
 
-  user list                             - List all users
-  user get <id|username>                - Get details for a user
-  user create <user> <email> <role>     - Create a user (password emailed)
-  user update <id|user> --role <role>   - Change a user's role
-  user delete <id|username>             - Delete a user (requires --force)
+  theme list                              List all themes (with update status)
+  theme info                              Show active theme details
+  theme status <slug>                     Show version, status, update info
+  theme activate <slug>                   Activate a theme
+  theme install <slug>                    Install a theme from wordpress.org
+  theme update <slug>                     Update a specific theme
+  theme update --all                      Update all themes
+  theme delete <slug>                     Delete a theme (requires --force)
 
-  post list                             - List recent posts
-  post get <id>                         - Get details for a post
-  post create <title>                   - Create a draft post
-  post publish <id>                     - Publish a post
-  post unpublish <id>                   - Set a post back to draft
-  post delete <id>                      - Permanently delete a post (requires --force)
+  user list                               List all users
+  user get <id|username>                  Get details for a user
+  user create <username> <email> <role>   Create a user (password emailed)
+  user role <id|username> <role>          Change a user's role
+  user delete <id|username>               Delete a user (requires --force)
 
-  db optimize                           - Optimize all WordPress database tables
-  db repair                             - Repair all WordPress database tables
+  post list [<type>]                      List recent posts (optionally by type)
+  post get <id>                           Get details for a post
+  post create <title> [--publish]         Create a post (draft or published)
+  post status <id> <status>               Change a post's status
+  post delete <id>                        Permanently delete a post (requires --force)
 
-  option get <key>                      - Get an option value
-  option set <key> <value>              - Set an option value
-  option delete <key>                   - Delete an option (requires --force)
+  page create <title> [--publish]         Create a page (draft or published)
 
-  transient get <key>                   - Get a transient value
-  transient delete <key>                - Delete a specific transient
-  transient flush                       - Delete ALL transients
+  comment list [pending|approved|spam]    List comments (default: pending)
+  comment approve <id>                    Approve a comment
+  comment spam <id>                       Mark a comment as spam
+  comment delete <id>                     Permanently delete a comment (requires --force)
 
-  cron list                             - List all scheduled cron events
-  cron run <hook>                       - Manually trigger a cron hook
+  task list                               List your pending tasks
+  task create <name>                      Create a task
+  task delete                             Delete all your tasks
 
-  maintenance on                        - Enable maintenance mode
-  maintenance off                       - Disable maintenance mode
-  maintenance status                    - Check maintenance mode status
+  core version                            Show WP version, PHP version, and update status
 
-  search-replace <old> <new> --dry-run  - Preview matches without making changes
-  search-replace <old> <new> --force    - Replace a string sitewide
+  site info                               Show site information
+  site settings                           Show key WordPress settings
+  site status                             Show site health status
 
-  cache flush                           - Flush the object cache
-  site info                             - Show site information
-  site status                           - Show site status
+  cache flush                             Flush the object cache
+
+  db size                                 Show database size
+  db tables                               List all tables
+
+  option get <name>                       Get an option value
+  option set <name> <value>               Set an option value
+  option list                             List CDW-managed option keys
+  option delete <name>                    Delete an option (requires --force)
+
+  transient list                          List all transients
+  transient delete <key>                  Delete a specific transient
+  transient flush                         Delete ALL transients
+
+  cron list                               List all scheduled cron events
+  cron run <hook>                         Manually trigger a cron hook
+
+  maintenance on                          Enable maintenance mode
+  maintenance off                         Disable maintenance mode
+  maintenance status                      Check maintenance mode status
+
+  rewrite flush                           Flush rewrite rules
+
+  search-replace <old> <new> --dry-run    Preview matches without making changes
+  search-replace <old> <new> --force      Replace a string sitewide
+```
 
 Security notes:
-  - Destructive commands require --force
-  - search-replace supports --dry-run to safely preview before committing
-  - Critical options (siteurl, admin_email, auth keys, etc.) are protected
-  - user delete cannot target your own account
-
-Examples:
-  plugin update --all
-  theme install twentytwentyfive
-  user update john --role editor
-  search-replace https://old.com https://new.com --dry-run
-  maintenance on
-  cron list
-  option get blogname
-  transient flush
-  post publish 42";
-  
-## Development Status
+  - Destructive commands require `--force`
+  - `search-replace` supports `--dry-run` to safely preview before committing
+  - Critical options (`siteurl`, `admin_email`, auth keys, etc.) are protected
+  - `user delete` cannot target your own account
+  - `db export` and `db import` are blocked when executed via the AI agentic loop
 
 ### ✅ Completed
 
@@ -201,7 +210,7 @@ Examples:
 | **Security** | Protected option list expanded; `wp-tests-config.php` gitignored; API keys AES-256-CBC encrypted |
 | **Uninstall** | Full cleanup of all plugin data including encrypted AI API keys |
 | **AI Assistant** | Per-user encrypted API keys; OpenAI, Anthropic, Google, custom endpoints; agentic loop with tool calling |
-| **WordPress Abilities API** | 31 CDW tools registered as WP Abilities (WP 6.9+); REST-exposed via `wp-abilities/v1`; MCP opt-in toggle |
+| **WordPress Abilities API** | 41 CDW tools registered as WP Abilities (WP 6.9+); REST-exposed via `wp-abilities/v1`; MCP opt-in toggle |
 | **Release prep** | `.distignore` created; v3.0.0 tagged and released |
 
 ### 🔲 Future work
@@ -272,18 +281,28 @@ See [Running Tests](#running-tests) below for the full test setup.
 
 ## Changelog
 
+### 3.0.2
+
+**Post & Page Creation**
+- AI assistant can now create posts and pages with body content (`content` parameter)
+- AI assistant can now publish posts/pages immediately (`status: publish`; default remains `draft`)
+- New CLI flag `--publish` on `post create <title>` and `page create <title>` to create and immediately publish
+- `page create` is now documented and available in CLI autocomplete
+- Post/page creation via AI routes directly through `wp_insert_post`, bypassing the CLI tokeniser — multi-word content is preserved correctly
+
 ### 3.0.0 (released)
 
 **AI Assistant**
 - New AI assistant widget powered by OpenAI, Anthropic (Claude), Google Gemini, or any OpenAI-compatible endpoint (OpenRouter, Groq, etc.)
 - Per-user encrypted API keys (AES-256-CBC, derived from WordPress salts)
-- Agentic loop with function-calling tools mapped to CDW CLI commands
+- Agentic loop with 36 function-calling tools mapped to CDW CLI commands
+- `post_create` and `page_create` tools accept optional `content` (body text) and `status` (`draft` or `publish`)
 - Confirm-first and auto execution modes
 - Token usage tracking per user
 - Custom system prompt support
 
 **WordPress Abilities API (WP 6.9+)**
-- 31 CDW admin tools registered as native `WP_Ability` objects in the `cdw-admin-tools` category
+- 41 CDW admin tools registered as native `WP_Ability` objects in the `cdw-admin-tools` category
 - All abilities REST-exposed via `wp-abilities/v1`; `show_in_rest`, `readonly`, and `idempotent` set under `meta`; `destructive` under `meta.annotations`
 - Per-ability HTTP method routing: `readonly: true` → GET; mutating → POST; `destructive: true` → DELETE
 - MCP opt-in: enable the **Expose via MCP Adapter** toggle to make abilities discoverable to external AI clients

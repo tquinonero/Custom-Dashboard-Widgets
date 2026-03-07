@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
+import { useDispatch } from '@wordpress/data';
 
 export default function useAi(mode) {
     const [aiHistory, setAiHistory] = useState([]);
@@ -15,6 +16,7 @@ export default function useAi(mode) {
     const aiInputRef = useRef(null);
     const aiOutputRef = useRef(null);
     const gearRef = useRef(null);
+    const { fetchTasks } = useDispatch('cdw/store');
 
     useEffect(() => {
         if (aiOutputRef.current) {
@@ -84,16 +86,18 @@ export default function useAi(mode) {
                 data: { message: userMessage, history: priorHistory },
             });
             const payload = result.data || result;
+            const toolsMade = Array.isArray(payload.tool_calls_made) ? payload.tool_calls_made : [];
             setAiHistory((prev) => [
                 ...prev,
                 {
                     role: 'assistant',
                     content: payload.content || '',
-                    tool_calls_made: Array.isArray(payload.tool_calls_made)
-                        ? payload.tool_calls_made
-                        : [],
+                    tool_calls_made: toolsMade,
                 },
             ]);
+            if (toolsMade.some((tc) => tc.name && tc.name.startsWith('task_'))) {
+                fetchTasks();
+            }
         } catch (e) {
             const errMsg =
                 (e.data && e.data.message) || e.message || e.code || 'Request failed';

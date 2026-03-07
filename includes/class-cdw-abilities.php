@@ -600,6 +600,239 @@ class CDW_Abilities {
 				'readonly'    => false,
 				'destructive' => false,
 			),
+
+			// ---------------------------------------------------------------
+			// Task management
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'cdw/task-list',
+				'label'       => __( 'List Tasks', 'cdw' ),
+				'desc'        => __( 'Lists pending tasks for a user. Omit user_id to list tasks for the current user.', 'cdw' ),
+				'input'       => array(
+					'user_id' => array(
+						'type'     => 'integer',
+						'required' => false,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => true,
+				'destructive' => false,
+			),
+			array(
+				'name'        => 'cdw/task-create',
+				'label'       => __( 'Create Task', 'cdw' ),
+				'desc'        => __( 'Creates a new pending task. Optionally assigns it to another user by username (assignee_login) or user ID (assignee_id). Assigning to another user requires administrator privileges.', 'cdw' ),
+				'input'       => array(
+					'name'           => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+					'assignee_login' => array(
+						'type'     => 'string',
+						'required' => false,
+					),
+					'assignee_id'    => array(
+						'type'     => 'integer',
+						'required' => false,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => false,
+				'destructive' => false,
+			),
+			array(
+				'name'        => 'cdw/task-delete',
+				'label'       => __( 'Delete Tasks', 'cdw' ),
+				'desc'        => __( 'Deletes all tasks for a user. Omit user_id to delete tasks for the current user.', 'cdw' ),
+				'input'       => array(
+					'user_id' => array(
+						'type'     => 'integer',
+						'required' => false,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => false,
+				'destructive' => true,
+			),
+
+			// ---------------------------------------------------------------
+			// Posts (additional)
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'cdw/post-list',
+				'label'       => __( 'List Posts', 'cdw' ),
+				'desc'        => __( 'Returns a list of recent posts, optionally filtered by post type (default: post).', 'cdw' ),
+				'input'       => array(
+					'type' => array(
+						'type'     => 'string',
+						'required' => false,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => true,
+				'destructive' => false,
+			),
+			array(
+				'name'        => 'cdw/post-status',
+				'label'       => __( 'Change Post Status', 'cdw' ),
+				'desc'        => __( 'Changes the status of an existing post (e.g. draft, publish, trash).', 'cdw' ),
+				'input'       => array(
+					'post_id' => array(
+						'type'     => 'integer',
+						'required' => true,
+					),
+					'status'  => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => false,
+				'destructive' => false,
+			),
+			array(
+				'name'        => 'cdw/post-delete',
+				'label'       => __( 'Delete Post', 'cdw' ),
+				'desc'        => __( 'Permanently deletes a WordPress post by its numeric ID.', 'cdw' ),
+				'input'       => array(
+					'post_id' => array(
+						'type'     => 'integer',
+						'required' => true,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => false,
+				'destructive' => true,
+			),
+
+			// ---------------------------------------------------------------
+			// Users (additional)
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'cdw/user-role',
+				'label'       => __( 'Change User Role', 'cdw' ),
+				'desc'        => __( 'Changes the role of an existing WordPress user identified by username or user ID.', 'cdw' ),
+				'input'       => array(
+					'identifier' => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+					'role'       => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => false,
+				'destructive' => false,
+			),
+
+			// ---------------------------------------------------------------
+			// Options (additional)
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'cdw/option-delete',
+				'label'       => __( 'Delete Option', 'cdw' ),
+				'desc'        => __( 'Deletes a WordPress option from the database by name. Protected core options cannot be deleted.', 'cdw' ),
+				'input'       => array(
+					'name' => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => false,
+				'destructive' => true,
+			),
+
+			// ---------------------------------------------------------------
+			// Themes (additional)
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'cdw/theme-delete',
+				'label'       => __( 'Delete Theme', 'cdw' ),
+				'desc'        => __( 'Permanently deletes an installed theme by its slug. The theme must not be currently active.', 'cdw' ),
+				'input'       => array(
+					'slug' => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => false,
+				'destructive' => true,
+			),
+
+			// ---------------------------------------------------------------
+			// Transients
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'cdw/transient-list',
+				'label'       => __( 'List Transients', 'cdw' ),
+				'desc'        => __( 'Returns the first 20 WordPress transients currently stored in the database.', 'cdw' ),
+				'input'       => array(),
+				'cli'         => 'transient list',
+				'readonly'    => true,
+				'destructive' => false,
+			),
+			array(
+				'name'        => 'cdw/transient-delete',
+				'label'       => __( 'Delete Transient', 'cdw' ),
+				'desc'        => __( 'Deletes a specific WordPress transient by name.', 'cdw' ),
+				'input'       => array(
+					'name' => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => false,
+				'destructive' => false,
+			),
+
+			// ---------------------------------------------------------------
+			// Rewrite
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'cdw/rewrite-flush',
+				'label'       => __( 'Flush Rewrite Rules', 'cdw' ),
+				'desc'        => __( 'Flushes WordPress rewrite rules, equivalent to saving the permalink settings.', 'cdw' ),
+				'input'       => array(),
+				'cli'         => 'rewrite flush',
+				'readonly'    => false,
+				'destructive' => false,
+			),
+
+			// ---------------------------------------------------------------
+			// Maintenance (additional)
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'cdw/maintenance-status',
+				'label'       => __( 'Maintenance Mode Status', 'cdw' ),
+				'desc'        => __( 'Returns whether WordPress maintenance mode is currently enabled or disabled.', 'cdw' ),
+				'input'       => array(),
+				'cli'         => 'maintenance status',
+				'readonly'    => true,
+				'destructive' => false,
+			),
+
+			// ---------------------------------------------------------------
+			// Cron (additional)
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'cdw/cron-run',
+				'label'       => __( 'Run Cron Hook', 'cdw' ),
+				'desc'        => __( 'Manually triggers a scheduled WordPress cron hook immediately.', 'cdw' ),
+				'input'       => array(
+					'hook' => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => false,
+				'destructive' => false,
+			),
 		);
 
 		foreach ( $abilities as $ability ) {
@@ -725,6 +958,54 @@ class CDW_Abilities {
 				return 'post create ' . sanitize_text_field( $input['title'] );
 			case 'cdw/page-create':
 				return 'page create ' . sanitize_text_field( $input['title'] );
+			case 'cdw/task-list':
+				$uid = isset( $input['user_id'] ) ? (int) $input['user_id'] : 0;
+				$cmd = 'task list';
+				if ( $uid > 0 ) {
+					$cmd .= ' --user_id=' . $uid;
+				}
+				return $cmd;
+			case 'cdw/task-create':
+				$cmd = 'task create ' . sanitize_text_field( $input['name'] );
+				if ( ! empty( $input['assignee_login'] ) ) {
+					$cmd .= ' --assignee_login=' . self::sanitize_cli_arg( $input['assignee_login'] );
+				} elseif ( ! empty( $input['assignee_id'] ) ) {
+					$cmd .= ' --assignee_id=' . (int) $input['assignee_id'];
+				}
+				return $cmd;
+			case 'cdw/task-delete':
+				$uid = isset( $input['user_id'] ) ? (int) $input['user_id'] : 0;
+				$cmd = 'task delete';
+				if ( $uid > 0 ) {
+					$cmd .= ' --user_id=' . $uid;
+				}
+				return $cmd;
+			case 'cdw/comment-list':
+				$status = isset( $input['status'] ) ? self::sanitize_cli_arg( (string) $input['status'] ) : 'pending';
+				return 'comment list ' . $status;
+			case 'cdw/comment-approve':
+				return 'comment approve ' . (int) $input['id'];
+			case 'cdw/comment-spam':
+				return 'comment spam ' . (int) $input['id'];
+			case 'cdw/comment-delete':
+				return 'comment delete ' . (int) $input['id'] . ' --force';
+			case 'cdw/post-list':
+				$type = isset( $input['type'] ) ? self::sanitize_cli_arg( (string) $input['type'] ) : 'post';
+				return 'post list ' . $type;
+			case 'cdw/post-status':
+				return 'post status ' . (int) $input['post_id'] . ' ' . self::sanitize_cli_arg( (string) $input['status'] );
+			case 'cdw/post-delete':
+				return 'post delete ' . (int) $input['post_id'] . ' --force';
+			case 'cdw/user-role':
+				return 'user role ' . self::sanitize_cli_arg( (string) $input['identifier'] ) . ' ' . self::sanitize_cli_arg( (string) $input['role'] );
+			case 'cdw/option-delete':
+				return 'option delete ' . self::sanitize_cli_arg( (string) $input['name'] );
+			case 'cdw/theme-delete':
+				return 'theme delete ' . self::sanitize_cli_arg( (string) $input['slug'] ) . ' --force';
+			case 'cdw/transient-delete':
+				return 'transient delete ' . self::sanitize_cli_arg( (string) $input['name'] );
+			case 'cdw/cron-run':
+				return 'cron run ' . self::sanitize_cli_arg( (string) $input['hook'] );
 			default:
 				return '';
 		}

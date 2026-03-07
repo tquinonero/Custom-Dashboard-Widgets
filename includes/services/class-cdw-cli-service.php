@@ -377,7 +377,7 @@ class CDW_CLI_Service {
 			array_filter(
 				$raw_args,
 				function ( $arg ) {
-					return ! in_array( strtolower( $arg ), array( '--force', '--all', '--dry-run', '--delete-content' ), true )
+					return ! in_array( strtolower( $arg ), array( '--force', '--all', '--dry-run', '--delete-content', '--publish' ), true )
 					&& ! preg_match( '/^--reassign=\d+$/', $arg );
 				}
 			)
@@ -403,7 +403,7 @@ class CDW_CLI_Service {
 					$result = $this->handle_post_command( $subcmd, $clean_args, $raw_args );
 					break;
 				case 'page':
-					$result = $this->handle_page_command( $subcmd, $clean_args );
+					$result = $this->handle_page_command( $subcmd, $clean_args, $raw_args );
 					break;
 				case 'site':
 					$result = $this->handle_site_command( $subcmd, $clean_args );
@@ -434,6 +434,9 @@ class CDW_CLI_Service {
 					break;
 				case 'core':
 					$result = $this->handle_core_command( $subcmd );
+					break;
+				case 'task':
+					$result = $this->handle_task_command( $subcmd, $clean_args, $raw_args );
 					break;
 				case 'comment':
 					$result = $this->handle_comment_command( $subcmd, $clean_args, $raw_args );
@@ -490,6 +493,16 @@ class CDW_CLI_Service {
 	 */
 	private function has_force_flag( $args ) {
 		return in_array( '--force', $args, true );
+	}
+
+	/**
+	 * Check whether the --publish flag is present in an args array.
+	 *
+	 * @param array<int,string> $args Parsed argument list.
+	 * @return bool
+	 */
+	private function has_publish_flag( $args ) {
+		return in_array( '--publish', $args, true );
 	}
 
 	/**
@@ -1497,15 +1510,16 @@ class CDW_CLI_Service {
 			case 'create':
 				if ( empty( $args ) ) {
 					return array(
-						'output'  => 'Usage: post create <post title>',
+						'output'  => 'Usage: post create <post title> [--publish]',
 						'success' => false,
 					);
 				}
-				$title   = sanitize_text_field( implode( ' ', $args ) );
-				$post_id = wp_insert_post(
+				$title       = sanitize_text_field( implode( ' ', $args ) );
+				$post_status = $this->has_publish_flag( $raw_args ) ? 'publish' : 'draft';
+				$post_id     = wp_insert_post(
 					array(
 						'post_title'  => $title,
-						'post_status' => 'draft',
+						'post_status' => $post_status,
 						'post_type'   => 'post',
 					),
 					true
@@ -1516,8 +1530,9 @@ class CDW_CLI_Service {
 						'success' => false,
 					);
 				}
+				$status_label = ( 'publish' === $post_status ) ? 'published' : 'draft';
 				return array(
-					'output'  => "Post created (draft): ID=$post_id, Title=\"$title\"",
+					'output'  => "Post created ($status_label): ID=$post_id, Title=\"$title\"",
 					'success' => true,
 				);
 
@@ -1647,7 +1662,7 @@ class CDW_CLI_Service {
 
 			default:
 				return array(
-					'output'  => "Available post commands:\n  post create <title>      - Create a draft post\n  post get <id>            - Get post details\n  post list [<type>]       - List posts\n  post delete <id>         - Delete post\n  post status <id> <status> - Change post status",
+					'output'  => "Available post commands:\n  post create <title> [--publish]  - Create a post (draft or published)\n  post get <id>                    - Get post details\n  post list [<type>]               - List posts\n  post delete <id>                 - Delete post\n  post status <id> <status>        - Change post status",
 					'success' => true,
 				);
 		}
@@ -1656,24 +1671,26 @@ class CDW_CLI_Service {
 	/**
 	 * Handle page management commands.
 	 *
-	 * @param string            $subcmd Subcommand (create).
-	 * @param array<int,string> $args   Positional arguments.
+	 * @param string            $subcmd   Subcommand (create).
+	 * @param array<int,string> $args     Positional arguments (clean, flags stripped).
+	 * @param array<int,string> $raw_args Full raw arguments including flags.
 	 * @return array<string,mixed> Result array.
 	 */
-	private function handle_page_command( $subcmd, $args ) {
+	private function handle_page_command( $subcmd, $args, $raw_args = array() ) {
 		switch ( $subcmd ) {
 			case 'create':
 				if ( empty( $args ) ) {
 					return array(
-						'output'  => 'Usage: page create <page title>',
+						'output'  => 'Usage: page create <page title> [--publish]',
 						'success' => false,
 					);
 				}
-				$title   = sanitize_text_field( implode( ' ', $args ) );
-				$post_id = wp_insert_post(
+				$title       = sanitize_text_field( implode( ' ', $args ) );
+				$post_status = $this->has_publish_flag( $raw_args ) ? 'publish' : 'draft';
+				$post_id     = wp_insert_post(
 					array(
 						'post_title'  => $title,
-						'post_status' => 'draft',
+						'post_status' => $post_status,
 						'post_type'   => 'page',
 					),
 					true
@@ -1684,14 +1701,136 @@ class CDW_CLI_Service {
 						'success' => false,
 					);
 				}
+				$status_label = ( 'publish' === $post_status ) ? 'published' : 'draft';
 				return array(
-					'output'  => "Page created (draft): ID=$post_id, Title=\"$title\"",
+					'output'  => "Page created ($status_label): ID=$post_id, Title=\"$title\"",
 					'success' => true,
 				);
 
 			default:
 				return array(
-					'output'  => "Available page commands:\n  page create <title>      - Create a draft page",
+					'output'  => "Available page commands:\n  page create <title> [--publish]  - Create a page (draft or published)",
+					'success' => true,
+				);
+		}
+	}
+
+	/**
+	 * Handle task management commands.
+	 *
+	 * @param string            $subcmd   Subcommand (list, create, delete).
+	 * @param array<int,string> $args     Positional arguments (clean, minus standard flags).
+	 * @param array<int,string> $raw_args Full raw args including custom flags.
+	 * @return array<string,mixed> Result array.
+	 */
+	private function handle_task_command( $subcmd, $args, $raw_args = array() ) {
+		require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-task-service.php';
+		$task_service = new CDW_Task_Service();
+
+		switch ( $subcmd ) {
+			case 'list':
+				$target_user_id = null;
+				foreach ( $raw_args as $arg ) {
+					if ( preg_match( '/^--user_id=(\d+)$/', $arg, $m ) ) {
+						$target_user_id = (int) $m[1];
+						break;
+					}
+				}
+				$tasks = $task_service->get_tasks( $target_user_id );
+				if ( empty( $tasks ) ) {
+					$who = $target_user_id ? "user $target_user_id" : 'you';
+					return array(
+						'output'  => "No tasks found for $who.",
+						'success' => true,
+					);
+				}
+				$output = "Tasks:\n";
+				foreach ( $tasks as $i => $task ) {
+					$n       = $i + 1;
+					$output .= "$n. {$task['name']}\n";
+				}
+				return array(
+					'output'  => rtrim( $output ),
+					'success' => true,
+				);
+
+			case 'create':
+				// Positional args are the task name words; custom flags start with --.
+				$name_parts = array_values(
+					array_filter(
+						$args,
+						function ( $a ) {
+							return ! str_starts_with( $a, '--' );
+						}
+					)
+				);
+				if ( empty( $name_parts ) ) {
+					return array(
+						'output'  => 'Usage: task create <name> [--assignee_login=<user>|--assignee_id=<id>]',
+						'success' => false,
+					);
+				}
+				$name            = sanitize_text_field( implode( ' ', $name_parts ) );
+				$current_user_id = get_current_user_id();
+				$target_user_id  = $current_user_id;
+				foreach ( $raw_args as $arg ) {
+					if ( preg_match( '/^--assignee_login=(.+)$/', $arg, $m ) ) {
+						$login = sanitize_user( $m[1] );
+						$user  = get_user_by( 'login', $login );
+						if ( ! $user ) {
+							return array(
+								'output'  => "User not found: $login",
+								'success' => false,
+							);
+						}
+						$target_user_id = $user->ID;
+						break;
+					}
+					if ( preg_match( '/^--assignee_id=(\d+)$/', $arg, $m ) ) {
+						$target_user_id = (int) $m[1];
+						break;
+					}
+				}
+				$result = $task_service->save_tasks(
+					array( array( 'name' => $name ) ),
+					$target_user_id,
+					$current_user_id
+				);
+				if ( is_wp_error( $result ) ) {
+					return array(
+						'output'  => 'Failed to create task: ' . $result->get_error_message(),
+						'success' => false,
+					);
+				}
+				$who = ( $target_user_id !== $current_user_id ) ? " for user ID $target_user_id" : '';
+				return array(
+					'output'  => "Task created: \"$name\"$who.",
+					'success' => true,
+				);
+
+			case 'delete':
+				$target_user_id = null;
+				foreach ( $raw_args as $arg ) {
+					if ( preg_match( '/^--user_id=(\d+)$/', $arg, $m ) ) {
+						$target_user_id = (int) $m[1];
+						break;
+					}
+				}
+				$who = $target_user_id ? "user $target_user_id" : 'you';
+				if ( $task_service->delete_tasks( $target_user_id ) ) {
+					return array(
+						'output'  => "All tasks deleted for $who.",
+						'success' => true,
+					);
+				}
+				return array(
+					'output'  => "No tasks to delete for $who.",
+					'success' => true,
+				);
+
+			default:
+				return array(
+					'output'  => "Available task commands:\n  task list [--user_id=<id>]                                       - List pending tasks\n  task create <name> [--assignee_login=<user>|--assignee_id=<id>] - Create a task\n  task delete [--user_id=<id>]                                    - Delete all tasks",
 					'success' => true,
 				);
 		}
@@ -2670,6 +2809,11 @@ Comments:
 
 Database Search & Replace:
   search-replace <old> <new> [--dry-run] [--force]
+
+Tasks:
+  task list [--user_id=<id>]                                       - List pending tasks
+  task create <name> [--assignee_login=<user>|--assignee_id=<id>] - Create a task
+  task delete [--user_id=<id>]                                     - Delete all tasks
 HELP;
 	}
 }
