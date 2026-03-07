@@ -79,9 +79,9 @@ class CDW_Posts_Controller extends CDW_Base_Controller {
 			function () use ( $per_page, $status, $post_type ) {
 				$posts = get_posts(
 					array(
-						'numberposts'      => $per_page,
-						'post_status'      => $status,
-						'post_type'        => $post_type,
+						'numberposts' => $per_page,
+						'post_status' => $status,
+						'post_type'   => $post_type,
 					)
 				);
 

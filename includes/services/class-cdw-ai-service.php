@@ -894,260 +894,319 @@ class CDW_AI_Service {
 				),
 			),
 
-		// ---------------------------------------------------------------
-		// Core
-		// ---------------------------------------------------------------
-		array(
-			'name'        => 'core_version',
-			'description' => 'Show WordPress version, PHP version, and whether a core update is available.',
-			'parameters'  => array(
-				'type'       => 'object',
-				'properties' => array(),
-				'required'   => array(),
+			// ---------------------------------------------------------------
+			// Core
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'core_version',
+				'description' => 'Show WordPress version, PHP version, and whether a core update is available.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(),
+					'required'   => array(),
+				),
 			),
-		),
 
-		// ---------------------------------------------------------------
-		// Comments
-		// ---------------------------------------------------------------
-		array(
-			'name'        => 'comment_list',
-			'description' => 'List comments filtered by status: pending (default), approved, or spam.',
-			'parameters'  => array(
-				'type'       => 'object',
-				'properties' => array(
-					'status' => array(
-						'type'        => 'string',
-						'enum'        => array( 'pending', 'approved', 'spam' ),
-						'description' => 'Comment status filter. Defaults to "pending".',
+			// ---------------------------------------------------------------
+			// Comments
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'comment_list',
+				'description' => 'List comments filtered by status: pending (default), approved, or spam.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'status' => array(
+							'type'        => 'string',
+							'enum'        => array( 'pending', 'approved', 'spam' ),
+							'description' => 'Comment status filter. Defaults to "pending".',
+						),
 					),
+					'required'   => array(),
 				),
-				'required'   => array(),
 			),
-		),
-		array(
-			'name'        => 'comment_approve',
-			'description' => 'Approve a pending comment by its ID.',
-			'parameters'  => array(
-				'type'       => 'object',
-				'properties' => array(
-					'id' => array(
-						'type'        => 'integer',
-						'description' => 'Comment ID.',
+			array(
+				'name'        => 'comment_approve',
+				'description' => 'Approve a pending comment by its ID.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'id' => array(
+							'type'        => 'integer',
+							'description' => 'Comment ID.',
+						),
 					),
+					'required'   => array( 'id' ),
 				),
-				'required'   => array( 'id' ),
 			),
-		),
-		array(
-			'name'        => 'comment_spam',
-			'description' => 'Mark a comment as spam by its ID.',
-			'parameters'  => array(
-				'type'       => 'object',
-				'properties' => array(
-					'id' => array(
-						'type'        => 'integer',
-						'description' => 'Comment ID.',
+			array(
+				'name'        => 'comment_spam',
+				'description' => 'Mark a comment as spam by its ID.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'id' => array(
+							'type'        => 'integer',
+							'description' => 'Comment ID.',
+						),
 					),
+					'required'   => array( 'id' ),
 				),
-				'required'   => array( 'id' ),
 			),
-		),
-		array(
-			'name'        => 'comment_delete',
-			'description' => 'Permanently delete a comment by its ID.',
-			'parameters'  => array(
-				'type'       => 'object',
-				'properties' => array(
-					'id' => array(
-						'type'        => 'integer',
-						'description' => 'Comment ID.',
+			array(
+				'name'        => 'comment_delete',
+				'description' => 'Permanently delete a comment by its ID.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'id' => array(
+							'type'        => 'integer',
+							'description' => 'Comment ID.',
+						),
 					),
+					'required'   => array( 'id' ),
 				),
-				'required'   => array( 'id' ),
 			),
-		),
 
-		// ---------------------------------------------------------------
-		// Posts (additional)
-		// ---------------------------------------------------------------
-		array(
-			'name'        => 'post_list',
-			'description' => 'List recent posts. Optionally filter by post type (default: "post").',
-			'parameters'  => array(
-				'type'       => 'object',
-				'properties' => array(
-					'type' => array(
-						'type'        => 'string',
-						'description' => 'Post type slug, e.g. "post", "page". Defaults to "post".',
+			// ---------------------------------------------------------------
+			// Posts (additional)
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'post_list',
+				'description' => 'List recent posts. Optionally filter by post type (default: "post").',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'type' => array(
+							'type'        => 'string',
+							'description' => 'Post type slug, e.g. "post", "page". Defaults to "post".',
+						),
 					),
+					'required'   => array(),
 				),
-				'required'   => array(),
 			),
-		),
-		array(
-			'name'        => 'post_status',
-			'description' => 'Change the status of an existing post.',
-			'parameters'  => array(
-				'type'       => 'object',
-				'properties' => array(
-					'post_id' => array(
-						'type'        => 'integer',
-						'description' => 'WordPress post ID.',
+			array(
+				'name'        => 'post_status',
+				'description' => 'Change the status of an existing post.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'post_id' => array(
+							'type'        => 'integer',
+							'description' => 'WordPress post ID.',
+						),
+						'status'  => array(
+							'type'        => 'string',
+							'enum'        => array( 'draft', 'publish', 'pending', 'private', 'trash' ),
+							'description' => 'New post status.',
+						),
 					),
-					'status'  => array(
-						'type'        => 'string',
-						'enum'        => array( 'draft', 'publish', 'pending', 'private', 'trash' ),
-						'description' => 'New post status.',
-					),
+					'required'   => array( 'post_id', 'status' ),
 				),
-				'required'   => array( 'post_id', 'status' ),
 			),
-		),
-		array(
-			'name'        => 'post_delete',
-			'description' => 'Permanently delete a post by ID.',
-			'parameters'  => array(
-				'type'       => 'object',
-				'properties' => array(
-					'post_id' => array(
-						'type'        => 'integer',
-						'description' => 'WordPress post ID.',
+			array(
+				'name'        => 'post_delete',
+				'description' => 'Permanently delete a post by ID.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'post_id' => array(
+							'type'        => 'integer',
+							'description' => 'WordPress post ID.',
+						),
 					),
+					'required'   => array( 'post_id' ),
 				),
-				'required'   => array( 'post_id' ),
 			),
-		),
 
-		// ---------------------------------------------------------------
-		// Users (additional)
-		// ---------------------------------------------------------------
-		array(
-			'name'        => 'user_role',
-			'description' => 'Change the role of an existing WordPress user.',
-			'parameters'  => array(
-				'type'       => 'object',
-				'properties' => array(
-					'identifier' => array(
-						'type'        => 'string',
-						'description' => 'Username (login) or numeric user ID.',
+			// ---------------------------------------------------------------
+			// Users (additional)
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'user_role',
+				'description' => 'Change the role of an existing WordPress user.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'identifier' => array(
+							'type'        => 'string',
+							'description' => 'Username (login) or numeric user ID.',
+						),
+						'role'       => array(
+							'type'        => 'string',
+							'description' => 'WordPress role slug, e.g. "editor", "subscriber", "administrator".',
+						),
 					),
-					'role'       => array(
-						'type'        => 'string',
-						'description' => 'WordPress role slug, e.g. "editor", "subscriber", "administrator".',
-					),
+					'required'   => array( 'identifier', 'role' ),
 				),
-				'required'   => array( 'identifier', 'role' ),
 			),
-		),
 
-		// ---------------------------------------------------------------
-		// Options (additional)
-		// ---------------------------------------------------------------
-		array(
-			'name'        => 'option_delete',
-			'description' => 'Delete a WordPress option from the database. Protected core options cannot be deleted.',
-			'parameters'  => array(
-				'type'       => 'object',
-				'properties' => array(
-					'name' => array(
-						'type'        => 'string',
-						'description' => 'Option name.',
+			// ---------------------------------------------------------------
+			// Options (additional)
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'option_delete',
+				'description' => 'Delete a WordPress option from the database. Protected core options cannot be deleted.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'name' => array(
+							'type'        => 'string',
+							'description' => 'Option name.',
+						),
 					),
+					'required'   => array( 'name' ),
 				),
-				'required'   => array( 'name' ),
 			),
-		),
 
-		// ---------------------------------------------------------------
-		// Themes (additional)
-		// ---------------------------------------------------------------
-		array(
-			'name'        => 'theme_delete',
-			'description' => 'Delete (uninstall) an inactive theme by slug. The theme must not be the currently active theme.',
-			'parameters'  => array(
-				'type'       => 'object',
-				'properties' => array(
-					'slug' => array(
-						'type'        => 'string',
-						'description' => 'Theme slug.',
+			// ---------------------------------------------------------------
+			// Themes (additional)
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'theme_delete',
+				'description' => 'Delete (uninstall) an inactive theme by slug. The theme must not be the currently active theme.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'slug' => array(
+							'type'        => 'string',
+							'description' => 'Theme slug.',
+						),
 					),
+					'required'   => array( 'slug' ),
 				),
-				'required'   => array( 'slug' ),
 			),
-		),
 
-		// ---------------------------------------------------------------
-		// Transients
-		// ---------------------------------------------------------------
-		array(
-			'name'        => 'transient_list',
-			'description' => 'List the first 20 WordPress transients stored in the database.',
-			'parameters'  => array(
-				'type'       => 'object',
-				'properties' => array(),
-				'required'   => array(),
+			// ---------------------------------------------------------------
+			// Transients
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'transient_list',
+				'description' => 'List the first 20 WordPress transients stored in the database.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(),
+					'required'   => array(),
+				),
 			),
-		),
-		array(
-			'name'        => 'transient_delete',
-			'description' => 'Delete a specific WordPress transient by name.',
-			'parameters'  => array(
-				'type'       => 'object',
-				'properties' => array(
-					'name' => array(
-						'type'        => 'string',
-						'description' => 'Transient key (without the _transient_ prefix).',
+			array(
+				'name'        => 'transient_delete',
+				'description' => 'Delete a specific WordPress transient by name.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'name' => array(
+							'type'        => 'string',
+							'description' => 'Transient key (without the _transient_ prefix).',
+						),
 					),
+					'required'   => array( 'name' ),
 				),
-				'required'   => array( 'name' ),
 			),
-		),
 
-		// ---------------------------------------------------------------
-		// Rewrite
-		// ---------------------------------------------------------------
-		array(
-			'name'        => 'rewrite_flush',
-			'description' => 'Flush WordPress rewrite rules (equivalent to saving permalink settings).',
-			'parameters'  => array(
-				'type'       => 'object',
-				'properties' => array(),
-				'required'   => array(),
+			// ---------------------------------------------------------------
+			// Rewrite
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'rewrite_flush',
+				'description' => 'Flush WordPress rewrite rules (equivalent to saving permalink settings).',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(),
+					'required'   => array(),
+				),
 			),
-		),
 
-		// ---------------------------------------------------------------
-		// Maintenance (additional)
-		// ---------------------------------------------------------------
-		array(
-			'name'        => 'maintenance_status',
-			'description' => 'Check whether WordPress maintenance mode is currently enabled or disabled.',
-			'parameters'  => array(
-				'type'       => 'object',
-				'properties' => array(),
-				'required'   => array(),
+			// ---------------------------------------------------------------
+			// Maintenance (additional)
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'maintenance_status',
+				'description' => 'Check whether WordPress maintenance mode is currently enabled or disabled.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(),
+					'required'   => array(),
+				),
 			),
-		),
 
-		// ---------------------------------------------------------------
-		// Cron (additional)
-		// ---------------------------------------------------------------
-		array(
-			'name'        => 'cron_run',
-			'description' => 'Manually trigger a scheduled WordPress cron hook immediately.',
-			'parameters'  => array(
-				'type'       => 'object',
-				'properties' => array(
-					'hook' => array(
-						'type'        => 'string',
-						'description' => 'Cron hook name to run immediately.',
+			// ---------------------------------------------------------------
+			// Cron (additional)
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'cron_run',
+				'description' => 'Manually trigger a scheduled WordPress cron hook immediately.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'hook' => array(
+							'type'        => 'string',
+							'description' => 'Cron hook name to run immediately.',
+						),
 					),
+					'required'   => array( 'hook' ),
 				),
-				'required'   => array( 'hook' ),
 			),
-		),
-	);
+
+			// ---------------------------------------------------------------
+			// Media
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'media_list',
+				'description' => 'List recent media library attachments with ID, filename, MIME type, and upload date.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'count' => array(
+							'type'        => 'integer',
+							'description' => 'Number of attachments to return (1–100, default 20).',
+						),
+					),
+					'required'   => array(),
+				),
+			),
+
+			// ---------------------------------------------------------------
+			// Block Patterns
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'block_patterns_list',
+				'description' => 'List all registered WordPress block patterns (name, title, categories). Optionally filter by category slug.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'category' => array(
+							'type'        => 'string',
+							'description' => 'Category slug to filter by. Omit to list all patterns.',
+						),
+					),
+					'required'   => array(),
+				),
+			),
+
+			// ---------------------------------------------------------------
+			// Post content (block page builder)
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'post_set_content',
+				'description' => 'Write raw block markup (WordPress block HTML comment syntax) to an existing post or page. Use this after creating a page to insert Greenshift or any block-based content.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'post_id' => array(
+							'type'        => 'integer',
+							'description' => 'ID of the post or page to update.',
+						),
+						'content' => array(
+							'type'        => 'string',
+							'description' => 'Full raw block markup string to set as post_content.',
+						),
+					),
+					'required'   => array( 'post_id', 'content' ),
+				),
+			),
+
+		);
 	}
 
 	// -------------------------------------------------------------------------
@@ -1212,6 +1271,33 @@ class CDW_AI_Service {
 	 * @return string Text output of the command (or error message).
 	 */
 	public static function execute_tool_call( $function_name, $arguments, $user_id ) {
+		// post_set_content is handled directly: block markup contains quotes,
+		// newlines, and angle brackets that cannot survive the CLI tokeniser.
+		if ( 'post_set_content' === $function_name ) {
+			$post_id = isset( $arguments['post_id'] ) ? (int) $arguments['post_id'] : 0;
+			$content = isset( $arguments['content'] ) ? (string) $arguments['content'] : '';
+			if ( $post_id <= 0 ) {
+				return 'Error: post_id is required and must be a positive integer.';
+			}
+			if ( ! get_post( $post_id ) ) {
+				return "Error: Post $post_id not found.";
+			}
+			if ( ! current_user_can( 'edit_post', $post_id ) ) {
+				return 'Error: You do not have permission to edit this post.';
+			}
+			$result = wp_update_post(
+				array(
+					'ID'           => $post_id,
+					'post_content' => $content,
+				),
+				true
+			);
+			if ( is_wp_error( $result ) ) {
+				return 'Error: ' . $result->get_error_message();
+			}
+			return "Post $post_id content updated successfully.";
+		}
+
 		// post_create and page_create are handled directly here because the optional
 		// 'content' field can contain arbitrary multi-word text that cannot be safely
 		// passed through the whitespace-tokenised CLI command string.
@@ -1388,54 +1474,60 @@ class CDW_AI_Service {
 					$cmd .= ' --user_id=' . $target_uid;
 				}
 				return $cmd;
-		case 'core_version':
-			return 'core version';
-		case 'comment_list':
-			$status = isset( $arguments['status'] ) ? trim( (string) $arguments['status'] ) : 'pending';
-			return 'comment list ' . $status;
-		case 'comment_approve':
-			$id = isset( $arguments['id'] ) ? (int) $arguments['id'] : 0;
-			return 'comment approve ' . $id;
-		case 'comment_spam':
-			$id = isset( $arguments['id'] ) ? (int) $arguments['id'] : 0;
-			return 'comment spam ' . $id;
-		case 'comment_delete':
-			$id = isset( $arguments['id'] ) ? (int) $arguments['id'] : 0;
-			return 'comment delete ' . $id . ' --force';
-		case 'post_list':
-			$type = isset( $arguments['type'] ) ? trim( (string) $arguments['type'] ) : 'post';
-			return 'post list ' . $type;
-		case 'post_status':
-			$post_id = isset( $arguments['post_id'] ) ? (int) $arguments['post_id'] : 0;
-			$status  = isset( $arguments['status'] ) ? trim( (string) $arguments['status'] ) : '';
-			return 'post status ' . $post_id . ' ' . $status;
-		case 'post_delete':
-			$post_id = isset( $arguments['post_id'] ) ? (int) $arguments['post_id'] : 0;
-			return 'post delete ' . $post_id . ' --force';
-		case 'user_role':
-			$identifier = isset( $arguments['identifier'] ) ? trim( (string) $arguments['identifier'] ) : '';
-			$role       = isset( $arguments['role'] ) ? trim( (string) $arguments['role'] ) : '';
-			return 'user role ' . $identifier . ' ' . $role;
-		case 'option_delete':
-			$name = isset( $arguments['name'] ) ? trim( (string) $arguments['name'] ) : '';
-			return 'option delete ' . $name;
-		case 'theme_delete':
-			return 'theme delete ' . $slug . ' --force';
-		case 'transient_list':
-			return 'transient list';
-		case 'transient_delete':
-			$name = isset( $arguments['name'] ) ? trim( (string) $arguments['name'] ) : '';
-			return 'transient delete ' . $name;
-		case 'rewrite_flush':
-			return 'rewrite flush';
-		case 'maintenance_status':
-			return 'maintenance status';
-		case 'cron_run':
-			$hook = isset( $arguments['hook'] ) ? trim( (string) $arguments['hook'] ) : '';
-			return 'cron run ' . $hook;
-		default:
-			return null;
-	}
+			case 'core_version':
+				return 'core version';
+			case 'comment_list':
+				$status = isset( $arguments['status'] ) ? trim( (string) $arguments['status'] ) : 'pending';
+				return 'comment list ' . $status;
+			case 'comment_approve':
+				$id = isset( $arguments['id'] ) ? (int) $arguments['id'] : 0;
+				return 'comment approve ' . $id;
+			case 'comment_spam':
+				$id = isset( $arguments['id'] ) ? (int) $arguments['id'] : 0;
+				return 'comment spam ' . $id;
+			case 'comment_delete':
+				$id = isset( $arguments['id'] ) ? (int) $arguments['id'] : 0;
+				return 'comment delete ' . $id . ' --force';
+			case 'post_list':
+				$type = isset( $arguments['type'] ) ? trim( (string) $arguments['type'] ) : 'post';
+				return 'post list ' . $type;
+			case 'post_status':
+				$post_id = isset( $arguments['post_id'] ) ? (int) $arguments['post_id'] : 0;
+				$status  = isset( $arguments['status'] ) ? trim( (string) $arguments['status'] ) : '';
+				return 'post status ' . $post_id . ' ' . $status;
+			case 'post_delete':
+				$post_id = isset( $arguments['post_id'] ) ? (int) $arguments['post_id'] : 0;
+				return 'post delete ' . $post_id . ' --force';
+			case 'user_role':
+				$identifier = isset( $arguments['identifier'] ) ? trim( (string) $arguments['identifier'] ) : '';
+				$role       = isset( $arguments['role'] ) ? trim( (string) $arguments['role'] ) : '';
+				return 'user role ' . $identifier . ' ' . $role;
+			case 'option_delete':
+				$name = isset( $arguments['name'] ) ? trim( (string) $arguments['name'] ) : '';
+				return 'option delete ' . $name;
+			case 'theme_delete':
+				return 'theme delete ' . $slug . ' --force';
+			case 'transient_list':
+				return 'transient list';
+			case 'transient_delete':
+				$name = isset( $arguments['name'] ) ? trim( (string) $arguments['name'] ) : '';
+				return 'transient delete ' . $name;
+			case 'rewrite_flush':
+				return 'rewrite flush';
+			case 'maintenance_status':
+				return 'maintenance status';
+			case 'cron_run':
+				$hook = isset( $arguments['hook'] ) ? trim( (string) $arguments['hook'] ) : '';
+				return 'cron run ' . $hook;
+			case 'media_list':
+				$count = isset( $arguments['count'] ) ? (int) $arguments['count'] : 20;
+				return 'media list ' . $count;
+			case 'block_patterns_list':
+				$cat = isset( $arguments['category'] ) ? trim( (string) $arguments['category'] ) : '';
+				return $cat ? 'block-patterns list ' . $cat : 'block-patterns list';
+			default:
+				return null;
+		}
 	}
 
 	// -------------------------------------------------------------------------
@@ -1910,7 +2002,7 @@ class CDW_AI_Service {
 			// (some providers stop without a text reply when the tool result is
 			// self-explanatory), synthesise a response from the tool output.
 			if ( '' === trim( $final_content ) && ! empty( $tool_calls_made ) ) {
-				$outputs = array_map(
+				$outputs       = array_map(
 					function ( $tc ) {
 						return $tc['output'];
 					},

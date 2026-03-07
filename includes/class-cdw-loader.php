@@ -58,9 +58,12 @@ class CDW_Loader {
 
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_floating_button' ), 20 );
-			add_filter( 'admin_body_class', function( $classes ) {
-				return $classes . ' cdw-sidebar-hidden';
-			} );
+			add_filter(
+				'admin_body_class',
+				function ( $classes ) {
+					return $classes . ' cdw-sidebar-hidden';
+				}
+			);
 		}
 
 		// Cache hooks must fire on all contexts (REST API saves, CLI, admin).
@@ -233,9 +236,12 @@ class CDW_Loader {
 			esc_url( $admin_url )
 		);
 
-		add_action( 'admin_footer', function() use ( $button_html ) {
-			echo wp_kses_post( $button_html );
-		} );
+		add_action(
+			'admin_footer',
+			function () use ( $button_html ) {
+				echo wp_kses_post( $button_html );
+			}
+		);
 	}
 
 	/**
@@ -247,7 +253,7 @@ class CDW_Loader {
 		global $menu, $submenu;
 
 		$categories = array(
-			'content'   => array(
+			'content'    => array(
 				'label' => 'Content',
 				'items' => array(),
 				'icon'  => 'dashicons-admin-post',
@@ -257,27 +263,27 @@ class CDW_Loader {
 				'items' => array(),
 				'icon'  => 'dashicons-admin-appearance',
 			),
-			'plugins'   => array(
+			'plugins'    => array(
 				'label' => 'Plugins',
 				'items' => array(),
 				'icon'  => 'dashicons-admin-plugins',
 			),
-			'users'     => array(
+			'users'      => array(
 				'label' => 'Users',
 				'items' => array(),
 				'icon'  => 'dashicons-admin-users',
 			),
-			'settings'  => array(
+			'settings'   => array(
 				'label' => 'Settings',
 				'items' => array(),
 				'icon'  => 'dashicons-admin-settings',
 			),
-			'tools'     => array(
+			'tools'      => array(
 				'label' => 'Tools',
 				'items' => array(),
 				'icon'  => 'dashicons-admin-tools',
 			),
-			'other'     => array(
+			'other'      => array(
 				'label' => 'Other',
 				'items' => array(),
 				'icon'  => 'dashicons-admin-generic',
@@ -343,7 +349,7 @@ class CDW_Loader {
 					continue;
 				}
 
-				if ( $menu_item[0] === '' || $menu_item[0] === ' ' ) {
+				if ( '' === $menu_item[0] || ' ' === $menu_item[0] ) {
 					continue;
 				}
 
@@ -353,7 +359,7 @@ class CDW_Loader {
 				}
 
 				$href = $menu_item[2];
-				if ( empty( $href ) || $href === 'index.php' ) {
+				if ( empty( $href ) || 'index.php' === $href ) {
 					continue;
 				}
 
@@ -391,7 +397,7 @@ class CDW_Loader {
 
 		$categories = array_filter(
 			$categories,
-			function( $cat, $key ) use ( $excluded ) {
+			function ( $cat, $key ) use ( $excluded ) {
 				return ! empty( $cat['items'] ) && ! in_array( $key, $excluded, true );
 			},
 			ARRAY_FILTER_USE_BOTH
@@ -411,7 +417,7 @@ class CDW_Loader {
 
 		$categories = array_filter(
 			$categories,
-			function( $cat, $key ) use ( $included ) {
+			function ( $cat, $key ) use ( $included ) {
 				return ! empty( $cat['items'] ) && in_array( $key, $included, true );
 			},
 			ARRAY_FILTER_USE_BOTH

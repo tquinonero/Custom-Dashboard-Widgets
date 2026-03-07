@@ -339,3 +339,29 @@ if ( ! class_exists( 'WP_CLI' ) ) {
         }
     }
 }
+
+if ( ! class_exists( 'WP_Block_Patterns_Registry' ) ) {
+    /**
+     * Minimal stub for WP_Block_Patterns_Registry.
+     * The real class is a singleton; this stub mirrors the interface used by tests.
+     * $instance is public so tests can inject a mock directly.
+     */
+    class WP_Block_Patterns_Registry {
+        /** @var static|null */
+        public static $instance = null;
+
+        public static function get_instance(): static {
+            if ( null === static::$instance ) {
+                static::$instance = new static();
+            }
+            return static::$instance;
+        }
+
+        /**
+         * @return array<int,array<string,mixed>>
+         */
+        public function get_all_registered(): array {
+            return array();
+        }
+    }
+}

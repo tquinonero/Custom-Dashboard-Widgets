@@ -1172,4 +1172,83 @@ class CliServiceHandlersTest extends CDWTestCase {
         $this->assertTrue( $result['success'] );
         $this->assertStringContainsString( 'core version', $result['output'] );
     }
+
+    // -----------------------------------------------------------------------
+    // media list
+    // -----------------------------------------------------------------------
+
+    public function test_media_list_returns_attachment_details(): void {
+        $this->stubExecute();
+        $att          = new \stdClass();
+        $att->ID      = 42;
+        $att->guid    = 'https://example.com/wp-content/uploads/photo.jpg';
+        $att->post_mime_type = 'image/jpeg';
+        $att->post_date      = '2026-01-10 12:00:00';
+        Functions\when( 'get_posts' )->justReturn( array( $att ) );
+
+        $result = $this->exec( 'media list' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsString( '[42]', $result['output'] );
+        $this->assertStringContainsString( 'photo.jpg', $result['output'] );
+        $this->assertStringContainsString( 'image/jpeg', $result['output'] );
+        $this->assertStringContainsString( '2026-01-10', $result['output'] );
+    }
+
+    public function test_media_list_empty_returns_no_attachments_message(): void {
+        $this->stubExecute();
+        Functions\when( 'get_posts' )->justReturn( array() );
+
+        $result = $this->exec( 'media list' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsStringIgnoringCase( 'no media', $result['output'] );
+    }
+
+    public function test_media_unknown_subcmd_returns_help(): void {
+        $this->stubExecute();
+
+        $result = $this->exec( 'media' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsString( 'media list', $result['output'] );
+    }
+
+    // -----------------------------------------------------------------------
+    // block-patterns list
+    // -----------------------------------------------------------------------
+
+    public function test_block_patterns_list_returns_pattern_names(): void {
+        $this->stubExecute();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+
+        // Inject a stub registry directly — Brain\Monkey cannot mock static methods.
+        $registry = new class extends \WP_Block_Patterns_Registry {
+            public function get_all_registered(): array {
+                return array(
+                    array( 'name' => 'greenshift/hero',  'title' => 'Hero Section', 'categories' => array( 'featured' ) ),
+                    array( 'name' => 'greenshift/cards', 'title' => 'Card Grid',    'categories' => array( 'columns' ) ),
+                );
+            }
+        };
+        \WP_Block_Patterns_Registry::$instance = $registry;
+
+        $result = $this->exec( 'block-patterns list' );
+
+        // Reset singleton so it does not bleed into other tests.
+        \WP_Block_Patterns_Registry::$instance = null;
+
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsString( 'greenshift/hero',  $result['output'] );
+        $this->assertStringContainsString( 'greenshift/cards', $result['output'] );
+    }
+
+    public function test_block_patterns_unknown_subcmd_returns_help(): void {
+        $this->stubExecute();
+
+        $result = $this->exec( 'block-patterns' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsString( 'block-patterns list', $result['output'] );
+    }
 }

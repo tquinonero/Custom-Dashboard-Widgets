@@ -339,6 +339,32 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 				),
 			),
 			array(
+				'category' => 'Media',
+				'commands' => array(
+					array(
+						'name'        => 'media list',
+						'description' => 'List recent media attachments (20)',
+					),
+					array(
+						'name'        => 'media list <count>',
+						'description' => 'List N most recent media attachments',
+					),
+				),
+			),
+			array(
+				'category' => 'Block Patterns',
+				'commands' => array(
+					array(
+						'name'        => 'block-patterns list',
+						'description' => 'List all registered block patterns',
+					),
+					array(
+						'name'        => 'block-patterns list <category>',
+						'description' => 'List block patterns in a category',
+					),
+				),
+			),
+			array(
 				'category' => 'Cache',
 				'commands' => array(
 					array(
@@ -394,7 +420,7 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 					),
 				),
 			),
-				array(
+			array(
 				'category' => 'Core',
 				'commands' => array(
 					array(

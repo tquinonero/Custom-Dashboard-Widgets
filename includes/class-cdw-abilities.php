@@ -851,11 +851,110 @@ class CDW_Abilities {
 				'readonly'    => false,
 				'destructive' => false,
 			),
+			// ---------------------------------------------------------------
+			// Media
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'cdw/media-list',
+				'label'       => __( 'List Media', 'cdw' ),
+				'desc'        => __( 'Lists recent media attachments with ID, filename, MIME type, and upload date.', 'cdw' ),
+				'input'       => array(
+					'count' => array(
+						'type'     => 'integer',
+						'required' => false,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => true,
+				'destructive' => false,
+			),
+			// ---------------------------------------------------------------
+			// Block Patterns
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'cdw/block-patterns-list',
+				'label'       => __( 'List Block Patterns', 'cdw' ),
+				'desc'        => __( 'Returns all registered block patterns with name, title, and categories. Optionally filter by category slug.', 'cdw' ),
+				'input'       => array(
+					'category' => array(
+						'type'     => 'string',
+						'required' => false,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => true,
+				'destructive' => false,
+			),
 		);
 
 		foreach ( $abilities as $ability ) {
 			self::register_one( $ability, $permission_cb );
 		}
+
+		// ---------------------------------------------------------------
+		// post-set-content: abilities-only (no CLI equivalent).
+		// Block markup contains quotes, newlines, and angle brackets that
+		// cannot survive the whitespace-tokenised CLI command parser.
+		// ---------------------------------------------------------------
+		wp_register_ability(
+			'cdw/post-set-content',
+			array(
+				'label'               => __( 'Set Post Content', 'cdw' ),
+				'description'         => __( 'Writes raw block markup (post_content) to an existing post or page. Use this to build pages with block-based page builders such as Greenshift.', 'cdw' ),
+				'category'            => 'cdw-admin-tools',
+				'permission_callback' => $permission_cb,
+				'execute_callback'    => function ( $input = array() ) {
+					$post_id = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
+					$content = isset( $input['content'] ) ? (string) $input['content'] : '';
+
+					if ( $post_id <= 0 ) {
+						return new \WP_Error( 'invalid_post_id', 'post_id is required and must be a positive integer.' );
+					}
+					if ( ! get_post( $post_id ) ) {
+						return new \WP_Error( 'post_not_found', "Post $post_id not found." );
+					}
+					if ( ! current_user_can( 'edit_post', $post_id ) ) {
+						return new \WP_Error( 'forbidden', 'You do not have permission to edit this post.' );
+					}
+
+					$result = wp_update_post(
+						array(
+							'ID'           => $post_id,
+							'post_content' => $content,
+						),
+						true
+					);
+
+					if ( is_wp_error( $result ) ) {
+						return $result;
+					}
+
+					return array( 'output' => "Post $post_id content updated successfully." );
+				},
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'post_id' => array(
+							'type'        => 'integer',
+							'description' => 'ID of the post or page to update.',
+						),
+						'content' => array(
+							'type'        => 'string',
+							'description' => 'Raw block markup (WordPress block HTML comments) to write to post_content.',
+						),
+					),
+					'required'   => array( 'post_id', 'content' ),
+				),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'readonly'     => false,
+					'idempotent'   => false,
+					'annotations'  => array(
+						'destructive' => false,
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -898,8 +997,19 @@ class CDW_Abilities {
 			),
 		);
 
-		// Only add input_schema when the ability actually accepts parameters.
-		if ( ! empty( $ability['input'] ) ) {
+		// Only add input_schema when at least one parameter is required.
+		// Abilities with only optional params must omit input_schema: WP REST
+		// decodes an empty JSON body ({}) as a PHP empty array [], which fails
+		// rest_is_object() validation — so registering a schema for all-optional
+		// abilities would block callers that legitimately pass no arguments.
+		$has_required = false;
+		foreach ( $ability['input'] as $param ) {
+			if ( ! empty( $param['required'] ) ) {
+				$has_required = true;
+				break;
+			}
+		}
+		if ( $has_required ) {
 			$args['input_schema'] = array(
 				'type'       => 'object',
 				'properties' => $ability['input'],
@@ -1024,6 +1134,14 @@ class CDW_Abilities {
 				return 'transient delete ' . self::sanitize_cli_arg( (string) $input['name'] );
 			case 'cdw/cron-run':
 				return 'cron run ' . self::sanitize_cli_arg( (string) $input['hook'] );
+			case 'cdw/media-list':
+				$count = isset( $input['count'] ) ? (int) $input['count'] : 20;
+				return 'media list ' . $count;
+			case 'cdw/block-patterns-list':
+				if ( ! empty( $input['category'] ) ) {
+					return 'block-patterns list ' . self::sanitize_cli_arg( (string) $input['category'] );
+				}
+				return 'block-patterns list';
 			default:
 				return '';
 		}
