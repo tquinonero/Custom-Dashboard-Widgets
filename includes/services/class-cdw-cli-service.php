@@ -1813,9 +1813,53 @@ class CDW_CLI_Service {
 					'output'  => implode( "\n", $lines ),
 					'success' => true,
 				);
+			case 'get':
+				if ( empty( $args[0] ) ) {
+					return array(
+						'output'  => 'Usage: block-patterns get <pattern-name>',
+						'success' => false,
+					);
+				}
+				$pattern_name = sanitize_text_field( $args[0] );
+				$registry     = \WP_Block_Patterns_Registry::get_instance();
+				$patterns     = $registry->get_all_registered();
+
+				$matched = null;
+				foreach ( $patterns as $pattern ) {
+					if ( $pattern['name'] === $pattern_name ) {
+						$matched = $pattern;
+						break;
+					}
+				}
+
+				if ( ! $matched ) {
+					return array(
+						'output'  => "Pattern not found: $pattern_name",
+						'success' => false,
+					);
+				}
+
+				$content = isset( $matched['content'] ) ? $matched['content'] : '';
+				if ( empty( $content ) ) {
+					return array(
+						'output'  => "Pattern \"$pattern_name\" has no content.",
+						'success' => false,
+					);
+				}
+
+				$content_base64 = base64_encode( $content );
+
+				return array(
+					'output'         => "Pattern \"$pattern_name\" retrieved. Length: " . strlen( $content ) . ' bytes.',
+					'name'           => $pattern_name,
+					'title'          => isset( $matched['title'] ) ? $matched['title'] : '',
+					'content_length' => strlen( $content ),
+					'content_base64' => $content_base64,
+					'success'        => true,
+				);
 			default:
 				return array(
-					'output'  => "Available block-patterns commands:\n  block-patterns list [<category>]  - List registered block patterns",
+					'output'  => "Available block-patterns commands:\n  block-patterns list [<category>]  - List registered block patterns\n  block-patterns get <name>          - Get pattern content (base64)",
 					'success' => true,
 				);
 		}

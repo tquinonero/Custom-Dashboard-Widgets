@@ -28,9 +28,9 @@
 | Page           | page create <title>                                                                           |
 | Media          | media list [<count>]                                                                          |
 | Skills         | skill list, skill get <plugin-slug> <skill-name> [<file>]                                     |
-| Block Patterns | block-patterns list [<category>]                                                              |
+| Block Patterns | block-patterns list [<category>], block-patterns get <name>                                    |
 
-**Abilities / AI assistant only (not in CLI widget):** `task list`, `task create <name>`, `task delete`, `post set-content`, `post append-content`.
+**Abilities / AI assistant only (not in CLI widget):** `task list`, `task create <name>`, `task delete`, `post set-content`, `post get-content`, `post append-content`, `block-patterns get`.
 
 --- TESTED
 
@@ -151,3 +151,36 @@ For AI tool coverage also update:
 Tests to add (per command):
    - tests/php/unit/CliServiceHandlersTest.php — success case, error/no-args case,
      WP_Error propagation where applicable.
+
+---
+
+### Structured Page Builder (cdw/build-page)
+
+Accepts JSON input to generate Gutenberg block markup. This is abilities-only (no CLI equivalent - JSON input cannot survive whitespace tokeniser).
+
+**Abilities-only command (not in CLI widget or AI tools):**
+
+Input:
+```json
+{
+  "title": "Page Title",
+  "sections": [
+    {"type": "cover", "title": "Hero", "image": "url"},
+    {"type": "two-column", "left": {"image": "url"}, "right": {"heading": "...", "text": "..."}},
+    {"type": "footer", "columns": [...]}
+  ]
+}
+```
+
+Implementation:
+1. New ability `cdw/build-page` in `includes/class-cdw-abilities.php`
+2. New renderer file: `includes/renderers/class-cdw-section-renderers.php`
+   - render_cover_section()
+   - render_two_column_section()
+   - render_three_column_section()
+   - render_footer_section()
+3. Each renderer returns Gutenberg block markup string
+4. Main handler concatenates and creates/updates post
+5. Returns post_id, title, section_count
+
+---

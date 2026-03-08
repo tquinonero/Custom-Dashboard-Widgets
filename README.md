@@ -20,7 +20,7 @@ Custom Dashboard Widgets replaces the default WordPress dashboard with a modern,
 - **Modern Design** - Clean, professional styling that matches WordPress admin
 - **CLI Terminal** - Built-in command line interface for managing plugins, themes, users, and more
 - **AI Assistant** - Conversational AI that can manage your site using natural language (supports OpenAI, Anthropic, Google Gemini, and any OpenAI-compatible endpoint such as OpenRouter or Groq)
-- **WordPress Abilities API** - All 41 CDW tools registered as native WP Abilities (WP 6.9+), accessible via the `wp-abilities/v1` REST namespace and any compatible MCP adapter
+- **WordPress Abilities API** - All 62 CDW tools registered as native WP Abilities (WP 6.9+), accessible via the `wp-abilities/v1` REST namespace and any compatible MCP adapter
 - **Fully Customizable** - Configure widget appearance with colors and font sizes
 
 ### Widgets
@@ -210,7 +210,7 @@ Security notes:
 | **Security** | Protected option list expanded; `wp-tests-config.php` gitignored; API keys AES-256-CBC encrypted |
 | **Uninstall** | Full cleanup of all plugin data including encrypted AI API keys |
 | **AI Assistant** | Per-user encrypted API keys; OpenAI, Anthropic, Google, custom endpoints; agentic loop with tool calling |
-| **WordPress Abilities API** | 41 CDW tools registered as WP Abilities (WP 6.9+); REST-exposed via `wp-abilities/v1`; MCP opt-in toggle |
+| **WordPress Abilities API** | 62 CDW tools registered as WP Abilities (WP 6.9+); REST-exposed via `wp-abilities/v1`; MCP opt-in toggle |
 | **Release prep** | `.distignore` created; v3.0.0 tagged and released |
 
 ### 🔲 Future work

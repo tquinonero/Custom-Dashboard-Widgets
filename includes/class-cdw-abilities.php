@@ -927,6 +927,76 @@ class CDW_Abilities {
 		}
 
 		// ---------------------------------------------------------------
+		// block-patterns-get: abilities-only (no CLI equivalent).
+		// Returns raw block markup for a specific pattern by name.
+		// ---------------------------------------------------------------
+		wp_register_ability(
+			'cdw/block-patterns-get',
+			array(
+				'label'               => __( 'Get Block Pattern Content', 'cdw' ),
+				'description'         => __( 'Returns the raw block markup for a specific block pattern by name. Returns base64-encoded content to preserve special characters. Use this to retrieve a pattern before appending it to a page.', 'cdw' ),
+				'category'            => 'cdw-admin-tools',
+				'permission_callback' => $permission_cb,
+				'execute_callback'    => function ( $input = array() ) {
+					$pattern_name = isset( $input['name'] ) ? sanitize_text_field( $input['name'] ) : '';
+
+					if ( empty( $pattern_name ) ) {
+						return new \WP_Error( 'invalid_pattern_name', 'pattern name is required.' );
+					}
+
+					$registry = \WP_Block_Patterns_Registry::get_instance();
+					$patterns = $registry->get_all_registered();
+
+					$matched = null;
+					foreach ( $patterns as $pattern ) {
+						if ( $pattern['name'] === $pattern_name ) {
+							$matched = $pattern;
+							break;
+						}
+					}
+
+					if ( ! $matched ) {
+						return new \WP_Error( 'pattern_not_found', "Pattern not found: $pattern_name" );
+					}
+
+					$content = isset( $matched['content'] ) ? $matched['content'] : '';
+					if ( empty( $content ) ) {
+						return new \WP_Error( 'empty_pattern', "Pattern \"$pattern_name\" has no content." );
+					}
+
+					// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- base64 encoding for safe transfer
+					$content_base64 = base64_encode( $content );
+
+					return array(
+						'output'         => "Pattern \"$pattern_name\" retrieved. Length: " . strlen( $content ) . ' bytes.',
+						'name'           => $pattern_name,
+						'title'          => isset( $matched['title'] ) ? $matched['title'] : '',
+						'content_length' => strlen( $content ),
+						'content_base64' => $content_base64,
+					);
+				},
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'name' => array(
+							'type'        => 'string',
+							'description' => 'Name of the block pattern to retrieve (e.g., blockbase/footer-simple).',
+						),
+					),
+					'required'   => array( 'name' ),
+				),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'readonly'     => true,
+					'idempotent'   => true,
+					'annotations'  => array(
+						'destructive' => false,
+					),
+				),
+			)
+		);
+
+		// ---------------------------------------------------------------
 		// post-set-content: abilities-only (no CLI equivalent).
 		// Block markup contains quotes, newlines, and angle brackets that
 		// cannot survive the whitespace-tokenised CLI command parser.
@@ -942,6 +1012,7 @@ class CDW_Abilities {
 					$post_id = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
 
 					if ( isset( $input['content_base64'] ) && '' !== (string) $input['content_base64'] ) {
+						// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- base64 decoding with strict mode
 						$content = base64_decode( (string) $input['content_base64'], true );
 						if ( false === $content ) {
 							return new \WP_Error( 'invalid_base64', 'content_base64 is not valid base64.' );
@@ -1004,11 +1075,71 @@ class CDW_Abilities {
 			)
 		);
 
-		// ---------------------------------------------------------------
-		// post-append-content: abilities-only (no CLI equivalent).
-		// Appends a block markup chunk to the existing post_content so large
-		// pages can be built in multiple smaller tool calls.
-		// ---------------------------------------------------------------
+			// ---------------------------------------------------------------
+			// post-get-content: abilities-only. Returns full raw post_content
+			// (block markup) so AI can edit it. Base64-encoded to preserve
+			// special characters and avoid JSON escaping issues.
+			// ---------------------------------------------------------------
+			wp_register_ability(
+				'cdw/post-get-content',
+				array(
+					'label'               => __( 'Get Post Content', 'cdw' ),
+					'description'         => __( 'Retrieves the full raw post_content of a WordPress post or page, including all Gutenberg block markup. Returns base64-encoded content to preserve special characters. Use this before editing a page with cdw/post-set-content.', 'cdw' ),
+					'category'            => 'cdw-admin-tools',
+					'permission_callback' => $permission_cb,
+					'execute_callback'    => function ( $input = array() ) {
+						$post_id = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
+
+						if ( $post_id <= 0 ) {
+							return new \WP_Error( 'invalid_post_id', 'post_id is required and must be a positive integer.' );
+						}
+						$post = get_post( $post_id );
+						if ( ! $post ) {
+							return new \WP_Error( 'post_not_found', "Post $post_id not found." );
+						}
+						if ( ! current_user_can( 'edit_post', $post_id ) ) {
+							return new \WP_Error( 'forbidden', 'You do not have permission to edit this post.' );
+						}
+
+						$content        = $post->post_content;
+						$content_length = strlen( $content );
+						// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- base64 encoding block markup for safe transfer
+						$content_base64 = base64_encode( $content );
+
+						return array(
+							'output'         => "Post $post_id content retrieved. Length: $content_length bytes.",
+							'post_id'        => $post_id,
+							'title'          => $post->post_title,
+							'content_length' => $content_length,
+							'content_base64' => $content_base64,
+						);
+					},
+					'input_schema'        => array(
+						'type'       => 'object',
+						'properties' => array(
+							'post_id' => array(
+								'type'        => 'integer',
+								'description' => 'ID of the post or page to get content from.',
+							),
+						),
+						'required'   => array( 'post_id' ),
+					),
+					'meta'                => array(
+						'show_in_rest' => true,
+						'readonly'     => true,
+						'idempotent'   => true,
+						'annotations'  => array(
+							'destructive' => false,
+						),
+					),
+				)
+			);
+
+			// ---------------------------------------------------------------
+			// post-append-content: abilities-only (no CLI equivalent).
+			// Appends a block markup chunk to the existing post_content so large
+			// pages can be built in multiple smaller tool calls.
+			// ---------------------------------------------------------------
 		wp_register_ability(
 			'cdw/post-append-content',
 			array(
@@ -1020,6 +1151,7 @@ class CDW_Abilities {
 					$post_id = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
 
 					if ( isset( $input['content_base64'] ) && '' !== (string) $input['content_base64'] ) {
+						// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- base64 decoding with strict mode
 						$chunk = base64_decode( (string) $input['content_base64'], true );
 						if ( false === $chunk ) {
 							return new \WP_Error( 'invalid_base64', 'content_base64 is not valid base64.' );
@@ -1087,6 +1219,115 @@ class CDW_Abilities {
 				),
 			)
 		);
+
+		// ---------------------------------------------------------------
+		// build-page: abilities-only (no CLI equivalent).
+		// Accepts structured JSON to generate Gutenberg block markup.
+		// ---------------------------------------------------------------
+		wp_register_ability(
+			'cdw/build-page',
+			array(
+				'label'               => __( 'Build Page', 'cdw' ),
+				'description'         => __( 'Creates a new page or updates an existing one with Gutenberg block markup generated from structured JSON. Input: {"title": "Page Title", "sections": [{"type": "cover", "title": "Hero", "image": "url"}, {"type": "two-column", "left": {...}, "right": {...}}, {"type": "footer", "columns": [...]}]}. Supported section types: cover, two-column, three-column, footer. Returns post_id, title, and section_count.', 'cdw' ),
+				'category'            => 'cdw-admin-tools',
+				'permission_callback' => $permission_cb,
+				'execute_callback'    => function ( $input = array() ) {
+					$title    = isset( $input['title'] ) ? sanitize_text_field( $input['title'] ) : '';
+					$sections = isset( $input['sections'] ) ? (array) $input['sections'] : array();
+					$post_id  = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
+
+					if ( empty( $title ) ) {
+						return new \WP_Error( 'missing_title', 'title is required.' );
+					}
+
+					if ( empty( $sections ) ) {
+						return new \WP_Error( 'missing_sections', 'sections array is required.' );
+					}
+
+					require_once CDW_PLUGIN_DIR . 'includes/renderers/class-cdw-section-renderers.php';
+
+					$content = \CDW_Section_Renderers::render_sections( $sections );
+
+					if ( $post_id > 0 ) {
+						$post = get_post( $post_id );
+						if ( ! $post ) {
+							return new \WP_Error( 'post_not_found', "Post $post_id not found." );
+						}
+						if ( ! current_user_can( 'edit_post', $post_id ) ) {
+							return new \WP_Error( 'forbidden', 'You do not have permission to edit this post.' );
+						}
+
+						$result = wp_update_post(
+							array(
+								'ID'           => $post_id,
+								'post_content' => $content,
+							),
+							true
+						);
+
+						if ( is_wp_error( $result ) ) {
+							return $result;
+						}
+
+						return array(
+							'output'         => "Page $post_id updated with " . count( $sections ) . ' sections.',
+							'post_id'        => $post_id,
+							'title'          => $title,
+							'section_count'  => count( $sections ),
+							'content_length' => strlen( $content ),
+						);
+					} else {
+						$result = wp_insert_post(
+							array(
+								'post_title'   => $title,
+								'post_content' => $content,
+								'post_status'  => 'draft',
+								'post_type'    => 'page',
+							),
+							true
+						);
+
+						if ( is_wp_error( $result ) ) {
+							return $result;
+						}
+
+						return array(
+							'output'         => "Page created (draft): ID=$result, Title=\"$title\"",
+							'post_id'        => $result,
+							'title'          => $title,
+							'section_count'  => count( $sections ),
+							'content_length' => strlen( $content ),
+						);
+					}
+				},
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'title'    => array(
+							'type'        => 'string',
+							'description' => 'Title of the page to create or update.',
+						),
+						'sections' => array(
+							'type'        => 'array',
+							'description' => 'Array of section objects. Supported types: cover, two-column, three-column, footer.',
+						),
+						'post_id'  => array(
+							'type'        => 'integer',
+							'description' => 'Optional. ID of existing page to update. If omitted, creates a new draft page.',
+						),
+					),
+					'required'   => array( 'title', 'sections' ),
+				),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'readonly'     => false,
+					'idempotent'   => false,
+					'annotations'  => array(
+						'destructive' => false,
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -1133,9 +1374,9 @@ class CDW_Abilities {
 		//
 		// - No params at all: omit schema entirely (WP handles it cleanly).
 		// - All params optional: use type=['object','null'] so GET requests with
-		//   no body (null input) pass schema validation alongside real calls with
-		//   an explicit object body.  WP routes readonly abilities as HTTP GET,
-		//   meaning there is no request body; null is the right "no input" value.
+		// no body (null input) pass schema validation alongside real calls with
+		// an explicit object body.  WP routes readonly abilities as HTTP GET,
+		// meaning there is no request body; null is the right "no input" value.
 		// - At least one required param: strict 'object' type.
 		if ( ! empty( $ability['input'] ) ) {
 			$has_required = false;
