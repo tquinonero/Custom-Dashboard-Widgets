@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once CDW_PLUGIN_DIR . 'includes/class-cdw-rest-api.php';
 require_once CDW_PLUGIN_DIR . 'includes/class-cdw-widgets.php';
+require_once CDW_PLUGIN_DIR . 'includes/class-cdw-welcome-page.php';
 require_once CDW_PLUGIN_DIR . 'includes/cli/class-cdw-cli-command.php';
 
 /**
@@ -56,6 +57,11 @@ class CDW_Loader {
 			$this->widgets = new CDW_Widgets();
 			$this->widgets->register();
 
+			add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
+			add_action( 'admin_post_cdw_set_user_type', 'cdw_handle_set_user_type' );
+			add_action( 'admin_post_cdw_reset_user_type', 'cdw_handle_reset_user_type' );
+			add_action( 'admin_notices', array( $this, 'show_welcome_notice' ) );
+			add_action( 'wp_ajax_cdw_dismiss_welcome_notice', array( $this, 'dismiss_welcome_notice' ) );
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_floating_button' ), 20 );
 			add_filter(
@@ -103,7 +109,7 @@ class CDW_Loader {
 	 * @return void
 	 */
 	public function enqueue_assets( $hook_suffix ) {
-		if ( ! in_array( $hook_suffix, array( 'index.php', 'settings_page_cdw-settings' ), true ) ) {
+		if ( ! in_array( $hook_suffix, array( 'index.php', 'settings_page_cdw-settings', 'tools_page_cdw-welcome' ), true ) ) {
 			return;
 		}
 
@@ -434,5 +440,71 @@ class CDW_Loader {
 		);
 
 		return array_values( $categories );
+	}
+
+	/**
+	 * Registers the CDW welcome page.
+	 *
+	 * @return void
+	 */
+	public function register_admin_menu() {
+		add_management_page(
+			__( 'Welcome to CDW', 'cdw' ),
+			__( 'CDW Welcome', 'cdw' ),
+			'manage_options',
+			'cdw-welcome',
+			'cdw_render_welcome_page'
+		);
+	}
+
+	/**
+	 * Shows the welcome admin notice if user hasn't made a choice yet.
+	 *
+	 * @return void
+	 */
+	public function show_welcome_notice() {
+		$user_type = get_option( 'cdw_user_type', null );
+		$dismissed = get_option( 'cdw_welcome_notice_dismissed', false );
+
+		if ( null !== $user_type || $dismissed ) {
+			return;
+		}
+
+		$welcome_url = admin_url( 'tools.php?page=cdw-welcome' );
+		?>
+		<div class="notice notice-info is-dismissible cdw-welcome-notice" id="cdw-welcome-notice">
+			<div style="display: flex; align-items: center; gap: 16px; padding: 12px 0;">
+				<div style="font-size: 32px;">&#127919;</div>
+				<div style="flex: 1;">
+					<p style="margin: 0 0 4px 0; font-weight: 600; font-size: 14px;">
+						<?php esc_html_e( 'Welcome to Custom Dashboard Widgets!', 'cdw' ); ?>
+					</p>
+					<p style="margin: 0; font-size: 13px; color: #646970;">
+						<?php esc_html_e( 'Get started with widgets, CLI commands, and AI assistance for your WordPress site.', 'cdw' ); ?>
+					</p>
+				</div>
+				<div>
+					<a href="<?php echo esc_url( $welcome_url ); ?>" class="button button-primary">
+						<?php esc_html_e( 'Get Started', 'cdw' ); ?>
+					</a>
+				</div>
+			</div>
+		</div>
+		<script>
+		jQuery(document).on('click', '#cdw-welcome-notice .notice-dismiss', function() {
+			jQuery.post(ajaxurl, { action: 'cdw_dismiss_welcome_notice' });
+		});
+		</script>
+		<?php
+	}
+
+	/**
+	 * Dismisses the welcome notice.
+	 *
+	 * @return void
+	 */
+	public function dismiss_welcome_notice() {
+		update_option( 'cdw_welcome_notice_dismissed', true, false );
+		wp_die();
 	}
 }

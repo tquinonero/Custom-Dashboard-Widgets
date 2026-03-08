@@ -76,6 +76,7 @@ export default function SettingsPanel() {
         ai_execution_mode: 'confirm',
         ai_custom_system_prompt: '',
         mcp_public: false,
+        user_type: null,
     });
 
     const [saved, setSaved] = useState(false);
@@ -127,6 +128,7 @@ export default function SettingsPanel() {
                 ai_execution_mode: settings.ai_execution_mode || 'confirm',
                 ai_custom_system_prompt: settings.ai_custom_system_prompt || '',
                 mcp_public: settings.mcp_public === true,
+                user_type: settings.user_type || null,
             });
         }
     }, [settings]);
@@ -266,6 +268,42 @@ export default function SettingsPanel() {
                 <h1>Custom Dashboard Widgets</h1>
                 <p>Configure your dashboard widgets and appearance settings</p>
             </div>
+
+            {/* ============================================================
+                User Type (for resetting onboarding)
+            ============================================================ */}
+            {formData.user_type && (
+                <div className="cdw-settings-section cdw-user-type-section">
+                    <div className="cdw-section-header">
+                        <div className="cdw-section-icon">&#128100;</div>
+                        <h2>Onboarding</h2>
+                    </div>
+
+                    <div className="cdw-field">
+                        <label className="cdw-checkbox-label">
+                            <input
+                                type="checkbox"
+                                name="is_developer"
+                                checked={formData.user_type === 'developer'}
+                                onChange={(e) => {
+                                    const newType = e.target.checked ? 'developer' : 'user';
+                                    setFormData((prev) => ({
+                                        ...prev,
+                                        user_type: newType,
+                                    }));
+                                    setSaved(false);
+                                }}
+                            />
+                            <span>I'm a developer (skip onboarding)</span>
+                        </label>
+                        <span className="description">
+                            Check this if you're comfortable with the plugin and don't need the welcome guide.
+                            {' '}
+                            <a href={cdwData.adminUrl + 'tools.php?page=cdw-welcome'}>View welcome page</a>
+                        </span>
+                    </div>
+                </div>
+            )}
 
             <form onSubmit={handleSubmit}>
                 {/* ============================================================

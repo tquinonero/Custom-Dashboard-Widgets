@@ -63,6 +63,7 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 		$ai_execution_mode       = get_option( 'cdw_ai_execution_mode', 'confirm' );
 		$ai_custom_system_prompt = get_option( 'cdw_ai_custom_system_prompt', '' );
 		$mcp_public              = get_option( 'cdw_mcp_public', false );
+		$user_type                = get_option( 'cdw_user_type', null );
 
 		return rest_ensure_response(
 			array(
@@ -79,6 +80,7 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 				'ai_execution_mode'       => $ai_execution_mode,
 				'ai_custom_system_prompt' => $ai_custom_system_prompt,
 				'mcp_public'              => (bool) $mcp_public,
+				'user_type'               => $user_type,
 			)
 		);
 	}
@@ -177,6 +179,13 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 
 		if ( isset( $settings['mcp_public'] ) ) {
 			update_option( 'cdw_mcp_public', (bool) $settings['mcp_public'], false );
+		}
+
+		if ( isset( $settings['user_type'] ) ) {
+			$user_type = sanitize_text_field( $settings['user_type'] );
+			if ( in_array( $user_type, array( 'developer', 'user' ), true ) ) {
+				update_option( 'cdw_user_type', $user_type, false );
+			}
 		}
 
 		return rest_ensure_response( array( 'success' => true ) );

@@ -29,6 +29,7 @@ const DEFAULT_STATE = {
         remove_default_widgets: true,
         delete_on_uninstall: true,
         mcp_public: false,
+        user_type: null,
     },
     isLoading: {
         stats: false,

@@ -40,6 +40,7 @@ register_deactivation_hook( __FILE__, 'CDW_deactivate' );
  * @return void
  */
 function CDW_activate() {
+	delete_option( 'cdw_user_type' );
 	require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-cli-service.php';
 	$cli_service = new CDW_CLI_Service();
 	$cli_service->create_audit_log_table();
