@@ -426,7 +426,7 @@ class CDW_Abilities {
 				'input'       => array(
 					'status' => array(
 						'type'     => 'string',
-						'required' => false,
+						'required' => true,
 					),
 				),
 				'cli'         => null,
@@ -534,7 +534,7 @@ class CDW_Abilities {
 					),
 					'dry_run' => array(
 						'type'     => 'boolean',
-						'required' => false,
+						'required' => true,
 					),
 				),
 				'cli'         => null,
@@ -620,7 +620,7 @@ class CDW_Abilities {
 				'input'       => array(
 					'user_id' => array(
 						'type'     => 'integer',
-						'required' => false,
+						'required' => true,
 					),
 				),
 				'cli'         => null,
@@ -638,11 +638,11 @@ class CDW_Abilities {
 					),
 					'assignee_login' => array(
 						'type'     => 'string',
-						'required' => false,
+						'required' => true,
 					),
 					'assignee_id'    => array(
 						'type'     => 'integer',
-						'required' => false,
+						'required' => true,
 					),
 				),
 				'cli'         => null,
@@ -656,7 +656,7 @@ class CDW_Abilities {
 				'input'       => array(
 					'user_id' => array(
 						'type'     => 'integer',
-						'required' => false,
+						'required' => true,
 					),
 				),
 				'cli'         => null,
@@ -674,7 +674,22 @@ class CDW_Abilities {
 				'input'       => array(
 					'type' => array(
 						'type'     => 'string',
-						'required' => false,
+						'required' => true,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => true,
+				'destructive' => false,
+			),
+			array(
+				'name'        => 'cdw/post-count',
+				'label'       => __( 'Count Posts', 'cdw' ),
+				'desc'        => __( 'Returns the count of posts by status (publish, draft, pending, trash) for each public post type. Excludes attachments.', 'cdw' ),
+				'input'       => array(
+					'type' => array(
+						'type'     => 'string',
+						'required' => true,
+						'desc'     => __( 'Post type to count (e.g. post, page). Omit for all public post types.', 'cdw' ),
 					),
 				),
 				'cli'         => null,
@@ -861,7 +876,7 @@ class CDW_Abilities {
 				'input'       => array(
 					'count' => array(
 						'type'     => 'integer',
-						'required' => false,
+						'required' => true,
 					),
 				),
 				'cli'         => null,
@@ -913,7 +928,7 @@ class CDW_Abilities {
 				'input'       => array(
 					'category' => array(
 						'type'     => 'string',
-						'required' => false,
+						'required' => true,
 					),
 				),
 				'cli'         => null,
@@ -1345,6 +1360,10 @@ class CDW_Abilities {
 		$static_cli   = $ability['cli'];
 
 		$execute_cb = function ( $input = null ) use ( $ability_name, $static_cli ) {
+			// Convert stdClass to array recursively if needed (MCP sends JSON objects).
+			if ( is_object( $input ) ) {
+				$input = json_decode( json_encode( $input ), true );
+			}
 			$cli_command = $static_cli ?? self::build_cli_command( $ability_name, $input );
 			$service     = new CDW_CLI_Service();
 			$result      = $service->execute_as_ai( $cli_command, get_current_user_id() );
@@ -1372,22 +1391,11 @@ class CDW_Abilities {
 
 		// Register input_schema based on the ability's parameter requirements.
 		//
-		// - No params at all: omit schema entirely (WP handles it cleanly).
-		// - All params optional: use type=['object','null'] so GET requests with
-		// no body (null input) pass schema validation alongside real calls with
-		// an explicit object body.  WP routes readonly abilities as HTTP GET,
-		// meaning there is no request body; null is the right "no input" value.
-		// - At least one required param: strict 'object' type.
+		// - No params at all: omit schema entirely for MCP compatibility.
+		// - Has params: include schema with type='object'.
 		if ( ! empty( $ability['input'] ) ) {
-			$has_required = false;
-			foreach ( $ability['input'] as $param ) {
-				if ( ! empty( $param['required'] ) ) {
-					$has_required = true;
-					break;
-				}
-			}
 			$args['input_schema'] = array(
-				'type'       => $has_required ? 'object' : array( 'object', 'null' ),
+				'type'       => 'object',
 				'properties' => $ability['input'],
 			);
 		}
@@ -1497,6 +1505,9 @@ class CDW_Abilities {
 			case 'cdw/post-list':
 				$type = isset( $input['type'] ) ? self::sanitize_cli_arg( (string) $input['type'] ) : 'post';
 				return 'post list ' . $type;
+			case 'cdw/post-count':
+				$type = isset( $input['type'] ) ? self::sanitize_cli_arg( (string) $input['type'] ) : '';
+				return $type ? 'post count ' . $type : 'post count';
 			case 'cdw/post-status':
 				return 'post status ' . (int) $input['post_id'] . ' ' . self::sanitize_cli_arg( (string) $input['status'] );
 			case 'cdw/post-delete':

@@ -316,6 +316,10 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 						'description' => 'List posts',
 					),
 					array(
+						'name'        => 'post count [<type>]',
+						'description' => 'Count posts by status',
+					),
+					array(
 						'name'        => 'post status <id> <status>',
 						'description' => 'Change post status',
 					),

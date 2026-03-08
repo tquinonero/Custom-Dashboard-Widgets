@@ -82,16 +82,14 @@ class CDW_Loader {
 	 */
 	public function clear_content_cache() {
 		delete_transient( 'cdw_stats_cache' );
+		delete_transient( 'cdw_admin_menu_cache' );
 		global $wpdb;
+
+		// Delete all CDW transients in a single query using REGEXP
+		// Matches: _transient_cdw_posts_cache_*, _transient_cdw_media_cache_*,
+		// _transient_timeout_cdw_posts_cache_*, _transient_timeout_cdw_media_cache_*
 		$wpdb->query(
-			$wpdb->prepare(
-				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s
-             OR option_name LIKE %s OR option_name LIKE %s",
-				$wpdb->esc_like( '_transient_cdw_posts_cache_' ) . '%',
-				$wpdb->esc_like( '_transient_cdw_media_cache_' ) . '%',
-				$wpdb->esc_like( '_transient_timeout_cdw_posts_cache_' ) . '%',
-				$wpdb->esc_like( '_transient_timeout_cdw_media_cache_' ) . '%'
-			)
+			"DELETE FROM {$wpdb->options} WHERE option_name REGEXP '^_transient(_timeout)?_cdw_(posts|media)_cache_'"
 		);
 	}
 
@@ -392,9 +390,15 @@ class CDW_Loader {
 	 * @return array
 	 */
 	private function get_admin_menu_data() {
-		$excluded   = array( 'tools', 'other' );
-		$categories = $this->build_all_menu_categories();
+		$cached = get_transient( 'cdw_admin_menu_cache' );
+		if ( is_array( $cached ) ) {
+			$categories = $cached;
+		} else {
+			$categories = $this->build_all_menu_categories();
+			set_transient( 'cdw_admin_menu_cache', $categories, HOUR_IN_SECONDS );
+		}
 
+		$excluded = array( 'tools', 'other' );
 		$categories = array_filter(
 			$categories,
 			function ( $cat, $key ) use ( $excluded ) {
@@ -412,9 +416,15 @@ class CDW_Loader {
 	 * @return array
 	 */
 	private function get_admin_tools_data() {
-		$included   = array( 'tools', 'other' );
-		$categories = $this->build_all_menu_categories();
+		$cached = get_transient( 'cdw_admin_menu_cache' );
+		if ( is_array( $cached ) ) {
+			$categories = $cached;
+		} else {
+			$categories = $this->build_all_menu_categories();
+			set_transient( 'cdw_admin_menu_cache', $categories, HOUR_IN_SECONDS );
+		}
 
+		$included = array( 'tools', 'other' );
 		$categories = array_filter(
 			$categories,
 			function ( $cat, $key ) use ( $included ) {

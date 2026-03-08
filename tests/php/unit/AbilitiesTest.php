@@ -70,7 +70,7 @@ class AbilitiesTest extends CDWTestCase {
 
 		\CDW_Abilities::register_abilities();
 
-		$this->assertSame( 63, $count );
+		$this->assertSame( 64, $count );
 	}
 
 	// -----------------------------------------------------------------------

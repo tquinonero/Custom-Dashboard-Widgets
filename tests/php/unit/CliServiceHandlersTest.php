@@ -892,6 +892,83 @@ class CliServiceHandlersTest extends CDWTestCase {
     }
 
     // -----------------------------------------------------------------------
+    // post count
+    // -----------------------------------------------------------------------
+
+    public function test_post_count_no_args_returns_all_public_types(): void {
+        $this->stubExecute();
+
+        // WordPress returns associative array: ['post' => 'post', 'page' => 'page', 'attachment' => 'attachment']
+        Functions\when( 'get_post_types' )->justReturn( array(
+            'post' => 'post',
+            'page' => 'page',
+            'attachment' => 'attachment',
+        ) );
+        Functions\when( 'wp_count_posts' )->justReturn(
+            (object) array(
+                'publish' => 10,
+                'draft'   => 2,
+                'pending' => 1,
+                'trash'   => 0,
+            )
+        );
+        Functions\when( 'get_post_type_object' )->alias(
+            function( $type ) {
+                // Always return an object with labels property
+                $obj = new \stdClass();
+                $obj->labels = new \stdClass();
+                if ( 'post' === $type ) {
+                    $obj->labels->singular_name = 'Post';
+                } elseif ( 'page' === $type ) {
+                    $obj->labels->singular_name = 'Page';
+                }
+                return $obj;
+            }
+        );
+        Functions\when( 'sanitize_text_field' )->returnArg();
+
+        $result = $this->exec( 'post count' );
+
+        $this->assertTrue( $result['success'], 'Output: ' . $result['output'] );
+        $this->assertStringContainsString( 'Post counts by type', $result['output'] );
+        $this->assertStringContainsString( 'publish:', $result['output'] );
+    }
+
+    public function test_post_count_specific_type_returns_counts(): void {
+        $this->stubExecute();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'get_post_type_object' )->justReturn(
+            (object) array( 'public' => true )
+        );
+        Functions\when( 'wp_count_posts' )->justReturn(
+            (object) array(
+                'publish' => 5,
+                'draft'   => 3,
+                'pending' => 0,
+                'trash'   => 1,
+            )
+        );
+
+        $result = $this->exec( 'post count page' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsString( 'Post counts for type: page', $result['output'] );
+        $this->assertStringContainsString( 'publish:  5', $result['output'] );
+        $this->assertStringContainsString( 'draft:    3', $result['output'] );
+    }
+
+    public function test_post_count_invalid_type_returns_error(): void {
+        $this->stubExecute();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'get_post_type_object' )->justReturn( null );
+
+        $result = $this->exec( 'post count invalid_type' );
+
+        $this->assertFalse( $result['success'] );
+        $this->assertStringContainsString( 'Invalid or non-public post type', $result['output'] );
+    }
+
+    // -----------------------------------------------------------------------
     // comment list
     // -----------------------------------------------------------------------
 

@@ -986,6 +986,20 @@ class CDW_AI_Service {
 				),
 			),
 			array(
+				'name'        => 'post_count',
+				'description' => 'Count posts by status (publish, draft, pending, trash) for each public post type. Excludes attachments. Optionally filter by post type.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(
+						'type' => array(
+							'type'        => 'string',
+							'description' => 'Post type to count (e.g. "post", "page"). Omit for all public post types.',
+						),
+					),
+					'required'   => array(),
+				),
+			),
+			array(
 				'name'        => 'post_status',
 				'description' => 'Change the status of an existing post.',
 				'parameters'  => array(
@@ -1205,6 +1219,15 @@ class CDW_AI_Service {
 					'required'   => array( 'post_id', 'content' ),
 				),
 			),
+			array(
+				'name'        => 'gutenberg_guide',
+				'description' => 'Returns a comprehensive reference guide for constructing page content using Gutenberg block markup syntax. Use this when you need to build pages with cover blocks, columns, images, custom CSS, or any other Gutenberg blocks.',
+				'parameters'  => array(
+					'type'       => 'object',
+					'properties' => array(),
+					'required'   => array(),
+				),
+			),
 
 		);
 	}
@@ -1271,6 +1294,39 @@ class CDW_AI_Service {
 	 * @return string Text output of the command (or error message).
 	 */
 	public static function execute_tool_call( $function_name, $arguments, $user_id ) {
+		// gutenberg_guide returns a reference guide for building pages with blocks
+		if ( 'gutenberg_guide' === $function_name ) {
+			$guide = array(
+				'intro' => 'Use Gutenberg block markup to create page content. Pass raw block HTML to cdw/post-set-content or cdw/post-append-content.',
+				'blocks' => array(
+					'cover' => array(
+						'description' => 'Full-width hero/cover section',
+						'attributes' => array( 'url', 'alt', 'align', 'minHeight' ),
+						'example' => "<!-- wp:cover {\"url\":\"https://example.com/image.jpg\",\"align\":\"full\",\"minHeight\":600} -->\n<div class=\"wp-block-cover alignfull\" style=\"min-height:600px\">\n  <span class=\"wp-block-cover__background has-background-dim-40\"></span>\n  <div class=\"wp-block-cover__inner-container\">\n    <h1 class=\"has-text-align-center has-white-color\">Title</h1>\n    <p class=\"has-text-align-center has-white-color\">Subtitle</p>\n  </div>\n</div>\n<!-- /wp:cover -->",
+					),
+					'columns' => array(
+						'description' => 'Multi-column layout',
+						'example' => "<!-- wp:columns -->\n<div class=\"wp-block-columns\">\n  <div class=\"wp-block-column\"><p>Column 1</p></div>\n  <div class=\"wp-block-column\"><p>Column 2</p></div>\n</div>\n<!-- /wp:columns -->",
+					),
+					'image' => array(
+						'description' => 'Image block',
+						'example' => "<!-- wp:image {\"align\":\"center\"} -->\n<figure class=\"wp-block-image aligncenter\"><img src=\"https://example.com/image.jpg\" alt=\"Description\"/></figure>\n<!-- /wp:image -->",
+					),
+					'html' => array(
+						'description' => 'Custom HTML/CSS block',
+						'example' => "<!-- wp:html -->\n<style>.my-class { color: red; }</style>\n<!-- /wp:html -->",
+					),
+				),
+				'workflow' => array(
+					'1. Get existing content' => 'cdw/post-get-content with post_id',
+					'2. Create new page' => 'cdw/page-create or cdw/build-page',
+					'3. Add blocks' => 'cdw/post-set-content with full block markup, OR cdw/post-append-content to add chunks',
+					'4. For CSS' => 'Use <!-- wp:html --> block with <style> tags',
+				),
+			);
+			return $guide;
+		}
+
 		// post_set_content is handled directly: block markup contains quotes,
 		// newlines, and angle brackets that cannot survive the CLI tokeniser.
 		if ( 'post_set_content' === $function_name ) {
@@ -1491,6 +1547,9 @@ class CDW_AI_Service {
 			case 'post_list':
 				$type = isset( $arguments['type'] ) ? trim( (string) $arguments['type'] ) : 'post';
 				return 'post list ' . $type;
+			case 'post_count':
+				$type = isset( $arguments['type'] ) ? trim( (string) $arguments['type'] ) : '';
+				return $type ? 'post count ' . $type : 'post count';
 			case 'post_status':
 				$post_id = isset( $arguments['post_id'] ) ? (int) $arguments['post_id'] : 0;
 				$status  = isset( $arguments['status'] ) ? trim( (string) $arguments['status'] ) : '';

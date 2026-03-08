@@ -111,7 +111,7 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 			if ( ! empty( $email ) && ! is_email( $email ) ) {
 				return new WP_Error( 'invalid_email', 'Invalid email address', array( 'status' => 400 ) );
 			}
-			update_option( 'cdw_support_email', $email );
+			update_option( 'cdw_support_email', $email, false );
 			update_option( 'custom_dashboard_widget_email', $email );
 		}
 
@@ -120,63 +120,63 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 			if ( ! empty( $url ) && ! preg_match( '#^https?://#i', $url ) ) {
 				$url = '';
 			}
-			update_option( 'cdw_docs_url', $url );
+			update_option( 'cdw_docs_url', $url, false );
 			update_option( 'custom_dashboard_widget_docs_url', $url );
 		}
 
 		if ( isset( $settings['font_size'] ) ) {
 			$size = sanitize_text_field( $settings['font_size'] );
-			update_option( 'cdw_font_size', $size );
+			update_option( 'cdw_font_size', $size, false );
 			update_option( 'custom_dashboard_widget_font_size', $size );
 		}
 
 		if ( isset( $settings['bg_color'] ) ) {
 			$color = sanitize_hex_color( $settings['bg_color'] );
-			update_option( 'cdw_bg_color', $color );
+			update_option( 'cdw_bg_color', $color, false );
 			update_option( 'custom_dashboard_widget_background_color', $color );
 		}
 
 		if ( isset( $settings['header_bg_color'] ) ) {
 			$color = sanitize_hex_color( $settings['header_bg_color'] );
-			update_option( 'cdw_header_bg_color', $color );
+			update_option( 'cdw_header_bg_color', $color, false );
 			update_option( 'custom_dashboard_widget_header_background_color', $color );
 		}
 
 		if ( isset( $settings['header_text_color'] ) ) {
 			$color = sanitize_hex_color( $settings['header_text_color'] );
-			update_option( 'cdw_header_text_color', $color );
+			update_option( 'cdw_header_text_color', $color, false );
 			update_option( 'custom_dashboard_widget_header_text_color', $color );
 		}
 
 		if ( isset( $settings['cli_enabled'] ) ) {
-			update_option( 'cdw_cli_enabled', (bool) $settings['cli_enabled'] );
+			update_option( 'cdw_cli_enabled', (bool) $settings['cli_enabled'], false );
 		}
 
 		if ( isset( $settings['remove_default_widgets'] ) ) {
-			update_option( 'cdw_remove_default_widgets', (bool) $settings['remove_default_widgets'] );
+			update_option( 'cdw_remove_default_widgets', (bool) $settings['remove_default_widgets'], false );
 		}
 
 		if ( isset( $settings['delete_on_uninstall'] ) ) {
-			update_option( 'cdw_delete_on_uninstall', (bool) $settings['delete_on_uninstall'] );
+			update_option( 'cdw_delete_on_uninstall', (bool) $settings['delete_on_uninstall'], false );
 		}
 
 		if ( isset( $settings['ai_enabled'] ) ) {
-			update_option( 'cdw_ai_enabled', (bool) $settings['ai_enabled'] );
+			update_option( 'cdw_ai_enabled', (bool) $settings['ai_enabled'], false );
 		}
 
 		if ( isset( $settings['ai_execution_mode'] ) ) {
 			$mode = sanitize_text_field( $settings['ai_execution_mode'] );
 			if ( in_array( $mode, array( 'auto', 'confirm' ), true ) ) {
-				update_option( 'cdw_ai_execution_mode', $mode );
+				update_option( 'cdw_ai_execution_mode', $mode, false );
 			}
 		}
 
 		if ( isset( $settings['ai_custom_system_prompt'] ) ) {
-			update_option( 'cdw_ai_custom_system_prompt', sanitize_textarea_field( $settings['ai_custom_system_prompt'] ) );
+			update_option( 'cdw_ai_custom_system_prompt', sanitize_textarea_field( $settings['ai_custom_system_prompt'] ), false );
 		}
 
 		if ( isset( $settings['mcp_public'] ) ) {
-			update_option( 'cdw_mcp_public', (bool) $settings['mcp_public'] );
+			update_option( 'cdw_mcp_public', (bool) $settings['mcp_public'], false );
 		}
 
 		return rest_ensure_response( array( 'success' => true ) );

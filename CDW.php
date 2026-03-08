@@ -43,10 +43,10 @@ function CDW_activate() {
 	require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-cli-service.php';
 	$cli_service = new CDW_CLI_Service();
 	$cli_service->create_audit_log_table();
-	update_option( 'cdw_db_version', CDW_CLI_Service::DB_VERSION );
-	update_option( 'cdw_cli_enabled', true );
-	update_option( 'cdw_remove_default_widgets', true );
-	update_option( 'cdw_delete_on_uninstall', true );
+	update_option( 'cdw_db_version', CDW_CLI_Service::DB_VERSION, false );
+	update_option( 'cdw_cli_enabled', true, false );
+	update_option( 'cdw_remove_default_widgets', true, false );
+	update_option( 'cdw_delete_on_uninstall', true, false );
 }
 
 /**

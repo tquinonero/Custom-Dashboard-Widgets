@@ -1669,9 +1669,50 @@ class CDW_CLI_Service {
 					'success' => true,
 				);
 
+			case 'count':
+				$post_type = ! empty( $args[0] ) ? sanitize_text_field( $args[0] ) : null;
+
+				if ( $post_type ) {
+					$type_obj = get_post_type_object( $post_type );
+					if ( ! $type_obj || ! $type_obj->public ) {
+						return array(
+							'output'  => "Invalid or non-public post type: $post_type",
+							'success' => false,
+						);
+					}
+					$counts = wp_count_posts( $post_type );
+					$output  = "Post counts for type: $post_type\n";
+					$output .= "  publish:  " . (int) $counts->publish . "\n";
+					$output .= "  draft:    " . (int) $counts->draft . "\n";
+					$output .= "  pending:  " . (int) $counts->pending . "\n";
+					$output .= "  trash:    " . (int) $counts->trash . "\n";
+					return array(
+						'output'  => $output,
+						'success' => true,
+					);
+				}
+
+				$types = get_post_types( array( 'public' => true ) );
+				unset( $types['attachment'] );
+				$output = "Post counts by type:\n";
+				foreach ( $types as $type ) {
+					$counts = wp_count_posts( $type );
+					$type_obj = get_post_type_object( $type );
+					$label = $type_obj ? $type_obj->labels->singular_name : $type;
+					$output .= "$label:\n";
+					$output .= "  publish:  " . (int) $counts->publish . "\n";
+					$output .= "  draft:    " . (int) $counts->draft . "\n";
+					$output .= "  pending:  " . (int) $counts->pending . "\n";
+					$output .= "  trash:    " . (int) $counts->trash . "\n";
+				}
+				return array(
+					'output'  => $output,
+					'success' => true,
+				);
+
 			default:
 				return array(
-					'output'  => "Available post commands:\n  post create <title> [--publish]  - Create a post (draft or published)\n  post get <id>                    - Get post details\n  post list [<type>]               - List posts\n  post delete <id>                 - Delete post\n  post status <id> <status>        - Change post status",
+					'output'  => "Available post commands:\n  post create <title> [--publish]  - Create a post (draft or published)\n  post get <id>                    - Get post details\n  post list [<type>]               - List posts\n  post count [<type>]               - Count posts by status\n  post delete <id>                 - Delete post\n  post status <id> <status>        - Change post status",
 					'success' => true,
 				);
 		}
