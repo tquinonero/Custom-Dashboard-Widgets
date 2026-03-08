@@ -1251,4 +1251,108 @@ class CliServiceHandlersTest extends CDWTestCase {
         $this->assertTrue( $result['success'] );
         $this->assertStringContainsString( 'block-patterns list', $result['output'] );
     }
+
+    // -----------------------------------------------------------------------
+    // skill list
+    // -----------------------------------------------------------------------
+
+    public function test_skill_list_returns_no_skills_message_when_empty(): void {
+        $this->stubExecute();
+        Functions\when( 'glob' )->justReturn( array() );
+
+        $result = $this->exec( 'skill list' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsString( 'No plugin skills found', $result['output'] );
+    }
+
+    public function test_skill_list_shows_plugin_and_skill_name(): void {
+        $this->stubExecute();
+        Functions\when( 'glob' )->justReturn( array(
+            '/fake/plugins/greenshift-foo/skills/greenlight-vibe/SKILL.md',
+        ) );
+
+        $result = $this->exec( 'skill list' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsString( 'greenshift-foo', $result['output'] );
+        $this->assertStringContainsString( 'greenlight-vibe', $result['output'] );
+    }
+
+    // -----------------------------------------------------------------------
+    // skill get
+    // -----------------------------------------------------------------------
+
+    public function test_skill_get_missing_args_returns_usage_error(): void {
+        $this->stubExecute();
+
+        $result = $this->exec( 'skill get' );
+
+        $this->assertFalse( $result['success'] );
+        $this->assertStringContainsString( 'Usage:', $result['output'] );
+    }
+
+    public function test_skill_get_rejects_non_md_file(): void {
+        $this->stubExecute();
+        Functions\when( 'sanitize_key' )->returnArg();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+
+        $result = $this->exec( 'skill get my-plugin my-skill config.php' );
+
+        $this->assertFalse( $result['success'] );
+        $this->assertStringContainsString( '.md', $result['output'] );
+    }
+
+    public function test_skill_get_rejects_dotdot_traversal(): void {
+        $this->stubExecute();
+        Functions\when( 'sanitize_key' )->returnArg();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+
+        $result = $this->exec( 'skill get my-plugin my-skill ../../wp-config.md' );
+
+        $this->assertFalse( $result['success'] );
+        $this->assertStringContainsStringIgnoringCase( 'access denied', $result['output'] );
+    }
+
+    public function test_skill_get_returns_not_found_when_realpath_fails(): void {
+        $this->stubExecute();
+        Functions\when( 'sanitize_key' )->returnArg();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'realpath' )->justReturn( false );
+
+        $result = $this->exec( 'skill get my-plugin my-skill' );
+
+        $this->assertFalse( $result['success'] );
+        $this->assertStringContainsString( 'not found', $result['output'] );
+    }
+
+    public function test_skill_get_returns_file_contents_on_success(): void {
+        $this->stubExecute();
+        Functions\when( 'sanitize_key' )->returnArg();
+        Functions\when( 'sanitize_text_field' )->returnArg();
+
+        $plugins_dir = '/fake/plugins';
+        Functions\when( 'realpath' )->alias( function ( $path ) use ( $plugins_dir ) {
+            if ( $path === WP_PLUGIN_DIR ) {
+                return $plugins_dir;
+            }
+            return $plugins_dir . '/my-plugin/skills/my-skill/SKILL.md';
+        } );
+        Functions\when( 'file_get_contents' )->justReturn( '# My Skill' );
+
+        $result = $this->exec( 'skill get my-plugin my-skill' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsString( '# My Skill', $result['output'] );
+    }
+
+    public function test_skill_unknown_subcmd_returns_help(): void {
+        $this->stubExecute();
+
+        $result = $this->exec( 'skill' );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertStringContainsString( 'skill list', $result['output'] );
+        $this->assertStringContainsString( 'skill get', $result['output'] );
+    }
 }

@@ -1,7 +1,10 @@
 {
   "redefinable-internals": [
     "file_exists",
+    "file_get_contents",
     "file_put_contents",
+    "glob",
+    "realpath",
     "unlink"
   ]
 }

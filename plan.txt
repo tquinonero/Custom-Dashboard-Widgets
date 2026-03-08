@@ -17,7 +17,7 @@
 | Cache          | cache flush                                                                                   |
 | Database       | db size, db tables, search-replace <old> <new>                                                |
 | Options        | option get <name>, option list, option set <name> <value>, option delete <name>              |
-| Transients     | transient list, transient delete <name>                                                       |
+| Transients     | transient list, transient delete <name> (should require force and it does not)                                                      |
 | Cron           | cron list, cron run <hook>                                                                    |
 | Site           | site info, site settings, site status, site empty                                             |
 | Comments       | comment list [pending|approved|spam], comment approve <id>,                       |
@@ -25,8 +25,14 @@
 | Rewrite        | rewrite flush                                                                                 |
 | Core           | core version                                                                                  |
 | Maintenance    | maintenance status, maintenance enable, maintenance disable                                   |
+| Page           | page create <title>                                                                           |
+| Media          | media list [<count>]                                                                          |
+| Skills         | skill list, skill get <plugin-slug> <skill-name> [<file>]                                     |
+| Block Patterns | block-patterns list [<category>]                                                              |
 
----
+**Abilities / AI assistant only (not in CLI widget):** `task list`, `task create <name>`, `task delete`, `post set-content`, `post append-content`.
+
+--- TESTED
 
 ## Implemented in the service but MISSING from the autocomplete catalogue
 
@@ -67,11 +73,7 @@ No remaining gaps.
    - Output the full reset URL (show-once).
    - readonly: false, destructive: false
 
-7. media list [<count>]
-   - List recent media attachments (ID, filename, mime type, upload date).
-   - API: get_posts(['post_type' => 'attachment'])
-   - Useful when debugging missing thumbnails or after media imports.
-   - readonly: true
+~~7. media list [<count>]~~ ✓ implemented
 
 8. post count [<type>]
    - Quick wp_count_posts($type) showing breakdown by status
@@ -79,11 +81,7 @@ No remaining gaps.
    - Instant health check for large sites.
    - readonly: true
 
-9. plugin update-all
-   - Update every plugin that has a pending update in one command.
-   - The service already handles plugin update <slug>; this variant calls
-     wp_update_plugins() then iterates available updates.
-   - readonly: false, destructive: false
+~~9. plugin update-all~~ ✓ implemented
 
 10. db repair
     - Run REPAIR TABLE on all tables — useful after a crash.

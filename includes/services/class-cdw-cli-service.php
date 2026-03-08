@@ -447,6 +447,9 @@ class CDW_CLI_Service {
 				case 'block-patterns':
 					$result = $this->handle_block_patterns_command( $subcmd, $clean_args );
 					break;
+				case 'skill':
+					$result = $this->handle_skill_command( $subcmd, $clean_args );
+					break;
 				case 'help':
 					$result = $this->handle_help_command();
 					break;
@@ -1813,6 +1816,113 @@ class CDW_CLI_Service {
 			default:
 				return array(
 					'output'  => "Available block-patterns commands:\n  block-patterns list [<category>]  - List registered block patterns",
+					'success' => true,
+				);
+		}
+	}
+
+	/**
+	 * Handle plugin skill commands.
+	 *
+	 * Lists agent skill documentation shipped by installed plugins, or returns
+	 * the contents of a specific skill file. Only .md files within a plugin's
+	 * skills/ subdirectory may be read.
+	 *
+	 * @param string            $subcmd Subcommand (list, get).
+	 * @param array<int,string> $args   Positional arguments.
+	 * @return array<string,mixed> Result array.
+	 */
+	private function handle_skill_command( $subcmd, $args ) {
+		switch ( $subcmd ) {
+			case 'list':
+				$skills     = array();
+				$skill_dirs = glob( WP_PLUGIN_DIR . '/*/skills/*/SKILL.md' );
+				if ( ! empty( $skill_dirs ) ) {
+					foreach ( $skill_dirs as $skill_md ) {
+						$skill_name  = basename( dirname( $skill_md ) );
+						$plugin_slug = basename( dirname( dirname( dirname( $skill_md ) ) ) );
+						$skills[]    = sprintf( '  %s / %s', $plugin_slug, $skill_name );
+					}
+				}
+				if ( empty( $skills ) ) {
+					return array(
+						'output'  => 'No plugin skills found.',
+						'success' => true,
+					);
+				}
+				$lines   = array( 'Available Plugin Skills:' );
+				$lines   = array_merge( $lines, $skills );
+				$lines[] = '';
+				$lines[] = 'Use "skill get <plugin-slug> <skill-name>" to read a skill.';
+				$lines[] = 'Use "skill get <plugin-slug> <skill-name> instructions/<file>.md" to read a specific doc.';
+				return array(
+					'output'  => implode( "\n", $lines ),
+					'success' => true,
+				);
+
+			case 'get':
+				if ( empty( $args[0] ) || empty( $args[1] ) ) {
+					return array(
+						'output'  => "Usage: skill get <plugin-slug> <skill-name> [<file>]\nExample: skill get greenshift-animation-and-page-builder-blocks greenlight-vibe",
+						'success' => false,
+					);
+				}
+
+				$plugin_slug = sanitize_key( $args[0] );
+				$skill_name  = sanitize_key( $args[1] );
+				$file        = isset( $args[2] ) ? ltrim( sanitize_text_field( $args[2] ), '/' ) : 'SKILL.md';
+
+				// Only .md files are permitted.
+				if ( ! str_ends_with( $file, '.md' ) ) {
+					return array(
+						'output'  => 'Only .md files can be retrieved.',
+						'success' => false,
+					);
+				}
+
+				// Defence-in-depth: reject any traversal sequences before realpath.
+				if ( str_contains( $file, '..' ) ) {
+					return array(
+						'output'  => 'Access denied.',
+						'success' => false,
+					);
+				}
+
+				$target_path      = WP_PLUGIN_DIR . '/' . $plugin_slug . '/skills/' . $skill_name . '/' . $file;
+				$real_plugins_dir = realpath( WP_PLUGIN_DIR );
+				$real_target      = realpath( $target_path );
+
+				if ( false === $real_plugins_dir || false === $real_target ) {
+					return array(
+						'output'  => "Skill file not found: {$plugin_slug} / {$skill_name} / {$file}",
+						'success' => false,
+					);
+				}
+
+				// Ensure the resolved path stays within WP_PLUGIN_DIR.
+				if ( ! str_starts_with( $real_target, $real_plugins_dir . DIRECTORY_SEPARATOR ) ) {
+					return array(
+						'output'  => 'Access denied.',
+						'success' => false,
+					);
+				}
+
+				$content = file_get_contents( $real_target ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading local plugin skill files; not a remote URL.
+				if ( false === $content ) {
+					return array(
+						'output'  => "Could not read: {$file}",
+						'success' => false,
+					);
+				}
+
+				return array(
+					'output'  => $content,
+					'success' => true,
+				);
+
+			default:
+				return array(
+					'output'  => "Available skill commands:\n  skill list                                          - List all plugin skills\n  skill get <plugin-slug> <skill-name>                - Read the skill overview (SKILL.md)\n  skill get <plugin-slug> <skill-name> <file>         - Read a specific skill doc file",
 					'success' => true,
 				);
 		}

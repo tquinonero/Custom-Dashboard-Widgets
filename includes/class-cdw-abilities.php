@@ -2,7 +2,7 @@
 /**
  * WordPress Abilities API registration.
  *
- * Registers all 31 CDW tools as WP_Ability objects so they are discoverable
+ * Registers all 32 CDW tools as WP_Ability objects so they are discoverable
  * by the WordPress Abilities API (WP 6.9+) and, optionally, by external AI
  * clients via the MCP Adapter plugin.
  *
@@ -73,7 +73,7 @@ class CDW_Abilities {
 	}
 
 	/**
-	 * Registers all 31 CDW abilities.
+	 * Registers all 32 CDW abilities.
 	 *
 	 * Hooked to `wp_abilities_api_init`.
 	 *
@@ -869,6 +869,41 @@ class CDW_Abilities {
 				'destructive' => false,
 			),
 			// ---------------------------------------------------------------
+			// Plugin skills
+			// ---------------------------------------------------------------
+			array(
+				'name'        => 'cdw/skill-list',
+				'label'       => __( 'List Plugin Skills', 'cdw' ),
+				'desc'        => __( 'Scans all installed plugins for agent skill documentation and returns a list of available skills with their plugin slug and skill name.', 'cdw' ),
+				'input'       => array(),
+				'cli'         => 'skill list',
+				'readonly'    => true,
+				'destructive' => false,
+			),
+			array(
+				'name'        => 'cdw/skill-get',
+				'label'       => __( 'Get Plugin Skill', 'cdw' ),
+				'desc'        => __( 'Returns the contents of a skill documentation file from an installed plugin. Defaults to SKILL.md. Use file to read sub-documents such as instructions/attributes.md.', 'cdw' ),
+				'input'       => array(
+					'plugin_slug' => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+					'skill_name'  => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+					'file'        => array(
+						'type'     => 'string',
+						'required' => false,
+					),
+				),
+				'cli'         => null,
+				'readonly'    => true,
+				'destructive' => false,
+			),
+
+			// ---------------------------------------------------------------
 			// Block Patterns
 			// ---------------------------------------------------------------
 			array(
@@ -900,12 +935,20 @@ class CDW_Abilities {
 			'cdw/post-set-content',
 			array(
 				'label'               => __( 'Set Post Content', 'cdw' ),
-				'description'         => __( 'Writes raw block markup (post_content) to an existing post or page. Use this to build pages with block-based page builders such as Greenshift.', 'cdw' ),
+				'description'         => __( 'Replaces the full post_content of an existing post or page with raw block markup. Supply either content (plain string) or content_base64 (base64-encoded string — preferred for block markup because it avoids JSON escaping issues). For large pages: (1) call with content="" to clear, (2) use cdw/post-append-content to push sections.', 'cdw' ),
 				'category'            => 'cdw-admin-tools',
 				'permission_callback' => $permission_cb,
 				'execute_callback'    => function ( $input = array() ) {
 					$post_id = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
-					$content = isset( $input['content'] ) ? (string) $input['content'] : '';
+
+					if ( isset( $input['content_base64'] ) && '' !== (string) $input['content_base64'] ) {
+						$content = base64_decode( (string) $input['content_base64'], true );
+						if ( false === $content ) {
+							return new \WP_Error( 'invalid_base64', 'content_base64 is not valid base64.' );
+						}
+					} else {
+						$content = isset( $input['content'] ) ? (string) $input['content'] : '';
+					}
 
 					if ( $post_id <= 0 ) {
 						return new \WP_Error( 'invalid_post_id', 'post_id is required and must be a positive integer.' );
@@ -929,21 +972,110 @@ class CDW_Abilities {
 						return $result;
 					}
 
-					return array( 'output' => "Post $post_id content updated successfully." );
+					$total_length = strlen( $content );
+					return array( 'output' => "Post $post_id content set. Total content length: $total_length bytes." );
 				},
 				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
-						'post_id' => array(
+						'post_id'        => array(
 							'type'        => 'integer',
 							'description' => 'ID of the post or page to update.',
 						),
-						'content' => array(
+						'content'        => array(
 							'type'        => 'string',
-							'description' => 'Raw block markup (WordPress block HTML comments) to write to post_content.',
+							'description' => 'Raw block markup to write to post_content. Use for short/plain content.',
+						),
+						'content_base64' => array(
+							'type'        => 'string',
+							'description' => 'Base64-encoded block markup. Preferred over content when the markup contains JSON block attributes (avoids double-escaping). Provide either content or content_base64, not both.',
 						),
 					),
-					'required'   => array( 'post_id', 'content' ),
+					'required'   => array( 'post_id' ),
+				),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'readonly'     => false,
+					'idempotent'   => false,
+					'annotations'  => array(
+						'destructive' => false,
+					),
+				),
+			)
+		);
+
+		// ---------------------------------------------------------------
+		// post-append-content: abilities-only (no CLI equivalent).
+		// Appends a block markup chunk to the existing post_content so large
+		// pages can be built in multiple smaller tool calls.
+		// ---------------------------------------------------------------
+		wp_register_ability(
+			'cdw/post-append-content',
+			array(
+				'label'               => __( 'Append Post Content', 'cdw' ),
+				'description'         => __( 'Appends a raw block markup chunk to the existing post_content of a post or page. Supply either content (plain string) or content_base64 (base64-encoded — preferred for block markup to avoid JSON escaping). Workflow: (1) call cdw/post-set-content with content="" to clear the post, (2) call this ability repeatedly with successive chunks. The response includes the running total byte count so you can confirm each chunk landed.', 'cdw' ),
+				'category'            => 'cdw-admin-tools',
+				'permission_callback' => $permission_cb,
+				'execute_callback'    => function ( $input = array() ) {
+					$post_id = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
+
+					if ( isset( $input['content_base64'] ) && '' !== (string) $input['content_base64'] ) {
+						$chunk = base64_decode( (string) $input['content_base64'], true );
+						if ( false === $chunk ) {
+							return new \WP_Error( 'invalid_base64', 'content_base64 is not valid base64.' );
+						}
+					} else {
+						$chunk = isset( $input['content'] ) ? (string) $input['content'] : '';
+					}
+
+					if ( $post_id <= 0 ) {
+						return new \WP_Error( 'invalid_post_id', 'post_id is required and must be a positive integer.' );
+					}
+					$post = get_post( $post_id );
+					if ( ! $post ) {
+						return new \WP_Error( 'post_not_found', "Post $post_id not found." );
+					}
+					if ( ! current_user_can( 'edit_post', $post_id ) ) {
+						return new \WP_Error( 'forbidden', 'You do not have permission to edit this post.' );
+					}
+					if ( '' === $chunk ) {
+						return new \WP_Error( 'empty_content', 'content or content_base64 must not be empty.' );
+					}
+
+					$new_content = $post->post_content . $chunk;
+
+					$result = wp_update_post(
+						array(
+							'ID'           => $post_id,
+							'post_content' => $new_content,
+						),
+						true
+					);
+
+					if ( is_wp_error( $result ) ) {
+						return $result;
+					}
+
+					$total_length = strlen( $new_content );
+					return array( 'output' => "Chunk appended to post $post_id. Total content length: $total_length bytes." );
+				},
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'post_id'        => array(
+							'type'        => 'integer',
+							'description' => 'ID of the post or page to update.',
+						),
+						'content'        => array(
+							'type'        => 'string',
+							'description' => 'Block markup chunk to append. Use for plain/short content.',
+						),
+						'content_base64' => array(
+							'type'        => 'string',
+							'description' => 'Base64-encoded block markup chunk to append. Preferred over content when the markup contains JSON block attributes (avoids double-escaping). Provide either content or content_base64, not both.',
+						),
+					),
+					'required'   => array( 'post_id' ),
 				),
 				'meta'                => array(
 					'show_in_rest' => true,
@@ -1146,6 +1278,14 @@ class CDW_Abilities {
 					return 'block-patterns list ' . self::sanitize_cli_arg( (string) $input['category'] );
 				}
 				return 'block-patterns list';
+			case 'cdw/skill-get':
+				$cmd = 'skill get '
+					. self::sanitize_cli_arg( (string) $input['plugin_slug'] ) . ' '
+					. self::sanitize_cli_arg( (string) $input['skill_name'] );
+				if ( ! empty( $input['file'] ) ) {
+					$cmd .= ' ' . self::sanitize_cli_arg( (string) $input['file'] );
+				}
+				return $cmd;
 			default:
 				return '';
 		}
