@@ -1,0 +1,7 @@
+{
+  "name": "cta-dark-centered",
+  "title": "Dark Centered CTA",
+  "description": "Bold centered call-to-action with dark background",
+  "category": "cta",
+  "content": "<!-- wp:group { \"align\":\"full\", \"style\":{ \"spacing\":{ \"padding\":{ \"top\":\"96px\", \"bottom\":\"96px\"} }, \"color\":{ \"background\":\"#1a1a1a\"} } } -->\n<div class=\"wp-block-group alignfull has-background\" style=\"background-color:#1a1a1a;padding-top:96px;padding-bottom:96px\">\n<!-- wp:heading { \"textAlign\":\"center\", \"textColor\":\"white\" } -->\n<h2 class=\"has-text-align-center has-white-color has-text-color\">Ready to Get Started?</h2>\n<!-- /wp:heading -->\n<!-- wp:paragraph { \"align\":\"center\", \"textColor\":\"#cccccc\", \"fontSize\":\"large\" } -->\n<p class=\"has-text-align-center has-text-color has-large-font-size\" style=\"color:#cccccc\">Let us help you achieve your goals. Contact us today for a free consultation.</p>\n<!-- /wp:paragraph -->\n<!-- wp:buttons { \"layout\":{ \"type\":\"flex\", \"justifyContent\":\"center\"} } -->\n<div class=\"wp-block-buttons\">\n<!-- wp:button { \"backgroundColor\":\"#c9a962\", \"textColor\":\"#1a1a1a\" } -->\n<div class=\"wp-block-button\"><a class=\"wp-block-button__link has-text-color has-background\" href=\"#\" style=\"background-color:#c9a962;color:#1a1a1a\">Contact Us</a></div>\n<!-- /wp:button -->\n</div>\n<!-- /wp:buttons -->\n</div>\n<!-- /wp:group -->"
+}

@@ -1,0 +1,7 @@
+{
+  "name": "hero-minimal-white",
+  "title": "Minimal White Hero",
+  "description": "Clean white hero with centered text",
+  "category": "hero",
+  "content": "<!-- wp:cover { \"url\":\"\", \"align\":\"full\", \"minHeight\":600, \"style\":{ \"color\":{ \"background\":\"#ffffff\"} } } -->\n<div class=\"wp-block-cover alignfull\" style=\"min-height:600px;background-color:#ffffff\">\n<span aria-hidden=\"true\" class=\"wp-block-cover__background has-background-dim-0\"></span>\n<div class=\"wp-block-cover__inner-container\">\n<!-- wp:heading { \"textAlign\":\"center\", \"level\":1, \"textColor\":\"#1a1a1a\", \"fontSize\":\"x-large\" } -->\n<h1 class=\"has-text-align-center has-text-color has-x-large-font-size\" style=\"color:#1a1a1a\">Your Brand</h1>\n<!-- /wp:heading -->\n<!-- wp:paragraph { \"align\":\"center\", \"textColor\":\"#666666\", \"fontSize\":\"large\" } -->\n<p class=\"has-text-align-center has-text-color has-large-font-size\" style=\"color:#666666\">Elegant solutions for modern businesses</p>\n<!-- /wp:paragraph -->\n<!-- wp:buttons { \"layout\":{ \"type\":\"flex\", \"justifyContent\":\"center\"} } -->\n<div class=\"wp-block-buttons\">\n<!-- wp:button { \"backgroundColor\":\"#1a1a1a\", \"textColor\":\"white\" } -->\n<div class=\"wp-block-button\"><a class=\"wp-block-button__link has-white-color has-background\" href=\"#\" style=\"background-color:#1a1a1a;color:#ffffff\">Get Started</a></div>\n<!-- /wp:button -->\n</div>\n<!-- /wp:buttons -->\n</div>\n</div>\n<!-- /wp:cover -->"
+}

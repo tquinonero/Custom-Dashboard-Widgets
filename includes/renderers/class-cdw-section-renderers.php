@@ -246,8 +246,8 @@ class CDW_Section_Renderers {
 	public static function render_footer( $data ) {
 		$columns = isset( $data['columns'] ) ? $data['columns'] : array();
 
-		$markup  = "<!-- wp:group {\"tagName\":\"footer\",\"align\":\"full\",\"style\":{\"spacing\":{\"padding\":{\"top\":\"60px\",\"bottom\":\"40px\"}},\"color\":{\"background\":\"#FDF6E3\",\"text\":\"#5D4E37\"}}} -->\n";
-		$markup .= '<footer class="wp-block-group alignfull has-text-color has-background" style="background-color:#FDF6E3;color:#5D4E37;padding-top:60px;padding-bottom:40px">' . "\n";
+		$markup  = "<!-- wp:group {\"tagName\":\"footer\",\"align\":\"full\",\"style\":{\"spacing\":{\"padding\":{\"top\":\"60px\",\"bottom\":\"40px\",\"left\":\"40px\",\"right\":\"40px\"}},\"color\":{\"background\":\"#FDF6E3\",\"text\":\"#5D4E37\"}}} -->\n";
+		$markup .= '<footer class="wp-block-group alignfull has-text-color has-background" style="background-color:#FDF6E3;color:#5D4E37;padding-top:60px;padding-bottom:40px;padding-left:40px;padding-right:40px;text-align:center">' . "\n";
 
 		$col_attrs = array(
 			'align' => 'full',
@@ -264,7 +264,7 @@ class CDW_Section_Renderers {
 		);
 
 		$markup .= '<!-- wp:columns ' . wp_json_encode( $col_attrs ) . " -->\n";
-		$markup .= '<div class="wp-block-columns alignfull has-background-dim-0 has-background-dim" style="column-gap:40px;row-gap:40px;padding-left:40px;padding-right:40px">' . "\n";
+		$markup .= '<div class="wp-block-columns alignfull has-background-dim-0 has-background-dim" style="column-gap:40px;row-gap:40px;padding-left:40px;padding-right:40px;text-align:center">' . "\n";
 
 		$col_count = count( $columns );
 		if ( $col_count < 1 ) {

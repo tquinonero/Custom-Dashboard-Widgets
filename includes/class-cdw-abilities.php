@@ -1091,22 +1091,27 @@ class CDW_Abilities {
 		);
 
 			// ---------------------------------------------------------------
-			// post-get-content: abilities-only. Returns full raw post_content
-			// (block markup) so AI can edit it. Base64-encoded to preserve
-			// special characters and avoid JSON escaping issues.
+			// post-get-content: abilities-only. Returns raw post_content
+			// (block markup) so AI can edit it. Supports pagination via
+			// offset and limit parameters for large content.
 			// ---------------------------------------------------------------
 			wp_register_ability(
 				'cdw/post-get-content',
 				array(
 					'label'               => __( 'Get Post Content', 'cdw' ),
-					'description'         => __( 'Retrieves the full raw post_content of a WordPress post or page, including all Gutenberg block markup. Returns base64-encoded content to preserve special characters. Use this before editing a page with cdw/post-set-content.', 'cdw' ),
+					'description'         => __( 'Retrieves the raw post_content of a WordPress post or page, including all Gutenberg block markup. Use offset and limit for pagination on large content. Use this before editing a page with cdw/post-set-content.', 'cdw' ),
 					'category'            => 'cdw-admin-tools',
 					'permission_callback' => $permission_cb,
 					'execute_callback'    => function ( $input = array() ) {
 						$post_id = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
+						$offset   = isset( $input['offset'] ) ? (int) $input['offset'] : 0;
+						$limit    = isset( $input['limit'] ) ? (int) $input['limit'] : 5000;
 
 						if ( $post_id <= 0 ) {
 							return new \WP_Error( 'invalid_post_id', 'post_id is required and must be a positive integer.' );
+						}
+						if ( $limit <= 0 || $limit > 20000 ) {
+							$limit = 5000;
 						}
 						$post = get_post( $post_id );
 						if ( ! $post ) {
@@ -1117,16 +1122,21 @@ class CDW_Abilities {
 						}
 
 						$content        = $post->post_content;
-						$content_length = strlen( $content );
-						// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- base64 encoding block markup for safe transfer
-						$content_base64 = base64_encode( $content );
+						$total_length   = strlen( $content );
+						$has_more       = ( $offset + $limit ) < $total_length;
+						$chunk_index    = intval( $offset / $limit );
+						$chunk_content  = substr( $content, $offset, $limit );
 
 						return array(
-							'output'         => "Post $post_id content retrieved. Length: $content_length bytes.",
-							'post_id'        => $post_id,
-							'title'          => $post->post_title,
-							'content_length' => $content_length,
-							'content_base64' => $content_base64,
+							'output'        => $has_more
+								? "Post $post_id content retrieved. Chunk $chunk_index (" . strlen( $chunk_content ) . " bytes)."
+								: "Post $post_id content retrieved. Length: $total_length bytes.",
+							'post_id'       => $post_id,
+							'title'         => $post->post_title,
+							'content'       => $chunk_content,
+							'total_length'  => $total_length,
+							'chunk_index'   => $chunk_index,
+							'has_more'      => $has_more,
 						);
 					},
 					'input_schema'        => array(
@@ -1135,6 +1145,16 @@ class CDW_Abilities {
 							'post_id' => array(
 								'type'        => 'integer',
 								'description' => 'ID of the post or page to get content from.',
+							),
+							'offset' => array(
+								'type'        => 'integer',
+								'description' => 'Starting position for chunked retrieval (default: 0).',
+								'default'     => 0,
+							),
+							'limit' => array(
+								'type'        => 'integer',
+								'description' => 'Chunk size in characters (default: 5000, max: 20000).',
+								'default'     => 5000,
 							),
 						),
 						'required'   => array( 'post_id' ),
@@ -1337,6 +1357,139 @@ class CDW_Abilities {
 					'show_in_rest' => true,
 					'readonly'     => false,
 					'idempotent'   => false,
+					'annotations'  => array(
+						'destructive' => false,
+					),
+				),
+			)
+		);
+
+		// ---------------------------------------------------------------
+		// custom-patterns-list: Lists custom patterns from cdw/patterns/ folder.
+		// ---------------------------------------------------------------
+		wp_register_ability(
+			'cdw/custom-patterns-list',
+			array(
+				'label'               => __( 'List Custom Patterns', 'cdw' ),
+				'description'         => __( 'Returns a list of all custom block patterns stored in the cdw/patterns/ folder. Each pattern includes name, title, description, and category.', 'cdw' ),
+				'category'            => 'cdw-admin-tools',
+				'permission_callback' => $permission_cb,
+				'execute_callback'    => function ( $input = array() ) {
+					$patterns_dir = CDW_PLUGIN_DIR . 'patterns';
+
+					if ( ! is_dir( $patterns_dir ) ) {
+						return array(
+							'output'  => 'No custom patterns found.',
+							'patterns' => array(),
+						);
+					}
+
+					$patterns = array();
+					$files    = glob( $patterns_dir . '/**/*.json', GLOB_BRACE );
+
+					foreach ( $files as $file ) {
+						$content = file_get_contents( $file );
+						$data    = json_decode( $content, true );
+
+						if ( $data && isset( $data['name'] ) ) {
+							$patterns[] = array(
+								'name'        => $data['name'],
+								'title'       => isset( $data['title'] ) ? $data['title'] : '',
+								'description' => isset( $data['description'] ) ? $data['description'] : '',
+								'category'    => isset( $data['category'] ) ? $data['category'] : 'general',
+							);
+						}
+					}
+
+					return array(
+						'output'   => 'Found ' . count( $patterns ) . ' custom patterns.',
+						'patterns' => $patterns,
+					);
+				},
+				'input_schema'        => array(),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'readonly'     => true,
+					'idempotent'   => true,
+					'annotations'  => array(
+						'destructive' => false,
+					),
+				),
+			)
+		);
+
+		// ---------------------------------------------------------------
+		// custom-patterns-get: Gets a specific custom pattern by name.
+		// ---------------------------------------------------------------
+		wp_register_ability(
+			'cdw/custom-patterns-get',
+			array(
+				'label'               => __( 'Get Custom Pattern', 'cdw' ),
+				'description'         => __( 'Returns the raw block markup for a specific custom pattern by name. Searches in cdw/patterns/ folder. Returns base64-encoded content to preserve special characters.', 'cdw' ),
+				'category'            => 'cdw-admin-tools',
+				'permission_callback' => $permission_cb,
+				'execute_callback'    => function ( $input = array() ) {
+					$pattern_name = isset( $input['name'] ) ? sanitize_text_field( $input['name'] ) : '';
+
+					if ( empty( $pattern_name ) ) {
+						return new \WP_Error( 'invalid_pattern_name', 'pattern name is required.' );
+					}
+
+					$patterns_dir = CDW_PLUGIN_DIR . 'patterns';
+
+					if ( ! is_dir( $patterns_dir ) ) {
+						return new \WP_Error( 'patterns_dir_not_found', 'Patterns directory not found.' );
+					}
+
+					// Search for the pattern file (supports subdirectories)
+					$files = glob( $patterns_dir . '/**/*.json', GLOB_BRACE );
+					$matched = null;
+
+					foreach ( $files as $file ) {
+						$content = file_get_contents( $file );
+						$data    = json_decode( $content, true );
+
+						if ( $data && isset( $data['name'] ) && $data['name'] === $pattern_name ) {
+							$matched = $data;
+							break;
+						}
+					}
+
+					if ( ! $matched ) {
+						return new \WP_Error( 'pattern_not_found', "Custom pattern not found: $pattern_name" );
+					}
+
+					$content = isset( $matched['content'] ) ? $matched['content'] : '';
+					if ( empty( $content ) ) {
+						return new \WP_Error( 'empty_pattern', "Pattern \"$pattern_name\" has no content." );
+					}
+
+					$content_base64 = base64_encode( $content );
+
+					return array(
+						'output'          => "Custom pattern \"$pattern_name\" retrieved. Length: " . strlen( $content ) . ' bytes.',
+						'name'            => $pattern_name,
+						'title'           => isset( $matched['title'] ) ? $matched['title'] : '',
+						'description'    => isset( $matched['description'] ) ? $matched['description'] : '',
+						'category'        => isset( $matched['category'] ) ? $matched['category'] : 'general',
+						'content_length'  => strlen( $content ),
+						'content_base64'  => $content_base64,
+					);
+				},
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'name' => array(
+							'type'        => 'string',
+							'description' => 'Name of the custom pattern to retrieve (e.g., hero-luxury, gallery-masonry).',
+						),
+					),
+					'required'   => array( 'name' ),
+				),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'readonly'     => true,
+					'idempotent'   => true,
 					'annotations'  => array(
 						'destructive' => false,
 					),
