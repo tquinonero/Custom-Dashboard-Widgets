@@ -1,0 +1,350 @@
+# AI Service Refactoring Plan
+
+## Overview
+
+Refactor `includes/services/class-cdw-ai-service.php` from a monolithic 2,213-line class into a modular handler-based architecture.
+
+**Target**: Reduce main file from 2,213 lines to ~400 lines (82% reduction)
+
+---
+
+## Current File Structure
+
+The current `class-cdw-ai-service.php` contains 12 public static methods:
+
+| Method | Lines | Purpose |
+|--------|-------|---------|
+| `get_providers()` | ~65 | Returns provider catalogue |
+| `encrypt_api_key()` | ~25 | Encrypts API keys |
+| `decrypt_api_key()` | ~55 | Decrypts API keys |
+| `get_user_ai_settings()` | ~40 | Gets user AI settings |
+| `save_user_ai_settings()` | ~50 | Saves user AI settings |
+| `get_decrypted_api_key()` | ~20 | Gets decrypted API key |
+| `check_ai_rate_limit()` | ~30 | Rate limiting |
+| `get_tool_definitions()` | ~850 | Returns 40+ tool definitions (HUGE) |
+| `build_system_prompt()` | ~50 | Builds system prompt |
+| `execute_tool_call()` | ~110 | Executes tool calls |
+| `execute_agentic_loop()` | ~220 | Main orchestrator |
+| `test_api_key()` | ~20 | Tests API connection |
+
+Plus private methods:
+- `call_openai()` (~60 lines)
+- `call_anthropic()` (~50 lines)
+- `call_google()` (~50 lines)
+- `tool_name_to_cli_command()` (~100 lines)
+- Various helper methods
+
+---
+
+## Proposed Architecture
+
+```
+includes/services/ai/
+├── class-cdw-ai-service.php       # Main orchestrator (~350 lines) - KEEP
+├── class-cdw-ai-tools.php          # Tool definitions (~900 lines) - EXTRACT
+├── class-cdw-ai-providers.php      # Provider API calls (~500 lines) - EXTRACT
+└── class-cdw-ai-prompts.php        # System prompts (~50 lines) - EXTRACT
+```
+
+---
+
+## Extraction Details
+
+### 1. class-cdw-ai-tools.php (~900 lines)
+
+Extract these methods from `class-cdw-ai-service.php`:
+
+**get_tool_definitions()** (lines ~396-1245, ~850 lines)
+- Returns array of 40+ tool definitions for AI function calling
+- Each tool has name, description, parameters
+
+**tool_name_to_cli_command()** (lines ~1414-1523, ~110 lines)
+- Maps tool names to CLI command strings
+- Switch statement with 40+ cases
+
+**execute_tool_call()** (lines ~1296-1405, ~110 lines)
+- Executes tool calls from AI providers
+- Handles special cases (gutenberg_guide, post_set_content, post_create, page_create)
+- Delegates to CDW_CLI_Service for most commands
+
+### 2. class-cdw-ai-providers.php (~500 lines)
+
+Extract these private static methods:
+
+**call_openai()** (lines ~1634-1690, ~60 lines)
+- Makes API calls to OpenAI-compatible endpoints
+- Handles response parsing, errors, usage stats
+
+**call_anthropic()** (lines ~1692-1741, ~50 lines)
+- Makes API calls to Anthropic Claude
+- Different message format than OpenAI
+
+**call_google()** (lines ~1743-1791, ~50 lines)
+- Makes API calls to Google Gemini
+- Different message format and tool handling
+
+**Helper methods** (format_assistant_tool_call_message, format_tool_result_message, etc.)
+- Used by all provider methods
+
+### 3. class-cdw-ai-prompts.php (~50 lines)
+
+Extract:
+
+**build_system_prompt()** (lines ~1245-1295, ~50 lines)
+- Builds the system prompt that instructs the AI on capabilities
+
+---
+
+## Implementation Steps
+
+### Step 1: Create Directory Structure
+```bash
+mkdir -p includes/services/ai
+```
+
+### Step 2: Create class-cdw-ai-tools.php
+
+File: `includes/services/ai/class-cdw-ai-tools.php`
+
+```php
+<?php
+/**
+ * AI Tools for CDW - tool definitions and execution.
+ *
+ * @package CDW
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-cli-service.php';
+
+/**
+ * AI Tools handler - manages tool definitions and execution.
+ */
+class CDW_AI_Tools {
+
+	/**
+	 * Get all tool definitions for AI function calling.
+	 *
+	 * @return array
+	 */
+	public static function get_tool_definitions() {
+		// Copy exact content from class-cdw-ai-service.php get_tool_definitions()
+	}
+
+	/**
+	 * Convert tool name + arguments to CLI command.
+	 *
+	 * @param string $tool_name Tool name.
+	 * @param array $arguments Tool arguments.
+	 * @return string|null CLI command string.
+	 */
+	public static function tool_name_to_cli_command( $tool_name, $arguments ) {
+		// Copy exact content from class-cdw-ai-service.php
+	}
+
+	/**
+	 * Execute a tool call.
+	 *
+	 * @param string $function_name Tool name.
+	 * @param array $arguments Tool arguments.
+	 * @param int $user_id User ID.
+	 * @return string|array Result.
+	 */
+	public static function execute_tool_call( $function_name, $arguments, $user_id ) {
+		// Copy exact content from class-cdw-ai-service.php
+	}
+}
+```
+
+### Step 3: Create class-cdw-ai-providers.php
+
+File: `includes/services/ai/class-cdw-ai-providers.php`
+
+```php
+<?php
+/**
+ * AI Providers for CDW - OpenAI, Anthropic, Google API calls.
+ *
+ * @package CDW
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * AI Providers handler - manages API calls to AI providers.
+ */
+class CDW_AI_Providers {
+
+	/**
+	 * Call OpenAI API.
+	 */
+	public static function call_openai( $messages, $tools, $api_key, $model, $base_url = '' ) {
+		// Copy from class-cdw-ai-service.php
+	}
+
+	/**
+	 * Call Anthropic API.
+	 */
+	public static function call_anthropic( $messages, $tools, $api_key, $model, $system_prompt = '' ) {
+		// Copy from class-cdw-ai-service.php
+	}
+
+	/**
+	 * Call Google Gemini API.
+	 */
+	public static function call_google( $messages, $tools, $api_key, $model ) {
+		// Copy from class-cdw-ai-service.php
+	}
+
+	// Plus helper methods: format_assistant_tool_call_message, format_tool_result_message
+}
+```
+
+### Step 4: Create class-cdw-ai-prompts.php
+
+File: `includes/services/ai/class-cdw-ai-prompts.php`
+
+```php
+<?php
+/**
+ * AI Prompts for CDW - system prompts.
+ *
+ * @package CDW
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * AI Prompts handler.
+ */
+class CDW_AI_Prompts {
+
+	/**
+	 * Build system prompt.
+	 */
+	public static function build_system_prompt( $custom_prompt = '' ) {
+		// Copy from class-cdw-ai-service.php
+	}
+}
+```
+
+### Step 5: Update Main Service
+
+In `class-cdw-ai-service.php`:
+
+1. ADD includes at top (after existing requires):
+```php
+require_once CDW_PLUGIN_DIR . 'includes/services/ai/class-cdw-ai-tools.php';
+require_once CDW_PLUGIN_DIR . 'includes/services/ai/class-cdw-ai-providers.php';
+require_once CDW_PLUGIN_DIR . 'includes/services/ai/class-cdw-ai-prompts.php';
+```
+
+2. REPLACE `get_tool_definitions()` with:
+```php
+public static function get_tool_definitions() {
+	return CDW_AI_Tools::get_tool_definitions();
+}
+```
+
+3. REPLACE `tool_name_to_cli_command()` with:
+```php
+private static function tool_name_to_cli_command( $tool_name, $arguments ) {
+	return CDW_AI_Tools::tool_name_to_cli_command( $tool_name, $arguments );
+}
+```
+
+4. REPLACE `execute_tool_call()` with:
+```php
+public static function execute_tool_call( $function_name, $arguments, $user_id ): string|array {
+	return CDW_AI_Tools::execute_tool_call( $function_name, $arguments, $user_id );
+}
+```
+
+5. REPLACE `call_openai()` with:
+```php
+private static function call_openai( $messages, $tools, $api_key, $model, $base_url = '' ) {
+	return CDW_AI_Providers::call_openai( $messages, $tools, $api_key, $model, $base_url );
+}
+```
+
+6. REPLACE `call_anthropic()` with:
+```php
+private static function call_anthropic( $messages, $tools, $api_key, $model, $system_prompt = '' ) {
+	return CDW_AI_Providers::call_anthropic( $messages, $tools, $api_key, $model, $system_prompt );
+}
+```
+
+7. REPLACE `call_google()` with:
+```php
+private static function call_google( $messages, $tools, $api_key, $model ) {
+	return CDW_AI_Providers::call_google( $messages, $tools, $api_key, $model );
+}
+```
+
+8. REPLACE `build_system_prompt()` with:
+```php
+public static function build_system_prompt( $custom_prompt = '' ) {
+	return CDW_AI_Prompts::build_system_prompt( $custom_prompt );
+}
+```
+
+9. DELETE the original method implementations that were copied
+
+---
+
+## Testing Commands
+
+Run after EACH extraction:
+
+```bash
+# Unit tests
+vendor/bin/phpunit --testsuite=Unit
+
+# PHPStan
+vendor/bin/phpstan analyse
+
+# PHPStan on specific files
+vendor/bin/phpstan analyse includes/services/class-cdw-ai-service.php
+vendor/bin/phpstan analyse includes/services/ai/class-cdw-ai-tools.php
+vendor/bin/phpstan analyse includes/services/ai/class-cdw-ai-providers.php
+vendor/bin/phpstan analyse includes/services/ai/class-cdw-ai-prompts.php
+```
+
+All must pass before proceeding to next step.
+
+---
+
+## Key Decisions
+
+1. **Extract incrementally** - Do one file at a time, test after each
+2. **Keep method signatures identical** - Don't change method signatures, just delegate
+3. **Static methods** - All methods remain static (same as original)
+4. **Test after each extraction** - Don't skip testing
+5. **No functional changes** - Copy/paste only, don't refactor logic
+
+---
+
+## Important Notes for Next Agent
+
+1. The CLI service refactoring was ALREADY COMPLETED in previous session
+   - Main file: `class-cdw-cli-service.php` is now 603 lines (was ~3,200)
+   - Handlers are in `includes/services/cli/handlers/`
+
+2. This plan is for the AI service refactoring - DIFFERENT from CLI
+
+3. Start with creating the new files in `includes/services/ai/`
+
+4. Copy exact code from original methods - don't change logic
+
+5. Test after each file extraction, not at the end
+
+6. The original methods in class-cdw-ai-service.php should be DELETED after successful delegation
+
+7. Do NOT create interfaces or abstract classes - keep it simple like the CLI handlers were done
