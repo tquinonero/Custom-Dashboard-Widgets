@@ -928,7 +928,7 @@ class CDW_Abilities {
 				'input'       => array(
 					'category' => array(
 						'type'     => 'string',
-						'required' => true,
+						'required' => false,
 					),
 				),
 				'cli'         => null,
@@ -940,6 +940,315 @@ class CDW_Abilities {
 		foreach ( $abilities as $ability ) {
 			self::register_one( $ability, $permission_cb );
 		}
+
+		// ---------------------------------------------------------------
+		// Role management (abilities-only, no CLI equivalent).
+		// Registered with inline execute_callbacks since the CLI service
+		// does not handle role operations.
+		// ---------------------------------------------------------------
+
+		$built_in_roles = array( 'administrator', 'editor', 'author', 'contributor', 'subscriber' );
+
+		// role-list: Returns all roles with their capabilities.
+		wp_register_ability(
+			'cdw/role-list',
+			array(
+				'label'               => __( 'List Roles', 'cdw' ),
+				'description'         => __( 'Returns a list of all WordPress roles with their display names and capabilities. Use this to see what capabilities each role has before creating or updating roles.', 'cdw' ),
+				'category'            => 'cdw-admin-tools',
+				'permission_callback' => $permission_cb,
+				'execute_callback'    => function ( $input = array() ) use ( $built_in_roles ) {
+					$filter_role = isset( $input['role'] ) ? sanitize_key( $input['role'] ) : '';
+					$wp_roles    = wp_roles();
+
+					$roles = array();
+					foreach ( $wp_roles->roles as $role_key => $role_data ) {
+						// Filter by role if specified.
+						if ( $filter_role && $role_key !== $filter_role ) {
+							continue;
+						}
+
+						$capabilities = isset( $role_data['capabilities'] ) ? $role_data['capabilities'] : array();
+						$roles[] = array(
+							'role'         => $role_key,
+							'display_name' => isset( $role_data['name'] ) ? $role_data['name'] : $role_key,
+							'is_builtin'   => in_array( $role_key, $built_in_roles, true ),
+							'capabilities' => array_keys( $capabilities ),
+							'cap_count'    => count( $capabilities ),
+						);
+					}
+
+					return array(
+						'output' => 'Found ' . count( $roles ) . ' roles.',
+						'roles'  => $roles,
+					);
+				},
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'role' => array(
+							'type'        => 'string',
+							'description' => 'Optional. Filter by role slug to return only that role.',
+						),
+					),
+				),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'readonly'     => true,
+					'idempotent'   => true,
+					'annotations'  => array( 'destructive' => false ),
+				),
+			)
+		);
+
+		// role-create: Creates a new role with capabilities, optionally cloning from existing role.
+		wp_register_ability(
+			'cdw/role-create',
+			array(
+				'label'               => __( 'Create Role', 'cdw' ),
+				'description'         => __( 'Creates a new WordPress role with specified display name and capabilities. Optionally clone capabilities from an existing role. Cannot override built-in roles (administrator, editor, author, contributor, subscriber).', 'cdw' ),
+				'category'            => 'cdw-admin-tools',
+				'permission_callback' => $permission_cb,
+				'execute_callback'    => function ( $input = array() ) use ( $built_in_roles ) {
+					$role         = isset( $input['role'] ) ? sanitize_key( $input['role'] ) : '';
+					$display_name = isset( $input['display_name'] ) ? sanitize_text_field( $input['display_name'] ) : '';
+					$capabilities = isset( $input['capabilities'] ) ? (array) $input['capabilities'] : array();
+					$clone_from   = isset( $input['clone_from'] ) ? sanitize_key( $input['clone_from'] ) : '';
+
+					if ( empty( $role ) ) {
+						return new \WP_Error( 'missing_role', 'role (slug) is required.' );
+					}
+					if ( empty( $display_name ) ) {
+						return new \WP_Error( 'missing_display_name', 'display_name is required.' );
+					}
+					if ( in_array( $role, $built_in_roles, true ) ) {
+						return new \WP_Error( 'builtin_role', "Cannot override built-in role: $role" );
+					}
+
+					$wp_roles = wp_roles();
+
+					// Check if role already exists.
+					if ( isset( $wp_roles->roles[ $role ] ) ) {
+						return new \WP_Error( 'role_exists', "Role '$role' already exists. Use role-update to modify it." );
+					}
+
+					// If cloning, get capabilities from source role.
+					if ( ! empty( $clone_from ) ) {
+						if ( ! isset( $wp_roles->roles[ $clone_from ] ) ) {
+							return new \WP_Error( 'clone_source_not_found', "Source role '$clone_from' does not exist." );
+						}
+						$source_caps = isset( $wp_roles->roles[ $clone_from ]['capabilities'] )
+							? $wp_roles->roles[ $clone_from ]['capabilities']
+							: array();
+						$capabilities = array_merge( $capabilities, $source_caps );
+					}
+
+					// If no capabilities provided and not cloning, start with empty array.
+					if ( empty( $capabilities ) ) {
+						$capabilities = array( 'read' => true );
+					}
+
+					$result = $wp_roles->add_role( $role, $display_name, $capabilities );
+
+					if ( ! $result ) {
+						return new \WP_Error( 'add_role_failed', "Failed to create role '$role'." );
+					}
+
+					return array(
+						'output'       => "Role '$role' created successfully with " . count( $capabilities ) . ' capabilities.',
+						'role'         => $role,
+						'display_name' => $display_name,
+						'cap_count'    => count( $capabilities ),
+						'cloned_from'  => ! empty( $clone_from ) ? $clone_from : null,
+					);
+				},
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'role'         => array(
+							'type'        => 'string',
+							'description' => 'The role slug (e.g., manager, consultant).',
+						),
+						'display_name' => array(
+							'type'        => 'string',
+							'description' => 'The role display name shown in the admin.',
+						),
+						'capabilities' => array(
+							'type'        => 'array',
+							'description' => 'Array of capability keys (e.g., ["read", "edit_posts", "manage_options"]).',
+						),
+						'clone_from'   => array(
+							'type'        => 'string',
+							'description' => 'Optional. Role slug to clone capabilities from (e.g., editor).',
+						),
+					),
+					'required'   => array( 'role', 'display_name' ),
+				),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'readonly'     => false,
+					'idempotent'   => false,
+					'annotations'  => array( 'destructive' => false ),
+				),
+			)
+		);
+
+		// role-update: Adds or removes capabilities from a role.
+		wp_register_ability(
+			'cdw/role-update',
+			array(
+				'label'               => __( 'Update Role', 'cdw' ),
+				'description'         => __( 'Updates a role by adding or removing capabilities. Use add_caps to grant new capabilities, remove_caps to revoke capabilities. Cannot modify built-in roles (administrator, editor, author, contributor, subscriber).', 'cdw' ),
+				'category'            => 'cdw-admin-tools',
+				'permission_callback' => $permission_cb,
+				'execute_callback'    => function ( $input = array() ) use ( $built_in_roles ) {
+					$role        = isset( $input['role'] ) ? sanitize_key( $input['role'] ) : '';
+					$add_caps    = isset( $input['add_caps'] ) ? (array) $input['add_caps'] : array();
+					$remove_caps = isset( $input['remove_caps'] ) ? (array) $input['remove_caps'] : array();
+
+					if ( empty( $role ) ) {
+						return new \WP_Error( 'missing_role', 'role (slug) is required.' );
+					}
+
+					if ( in_array( $role, $built_in_roles, true ) ) {
+						return new \WP_Error( 'builtin_role', "Cannot modify built-in role: $role. Use role-create to make a custom copy instead." );
+					}
+
+					$wp_roles = wp_roles();
+
+					if ( ! isset( $wp_roles->roles[ $role ] ) ) {
+						return new \WP_Error( 'role_not_found', "Role '$role' does not exist. Use role-create to create it." );
+					}
+
+					$role_object = $wp_roles->get_role( $role );
+					if ( ! $role_object ) {
+						return new \WP_Error( 'role_get_failed', "Failed to get role '$role'." );
+					}
+
+					$added   = array();
+					$removed = array();
+
+					// Add capabilities.
+					foreach ( $add_caps as $cap ) {
+						$cap = sanitize_key( $cap );
+						if ( ! empty( $cap ) ) {
+							$role_object->add_cap( $cap );
+							$added[] = $cap;
+						}
+					}
+
+					// Remove capabilities.
+					foreach ( $remove_caps as $cap ) {
+						$cap = sanitize_key( $cap );
+						if ( ! empty( $cap ) ) {
+							$role_object->remove_cap( $cap );
+							$removed[] = $cap;
+						}
+					}
+
+					// Get updated capability count.
+					$current_caps = isset( $wp_roles->roles[ $role ]['capabilities'] )
+						? $wp_roles->roles[ $role ]['capabilities']
+						: array();
+
+					return array(
+						'output'    => "Role '$role' updated.",
+						'role'      => $role,
+						'added'     => $added,
+						'removed'   => $removed,
+						'cap_count' => count( $current_caps ),
+					);
+				},
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'role'        => array(
+							'type'        => 'string',
+							'description' => 'The role slug to update (must be a custom role, not built-in).',
+						),
+						'add_caps'    => array(
+							'type'        => 'array',
+							'description' => 'Array of capability keys to add.',
+						),
+						'remove_caps' => array(
+							'type'        => 'array',
+							'description' => 'Array of capability keys to remove.',
+						),
+					),
+					'required'   => array( 'role' ),
+				),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'readonly'     => false,
+					'idempotent'   => false,
+					'annotations'  => array( 'destructive' => false ),
+				),
+			)
+		);
+
+		// role-delete: Deletes a custom role.
+		wp_register_ability(
+			'cdw/role-delete',
+			array(
+				'label'               => __( 'Delete Role', 'cdw' ),
+				'description'         => __( 'Deletes a custom WordPress role. Cannot delete built-in roles (administrator, editor, author, contributor, subscriber). Users currently assigned to the deleted role will be moved to subscriber.', 'cdw' ),
+				'category'            => 'cdw-admin-tools',
+				'permission_callback' => $permission_cb,
+				'execute_callback'    => function ( $input = array() ) use ( $built_in_roles ) {
+					$role = isset( $input['role'] ) ? sanitize_key( $input['role'] ) : '';
+
+					if ( empty( $role ) ) {
+						return new \WP_Error( 'missing_role', 'role (slug) is required.' );
+					}
+
+					if ( in_array( $role, $built_in_roles, true ) ) {
+						return new \WP_Error( 'builtin_role', "Cannot delete built-in role: $role" );
+					}
+
+					$wp_roles = wp_roles();
+
+					if ( ! isset( $wp_roles->roles[ $role ] ) ) {
+						return new \WP_Error( 'role_not_found', "Role '$role' does not exist." );
+					}
+
+					// Get count of users with this role before deletion.
+					$users_with_role = count(
+						get_users(
+							array(
+								'role'   => $role,
+								'fields' => 'ID',
+								'number' => -1,
+							)
+						)
+					);
+
+					// remove_role() returns void, throws on failure.
+					$wp_roles->remove_role( $role );
+
+					return array(
+						'output'         => "Role '$role' deleted successfully.",
+						'role'           => $role,
+						'users_affected' => $users_with_role,
+					);
+				},
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'role' => array(
+							'type'        => 'string',
+							'description' => 'The role slug to delete (must be a custom role, not built-in).',
+						),
+					),
+					'required'   => array( 'role' ),
+				),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'readonly'     => false,
+					'idempotent'   => false,
+					'annotations'  => array( 'destructive' => true ),
+				),
+			)
+		);
 
 		// ---------------------------------------------------------------
 		// block-patterns-get: abilities-only (no CLI equivalent).
@@ -1020,7 +1329,7 @@ class CDW_Abilities {
 			'cdw/post-set-content',
 			array(
 				'label'               => __( 'Set Post Content', 'cdw' ),
-				'description'         => __( 'Replaces the full post_content of an existing post or page with raw block markup. Supply either content (plain string) or content_base64 (base64-encoded string — preferred for block markup because it avoids JSON escaping issues). For large pages: (1) call with content="" to clear, (2) use cdw/post-append-content to push sections.', 'cdw' ),
+				'description'         => __( 'Replaces the full post_content of an existing post or page with raw block markup. For design recommendations (colors, spacing, patterns), first use cdw/skill-list to find skills, then cdw/skill-get with skill_name: "gutenberg-design" to get design guidelines. Supply either content (plain string) or content_base64 (base64-encoded string — preferred for block markup because it avoids JSON escaping issues). For large pages: (1) call with content="" to clear, (2) use cdw/post-append-content to push sections.', 'cdw' ),
 				'category'            => 'cdw-admin-tools',
 				'permission_callback' => $permission_cb,
 				'execute_callback'    => function ( $input = array() ) {
@@ -1128,15 +1437,15 @@ class CDW_Abilities {
 						$chunk_content  = substr( $content, $offset, $limit );
 
 						return array(
-							'output'        => $has_more
-								? "Post $post_id content retrieved. Chunk $chunk_index (" . strlen( $chunk_content ) . " bytes)."
+							'output'       => $has_more
+								? "Post $post_id content retrieved. Chunk $chunk_index (" . strlen( $chunk_content ) . ' bytes).'
 								: "Post $post_id content retrieved. Length: $total_length bytes.",
-							'post_id'       => $post_id,
-							'title'         => $post->post_title,
-							'content'       => $chunk_content,
-							'total_length'  => $total_length,
-							'chunk_index'   => $chunk_index,
-							'has_more'      => $has_more,
+							'post_id'      => $post_id,
+							'title'        => $post->post_title,
+							'content'      => $chunk_content,
+							'total_length' => $total_length,
+							'chunk_index'  => $chunk_index,
+							'has_more'     => $has_more,
 						);
 					},
 					'input_schema'        => array(
@@ -1146,12 +1455,12 @@ class CDW_Abilities {
 								'type'        => 'integer',
 								'description' => 'ID of the post or page to get content from.',
 							),
-							'offset' => array(
+							'offset'  => array(
 								'type'        => 'integer',
 								'description' => 'Starting position for chunked retrieval (default: 0).',
 								'default'     => 0,
 							),
-							'limit' => array(
+							'limit'   => array(
 								'type'        => 'integer',
 								'description' => 'Chunk size in characters (default: 5000, max: 20000).',
 								'default'     => 5000,
@@ -1179,7 +1488,7 @@ class CDW_Abilities {
 			'cdw/post-append-content',
 			array(
 				'label'               => __( 'Append Post Content', 'cdw' ),
-				'description'         => __( 'Appends a raw block markup chunk to the existing post_content of a post or page. Supply either content (plain string) or content_base64 (base64-encoded — preferred for block markup to avoid JSON escaping). Workflow: (1) call cdw/post-set-content with content="" to clear the post, (2) call this ability repeatedly with successive chunks. The response includes the running total byte count so you can confirm each chunk landed.', 'cdw' ),
+				'description'         => __( 'Appends a raw block markup chunk to the existing post_content of a post or page. For design recommendations (colors, spacing, patterns), first use cdw/skill-list to find skills, then cdw/skill-get with skill_name: "gutenberg-design" to get design guidelines. Supply either content (plain string) or content_base64 (base64-encoded — preferred for block markup to avoid JSON escaping). Workflow: (1) call cdw/post-set-content with content="" to clear the post, (2) call this ability repeatedly with successive chunks. The response includes the running total byte count so you can confirm each chunk landed.', 'cdw' ),
 				'category'            => 'cdw-admin-tools',
 				'permission_callback' => $permission_cb,
 				'execute_callback'    => function ( $input = array() ) {
@@ -1263,7 +1572,7 @@ class CDW_Abilities {
 			'cdw/build-page',
 			array(
 				'label'               => __( 'Build Page', 'cdw' ),
-				'description'         => __( 'Creates a new page or updates an existing one with Gutenberg block markup generated from structured JSON. Input: {"title": "Page Title", "sections": [{"type": "cover", "title": "Hero", "image": "url"}, {"type": "two-column", "left": {...}, "right": {...}}, {"type": "footer", "columns": [...]}]}. Supported section types: cover, two-column, three-column, footer. Returns post_id, title, and section_count.', 'cdw' ),
+				'description'         => __( 'Creates a new page or updates an existing one with Gutenberg block markup generated from structured JSON. For design recommendations (colors, spacing, patterns), first use cdw/skill-list to find skills, then cdw/skill-get with skill_name: "gutenberg-design" to get design guidelines. Input: {"title": "Page Title", "sections": [{"type": "cover", "title": "Hero", "image": "url"}, {"type": "two-column", "left": {...}, "right": {...}}, {"type": "footer", "columns": [...]}]}. Supported section types: cover, two-column, three-column, footer. Returns post_id, title, and section_count.', 'cdw' ),
 				'category'            => 'cdw-admin-tools',
 				'permission_callback' => $permission_cb,
 				'execute_callback'    => function ( $input = array() ) {
@@ -1379,7 +1688,7 @@ class CDW_Abilities {
 
 					if ( ! is_dir( $patterns_dir ) ) {
 						return array(
-							'output'  => 'No custom patterns found.',
+							'output'   => 'No custom patterns found.',
 							'patterns' => array(),
 						);
 					}
@@ -1441,7 +1750,7 @@ class CDW_Abilities {
 						return new \WP_Error( 'patterns_dir_not_found', 'Patterns directory not found.' );
 					}
 
-					// Search for the pattern file (supports subdirectories)
+					// Search for the pattern file (supports subdirectories).
 					$files = glob( $patterns_dir . '/**/*.json', GLOB_BRACE );
 					$matched = null;
 
@@ -1467,13 +1776,13 @@ class CDW_Abilities {
 					$content_base64 = base64_encode( $content );
 
 					return array(
-						'output'          => "Custom pattern \"$pattern_name\" retrieved. Length: " . strlen( $content ) . ' bytes.',
-						'name'            => $pattern_name,
-						'title'           => isset( $matched['title'] ) ? $matched['title'] : '',
+						'output'         => "Custom pattern \"$pattern_name\" retrieved. Length: " . strlen( $content ) . ' bytes.',
+						'name'           => $pattern_name,
+						'title'          => isset( $matched['title'] ) ? $matched['title'] : '',
 						'description'    => isset( $matched['description'] ) ? $matched['description'] : '',
-						'category'        => isset( $matched['category'] ) ? $matched['category'] : 'general',
-						'content_length'  => strlen( $content ),
-						'content_base64'  => $content_base64,
+						'category'       => isset( $matched['category'] ) ? $matched['category'] : 'general',
+						'content_length' => strlen( $content ),
+						'content_base64' => $content_base64,
 					);
 				},
 				'input_schema'        => array(
