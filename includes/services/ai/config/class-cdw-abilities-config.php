@@ -328,7 +328,7 @@ return array(
 		'input'       => array(
 			'status' => array(
 				'type'     => 'string',
-				'required' => true,
+				'required' => false,
 			),
 		),
 		'cli'         => null,
@@ -508,7 +508,7 @@ return array(
 		'input'       => array(
 			'user_id' => array(
 				'type'     => 'integer',
-				'required' => true,
+				'required' => false,
 			),
 		),
 		'cli'         => null,
@@ -525,11 +525,11 @@ return array(
 			),
 			'assignee_login' => array(
 				'type'     => 'string',
-				'required' => true,
+				'required' => false,
 			),
 			'assignee_id'    => array(
 				'type'     => 'integer',
-				'required' => true,
+				'required' => false,
 			),
 		),
 		'cli'         => null,
@@ -542,7 +542,7 @@ return array(
 		'input'       => array(
 			'user_id' => array(
 				'type'     => 'integer',
-				'required' => true,
+				'required' => false,
 			),
 		),
 		'cli'         => null,
@@ -559,7 +559,7 @@ return array(
 		'input'       => array(
 			'type' => array(
 				'type'     => 'string',
-				'required' => true,
+				'required' => false,
 			),
 		),
 		'cli'         => null,
@@ -572,7 +572,7 @@ return array(
 		'input'       => array(
 			'type' => array(
 				'type'     => 'string',
-				'required' => true,
+				'required' => false,
 				'desc'     => __( 'Post type to count (e.g. post, page). Omit for all public post types.', 'cdw' ),
 			),
 		),
