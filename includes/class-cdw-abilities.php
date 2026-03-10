@@ -85,6 +85,7 @@ class CDW_Abilities {
 		require_once CDW_PLUGIN_DIR . 'includes/abilities/definitions/class-cdw-role-abilities.php';
 		require_once CDW_PLUGIN_DIR . 'includes/abilities/definitions/class-cdw-pattern-abilities.php';
 		require_once CDW_PLUGIN_DIR . 'includes/abilities/definitions/class-cdw-content-abilities.php';
+		require_once CDW_PLUGIN_DIR . 'includes/abilities/definitions/class-cdw-meta-abilities.php';
 
 		$permission_cb = function () {
 			return current_user_can( 'manage_options' );
@@ -105,6 +106,7 @@ class CDW_Abilities {
 		CDW_Role_Abilities::register( $permission_cb );
 		CDW_Pattern_Abilities::register( $permission_cb );
 		CDW_Content_Abilities::register( $permission_cb );
+		CDW_Meta_Abilities::register( $permission_cb );
 	}
 
 	/**
