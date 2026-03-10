@@ -21,6 +21,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 abstract class CDW_Base_Controller {
 	/**
+	 * Registers REST routes for a controller.
+	 *
+	 * @return void
+	 */
+	abstract public function register_routes();
+
+	/**
 	 * REST API namespace.
 	 *
 	 * @var string
