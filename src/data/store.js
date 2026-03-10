@@ -1,6 +1,18 @@
 import { createReduxStore, register } from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
 
+const buildTasksPayload = (tasks, assigneeId = null) => {
+    const data = { tasks };
+
+    // The REST schema expects assignee_id to be an integer when present.
+    // Omit it entirely for "my tasks" operations.
+    if (assigneeId !== null && assigneeId !== '') {
+        data.assignee_id = assigneeId;
+    }
+
+    return data;
+};
+
 const DEFAULT_STATE = {
     stats: {
         posts: 0,
@@ -84,7 +96,7 @@ const actions = {
             const result = await apiFetch({
                 path: '/cdw/v1/tasks',
                 method: 'POST',
-                data: { tasks: task, assignee_id: assigneeId },
+                data: buildTasksPayload(task, assigneeId),
             });
             // Only update the store with the returned task list when saving the
             // current user's own tasks. When assigning to another user the server
@@ -107,7 +119,7 @@ const actions = {
             const result = await apiFetch({
                 path: '/cdw/v1/tasks',
                 method: 'POST',
-                data: { tasks, assignee_id: assigneeId },
+                data: buildTasksPayload(tasks, assigneeId),
             });
             dispatch(actions.setTasks(result.tasks));
             return result;
