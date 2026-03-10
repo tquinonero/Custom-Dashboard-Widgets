@@ -60,7 +60,6 @@ class CDW_Pattern_Abilities {
 				'category'            => 'cdw-admin-tools',
 				'permission_callback' => $permission_cb,
 				'execute_callback'    => array( 'CDW_Pattern_Ability_Service', 'list_custom_patterns' ),
-				'input_schema'        => array(),
 				'meta'                => array(
 					'show_in_rest' => true,
 					'readonly'     => true,

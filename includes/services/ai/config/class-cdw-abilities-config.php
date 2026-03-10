@@ -220,11 +220,19 @@ return array(
 	),
 	'cdw/user-delete'         => array(
 		'label'       => __( 'Delete User', 'cdw' ),
-		'desc'        => __( 'Permanently deletes a WordPress user identified by their numeric user ID.', 'cdw' ),
+		'desc'        => __( 'Permanently deletes a WordPress user identified by their numeric user ID. Provide reassign to transfer authored content or set delete_content to true to remove authored content.', 'cdw' ),
 		'input'       => array(
 			'user_id' => array(
 				'type'     => 'integer',
 				'required' => true,
+			),
+			'reassign' => array(
+				'type'     => 'integer',
+				'required' => false,
+			),
+			'delete_content' => array(
+				'type'     => 'boolean',
+				'required' => false,
 			),
 		),
 		'cli'         => null,

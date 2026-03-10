@@ -137,7 +137,15 @@ class CDW_Ability_CLI_Command_Builders {
 	}
 
 	public static function build_user_delete( array $input ): string {
-		return 'user delete ' . (int) $input['user_id'] . ' --force';
+		$cmd = 'user delete ' . (int) $input['user_id'];
+
+		if ( ! empty( $input['delete_content'] ) ) {
+			$cmd .= ' --delete-content';
+		} elseif ( isset( $input['reassign'] ) && (int) $input['reassign'] > 0 ) {
+			$cmd .= ' --reassign=' . (int) $input['reassign'];
+		}
+
+		return $cmd . ' --force';
 	}
 
 	public static function build_user_get( array $input ): string {

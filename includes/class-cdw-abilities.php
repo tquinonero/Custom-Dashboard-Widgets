@@ -126,6 +126,11 @@ class CDW_Abilities {
 			if ( is_object( $input ) ) {
 				$input = json_decode( json_encode( $input ), true );
 			}
+			if ( ! is_array( $input ) ) {
+				$input = array();
+			}
+
+			$input = self::normalize_ability_input( $ability_name, $input );
 			$cli_command = $static_cli ?? self::build_cli_command( $ability_name, $input );
 			$service     = new CDW_CLI_Service();
 			$result      = $service->execute_as_ai( $cli_command, get_current_user_id() );
@@ -134,6 +139,7 @@ class CDW_Abilities {
 			}
 			return array( 'output' => $result );
 		};
+
 
 		$args = array(
 			'label'               => $ability['label'],
@@ -151,18 +157,68 @@ class CDW_Abilities {
 			),
 		);
 
-		// Register input_schema based on the ability's parameter requirements.
-		//
-		// - No params at all: omit schema entirely for MCP compatibility.
-		// - Has params: include schema with type='object'.
+		// Omit input_schema entirely for abilities with no input params.
 		if ( ! empty( $ability['input'] ) ) {
+			$allows_null_input = true;
+			foreach ( $ability['input'] as $field_schema ) {
+				if ( ! empty( $field_schema['required'] ) ) {
+					$allows_null_input = false;
+					break;
+				}
+			}
+
 			$args['input_schema'] = array(
-				'type'       => 'object',
+				// MCP execute-ability converts empty {} to null; allow null when all fields are optional.
+				'type'       => $allows_null_input ? array( 'object', 'null' ) : 'object',
 				'properties' => $ability['input'],
 			);
 		}
 
 		wp_register_ability( $ability_name, $args );
+	}
+
+	/**
+	 * Normalizes ability input for optional params and nullable MCP payloads.
+	 *
+	 * @param string               $ability_name Ability identifier.
+	 * @param array<string, mixed> $input        Raw input payload.
+	 * @return array<string, mixed>
+	 */
+	private static function normalize_ability_input( string $ability_name, array $input ): array {
+		$normalized = array();
+
+		foreach ( $input as $key => $value ) {
+			if ( null === $value || '' === $value ) {
+				continue;
+			}
+			$normalized[ $key ] = $value;
+		}
+
+		switch ( $ability_name ) {
+			case 'cdw/comment-list':
+				if ( ! isset( $normalized['status'] ) ) {
+					$normalized['status'] = 'pending';
+				}
+				break;
+			case 'cdw/post-list':
+				if ( ! isset( $normalized['type'] ) ) {
+					$normalized['type'] = 'post';
+				}
+				break;
+			case 'cdw/post-count':
+				if ( ! isset( $normalized['type'] ) ) {
+					$normalized['type'] = '';
+				}
+				break;
+			case 'cdw/task-list':
+			case 'cdw/task-delete':
+				if ( ! isset( $normalized['user_id'] ) ) {
+					$normalized['user_id'] = 0;
+				}
+				break;
+		}
+
+		return $normalized;
 	}
 
 	/**

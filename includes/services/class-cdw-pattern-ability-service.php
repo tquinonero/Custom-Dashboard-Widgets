@@ -15,6 +15,43 @@ if ( ! defined( 'ABSPATH' ) ) {
 class CDW_Pattern_Ability_Service {
 
 	/**
+	 * Recursively discovers custom pattern JSON files.
+	 *
+	 * @param string $patterns_dir Absolute patterns directory.
+	 * @return array<int,string>
+	 */
+	private static function find_pattern_json_files( $patterns_dir ) {
+		$files = array();
+
+		if ( ! is_dir( $patterns_dir ) ) {
+			return $files;
+		}
+
+		$iterator = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator(
+				$patterns_dir,
+				FilesystemIterator::SKIP_DOTS
+			)
+		);
+
+		foreach ( $iterator as $file_info ) {
+			if ( ! $file_info->isFile() ) {
+				continue;
+			}
+
+			if ( 'json' !== strtolower( (string) $file_info->getExtension() ) ) {
+				continue;
+			}
+
+			$files[] = $file_info->getPathname();
+		}
+
+		sort( $files );
+
+		return $files;
+	}
+
+	/**
 	 * Executes `cdw/block-patterns-get`.
 	 *
 	 * @param array<string,mixed> $input Ability input.
@@ -64,7 +101,7 @@ class CDW_Pattern_Ability_Service {
 	 *
 	 * @return array<string,mixed>
 	 */
-	public static function list_custom_patterns() {
+	public static function list_custom_patterns( $input = array() ) {
 		$patterns_dir = CDW_PLUGIN_DIR . 'patterns';
 
 		if ( ! is_dir( $patterns_dir ) ) {
@@ -75,11 +112,15 @@ class CDW_Pattern_Ability_Service {
 		}
 
 		$patterns = array();
-		$files    = glob( $patterns_dir . '/**/*.json', GLOB_BRACE );
+		$files    = self::find_pattern_json_files( $patterns_dir );
 
 		foreach ( $files as $file ) {
 			$content = file_get_contents( $file );
-			$data    = json_decode( $content, true );
+			if ( false === $content ) {
+				continue;
+			}
+
+			$data = json_decode( $content, true );
 
 			if ( $data && isset( $data['name'] ) ) {
 				$patterns[] = array(
@@ -116,12 +157,16 @@ class CDW_Pattern_Ability_Service {
 			return new WP_Error( 'patterns_dir_not_found', 'Patterns directory not found.' );
 		}
 
-		$files   = glob( $patterns_dir . '/**/*.json', GLOB_BRACE );
+		$files   = self::find_pattern_json_files( $patterns_dir );
 		$matched = null;
 
 		foreach ( $files as $file ) {
 			$content = file_get_contents( $file );
-			$data    = json_decode( $content, true );
+			if ( false === $content ) {
+				continue;
+			}
+
+			$data = json_decode( $content, true );
 
 			if ( $data && isset( $data['name'] ) && $data['name'] === $pattern_name ) {
 				$matched = $data;
