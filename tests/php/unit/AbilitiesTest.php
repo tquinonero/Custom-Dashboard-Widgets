@@ -57,10 +57,13 @@ class AbilitiesTest extends CDWTestCase {
 	}
 
 	// -----------------------------------------------------------------------
-	// 3. register_abilities() calls wp_register_ability exactly 63 times
+	// 3. register_abilities() calls wp_register_ability exactly 70 times
+	// (59 in $abilities array + 11 inline: block-patterns-get, post-set-content,
+	// post-get-content, post-append-content, build-page, custom-patterns-list,
+	// custom-patterns-get, role-list, role-create, role-update, role-delete)
 	// -----------------------------------------------------------------------
 
-	public function test_register_abilities_registers_exactly_63_abilities(): void {
+	public function test_register_abilities_registers_exactly_70_abilities(): void {
 		$count = 0;
 
 		Functions\when( 'wp_register_ability' )->alias( function () use ( &$count ) {
@@ -70,7 +73,7 @@ class AbilitiesTest extends CDWTestCase {
 
 		\CDW_Abilities::register_abilities();
 
-		$this->assertSame( 64, $count );
+		$this->assertSame( 70, $count );
 	}
 
 	// -----------------------------------------------------------------------

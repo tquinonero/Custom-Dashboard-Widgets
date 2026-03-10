@@ -93,24 +93,6 @@ class AiControllerTest extends CDWTestCase {
     // save_ai_settings()
     // -----------------------------------------------------------------------
 
-    public function test_save_ai_settings_returns_400_when_body_is_null(): void {
-        $request = new \WP_REST_Request();
-        $request->set_json_params( null );
-
-        $result = $this->controller->save_ai_settings( $request );
-
-        $this->assertInstanceOf( \WP_Error::class, $result );
-    }
-
-    public function test_save_ai_settings_returns_400_when_body_is_not_array(): void {
-        $request = new \WP_REST_Request();
-        $request->set_json_params( 'not-an-array' );
-
-        $result = $this->controller->save_ai_settings( $request );
-
-        $this->assertInstanceOf( \WP_Error::class, $result );
-    }
-
     public function test_save_ai_settings_returns_error_for_invalid_provider(): void {
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'sanitize_text_field' )->returnArg();
@@ -150,16 +132,10 @@ class AiControllerTest extends CDWTestCase {
     // chat()
     // -----------------------------------------------------------------------
 
-    public function test_chat_returns_400_when_body_is_null(): void {
-        $request = new \WP_REST_Request();
-        $request->set_json_params( null );
-
-        $result = $this->controller->chat( $request );
-
-        $this->assertInstanceOf( \WP_Error::class, $result );
-    }
-
     public function test_chat_returns_400_when_message_is_empty(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
+        $this->stubDefaultUserSettings( 1 );
+
         $request = new \WP_REST_Request();
         $request->set_json_params( array( 'message' => '   ' ) );
 
@@ -167,15 +143,6 @@ class AiControllerTest extends CDWTestCase {
 
         $this->assertInstanceOf( \WP_Error::class, $result );
         $this->assertSame( 400, $result->get_error_data()['status'] );
-    }
-
-    public function test_chat_returns_400_when_message_key_is_absent(): void {
-        $request = new \WP_REST_Request();
-        $request->set_json_params( array() );
-
-        $result = $this->controller->chat( $request );
-
-        $this->assertInstanceOf( \WP_Error::class, $result );
     }
 
     public function test_chat_returns_429_when_rate_limited(): void {
@@ -215,16 +182,8 @@ class AiControllerTest extends CDWTestCase {
     // execute_tool()
     // -----------------------------------------------------------------------
 
-    public function test_execute_tool_returns_400_when_body_is_null(): void {
-        $request = new \WP_REST_Request();
-        $request->set_json_params( null );
-
-        $result = $this->controller->execute_tool( $request );
-
-        $this->assertInstanceOf( \WP_Error::class, $result );
-    }
-
     public function test_execute_tool_returns_400_when_tool_name_is_empty(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 1 );
         $request = new \WP_REST_Request();
         $request->set_json_params( array( 'tool_name' => '' ) );
 

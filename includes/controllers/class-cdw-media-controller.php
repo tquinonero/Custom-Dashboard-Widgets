@@ -49,7 +49,7 @@ class CDW_Media_Controller extends CDW_Base_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_media( WP_REST_Request $request ) {
-		$per_page  = (int) $request->get_param( 'per_page' );
+		$per_page  = $request->get_param( 'per_page' );
 		$cache_key = 'cdw_media_cache_' . $per_page;
 		$media     = $this->get_transient_with_cache(
 			$cache_key,

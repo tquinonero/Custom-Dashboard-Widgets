@@ -304,7 +304,7 @@ class LoaderTest extends CDWTestCase {
         $loader = new \CDW_Loader();
         $loader->enqueue_assets( 'index.php' );
 
-        $this->assertStringContainsString( '--cdw-bg: #fff', $inlineCss );
+        $this->assertStringContainsString( 'background-color: #fff', $inlineCss );
     }
 
     public function test_enqueue_assets_invalid_bg_color_no_background_css(): void {
@@ -390,7 +390,7 @@ class LoaderTest extends CDWTestCase {
         $loader = new \CDW_Loader();
         $loader->enqueue_assets( 'index.php' );
 
-        $this->assertStringContainsString( '--cdw-header-bg:', $inlineCss );
+        $this->assertStringContainsString( 'background:', $inlineCss );
     }
 
     public function test_enqueue_assets_valid_header_text_color_generates_color_css(): void {
@@ -407,6 +407,6 @@ class LoaderTest extends CDWTestCase {
         $loader = new \CDW_Loader();
         $loader->enqueue_assets( 'index.php' );
 
-        $this->assertStringContainsString( '--cdw-header-text:', $inlineCss );
+        $this->assertStringContainsString( 'color:', $inlineCss );
     }
 }

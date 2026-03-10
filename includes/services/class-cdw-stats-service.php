@@ -48,14 +48,17 @@ class CDW_Stats_Service {
 		$page_counts = wp_count_posts( 'page' );
 		$page_total  = $this->sum_post_statuses( $page_counts );
 
+		$cat_count = wp_count_terms( array( 'taxonomy' => 'category' ) );
+		$tag_count = wp_count_terms( array( 'taxonomy' => 'post_tag' ) );
+
 		$stats = array(
 			'posts'      => (int) wp_count_posts()->publish,
 			'pages'      => $page_total,
 			'comments'   => (int) wp_count_comments()->approved,
 			'users'      => count_users()['total_users'],
 			'media'      => (int) wp_count_posts( 'attachment' )->inherit,
-			'categories' => (int) wp_count_terms( array( 'taxonomy' => 'category' ) ),
-			'tags'       => (int) wp_count_terms( array( 'taxonomy' => 'post_tag' ) ),
+			'categories' => is_wp_error( $cat_count ) ? 0 : (int) $cat_count,
+			'tags'       => is_wp_error( $tag_count ) ? 0 : (int) $tag_count,
 			'plugins'    => count( get_plugins() ),
 			'themes'     => count( wp_get_themes() ),
 		);

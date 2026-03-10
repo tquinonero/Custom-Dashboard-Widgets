@@ -57,6 +57,16 @@ class CDW_Tasks_Controller extends CDW_Base_Controller {
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'save_tasks' ),
 				'permission_callback' => array( $this, 'check_admin_permission' ),
+				'args'                => array(
+					'tasks'       => array(
+						'type'     => 'array',
+						'required' => false,
+					),
+					'assignee_id' => array(
+						'type'     => 'integer',
+						'required' => false,
+					),
+				),
 			)
 		);
 	}

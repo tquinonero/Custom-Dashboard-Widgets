@@ -12,12 +12,12 @@
 |                | theme install <slug>, theme update <slug>, theme update --all, theme delete <slug>           |
 | User           | user list, user get <username|id>, user create <user> <email> <role>,                        |
 |                | user role <user> <role>, user delete <id>                                                     |
-| Post           | post create <title>, post get <id>, post list [<type>], post status <id> <status>,           |
+| Post           | post create <title>, post get <id>, post list [<type>], post count [<type>], post status <id> <status>,           |
 |                | post delete <id>                                                                              |
 | Cache          | cache flush                                                                                   |
 | Database       | db size, db tables, search-replace <old> <new>                                                |
 | Options        | option get <name>, option list, option set <name> <value>, option delete <name>              |
-| Transients     | transient list, transient delete <name> (should require force and it does not)                                                      |
+| Transients     | transient list, transient delete <name>                                                      |
 | Cron           | cron list, cron run <hook>                                                                    |
 | Site           | site info, site settings, site status, site empty                                             |
 | Comments       | comment list [pending|approved|spam], comment approve <id>,                       |
@@ -30,7 +30,7 @@
 | Skills         | skill list, skill get <plugin-slug> <skill-name> [<file>]                                     |
 | Block Patterns | block-patterns list [<category>], block-patterns get <name>                                    |
 
-**Abilities / AI assistant only (not in CLI widget):** `task list`, `task create <name>`, `task delete`, `post set-content`, `post get-content`, `post append-content`, `block-patterns get`.
+**Abilities / AI assistant only (not in CLI widget):** `task list`, `task create <name>`, `task delete`, `post set-content`, `post get-content`, `post append-content`, `block-patterns get`, `build-page`, `custom-patterns list`, `custom-patterns get`.
 
 --- TESTED
 

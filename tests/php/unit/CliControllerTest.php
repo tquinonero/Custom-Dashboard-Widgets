@@ -138,28 +138,6 @@ class CliControllerTest extends CDWTestCase {
     // execute_cli_command()
     // -----------------------------------------------------------------------
 
-    public function test_execute_cli_command_returns_400_when_command_is_empty_string(): void {
-        Functions\when( 'get_current_user_id' )->justReturn( 1 );
-        $request = new \WP_REST_Request();
-        $request->set_param( 'command', '' );
-
-        $result = $this->controller->execute_cli_command( $request );
-
-        $this->assertInstanceOf( \WP_Error::class, $result );
-        $this->assertSame( 'empty_command', $result->get_error_code() );
-        $this->assertSame( 400, $result->get_error_data()['status'] );
-    }
-
-    public function test_execute_cli_command_returns_400_when_command_is_null(): void {
-        Functions\when( 'get_current_user_id' )->justReturn( 1 );
-        $request = new \WP_REST_Request(); // param not set → null
-
-        $result = $this->controller->execute_cli_command( $request );
-
-        $this->assertInstanceOf( \WP_Error::class, $result );
-        $this->assertSame( 400, $result->get_error_data()['status'] );
-    }
-
     public function test_execute_cli_command_calls_service_and_returns_result(): void {
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'is_wp_error' )->justReturn( false );

@@ -48,12 +48,6 @@ Choose ONE vibe. Mix sparingly.
 - De-emphasize to emphasize (make things smaller/subtle to make important things pop)
 - Use ONE focal point per section
 
-### Balance
-- Avoid 4-column grids (cluttered)
-- Use 2-3 columns max
-- For 4 items: 2x2 grid with mobile stacking
-- 50/50 splits for asymmetric sections
-
 ### Contrast
 - Dark bg → light text. Light bg → dark text.
 - Don't use grey text on colored backgrounds (hard to read)
@@ -217,13 +211,12 @@ WordPress comes with built-in patterns. Use them as starting points.
 ```
 Section padding: 48-96px
 Card padding: 24-32px  
-Gap: 16-24px
-Margins: 16-32px
+Gap: 8-24px
+Margins: 8-32px
 Border radius: 8-48px
 ```
 
 ### Common Mistakes
-- 4-column layouts
 - Hex colors in block attributes
 - Outline buttons without textColor
 - No mobile stacking

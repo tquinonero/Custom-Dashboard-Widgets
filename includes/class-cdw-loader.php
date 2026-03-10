@@ -94,6 +94,7 @@ class CDW_Loader {
 		// Delete all CDW transients in a single query using REGEXP
 		// Matches: _transient_cdw_posts_cache_*, _transient_cdw_media_cache_*,
 		// _transient_timeout_cdw_posts_cache_*, _transient_timeout_cdw_media_cache_*
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- pattern is a hardcoded literal, no user input
 		$wpdb->query(
 			"DELETE FROM {$wpdb->options} WHERE option_name REGEXP '^_transient(_timeout)?_cdw_(posts|media)_cache_'"
 		);
@@ -251,9 +252,9 @@ class CDW_Loader {
 	/**
 	 * Build all admin menu categories (raw, unfiltered).
 	 *
-	 * @return array
+	 * @return array<string, array{label: string, items: array<int, array{label: string, href: string}>, icon: string}>
 	 */
-	private function build_all_menu_categories() {
+	private function build_all_menu_categories(): array {
 		global $menu, $submenu;
 
 		$categories = array(
@@ -353,7 +354,7 @@ class CDW_Loader {
 					continue;
 				}
 
-				if ( '' === $menu_item[0] || ' ' === $menu_item[0] ) {
+				if ( ' ' === $menu_item[0] ) {
 					continue;
 				}
 
@@ -393,9 +394,9 @@ class CDW_Loader {
 	/**
 	 * Get admin menu data for the Quick Links widget (excludes Tools and Other).
 	 *
-	 * @return array
+	 * @return array<int, array{label: string, items: array<int, array{label: string, href: string}>, icon: string}>
 	 */
-	private function get_admin_menu_data() {
+	private function get_admin_menu_data(): array {
 		$cached = get_transient( 'cdw_admin_menu_cache' );
 		if ( is_array( $cached ) ) {
 			$categories = $cached;
@@ -419,9 +420,9 @@ class CDW_Loader {
 	/**
 	 * Get admin menu data for the Tools & Other widget (tools and other categories only).
 	 *
-	 * @return array
+	 * @return array<int, array{label: string, items: array<int, array{label: string, href: string}>, icon: string}>
 	 */
-	private function get_admin_tools_data() {
+	private function get_admin_tools_data(): array {
 		$cached = get_transient( 'cdw_admin_menu_cache' );
 		if ( is_array( $cached ) ) {
 			$categories = $cached;

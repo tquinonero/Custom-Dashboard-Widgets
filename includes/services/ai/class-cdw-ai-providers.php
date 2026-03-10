@@ -208,6 +208,30 @@ class CDW_AI_Providers {
 	}
 
 	/**
+	 * Routes the chat request to the appropriate provider.
+	 *
+	 * @param array<int,array<string,mixed>> $messages       Chat messages.
+	 * @param array<int,array<string,mixed>> $tools          Tool definitions.
+	 * @param string                         $api_key        Provider API key.
+	 * @param string                         $model          Model ID.
+	 * @param string                         $system_prompt  System prompt (used for Anthropic).
+	 * @param string                         $base_url       Custom base URL for OpenAI-compatible.
+	 * @param string                         $provider       Provider slug.
+	 * @return array<string,mixed>|WP_Error Parsed response or WP_Error.
+	 */
+	public static function call_provider( $messages, $tools, $api_key, $model, $system_prompt = '', $base_url = '', $provider = '' ) {
+		if ( 'openai' === $provider || 'custom' === $provider ) {
+			return self::call_openai( $messages, $tools, $api_key, $model, $base_url );
+		}
+
+		if ( 'anthropic' === $provider ) {
+			return self::call_anthropic( $messages, $tools, $api_key, $model, $system_prompt );
+		}
+
+		return self::call_google( $messages, $tools, $api_key, $model );
+	}
+
+	/**
 	 * Parses a wp_remote_post() response into a normalised array.
 	 *
 	 * @param array<string,mixed>|WP_Error $response  wp_remote_post() result.
@@ -330,21 +354,21 @@ class CDW_AI_Providers {
 	 *
 	 * @param string              $provider     Provider slug.
 	 * @param array<string,mixed> $api_response Normalised API response.
-	 * @param array<string,mixed> $tc           Single tool call {id, name, arguments}.
+	 * @param array<string,mixed> $tool_call    Single tool call {id, name, arguments}.
 	 * @return array<string,mixed> Message array to append to $messages.
 	 */
-	public static function format_assistant_tool_call_message( $provider, $api_response, $tc ) {
+	public static function format_assistant_tool_call_message( $provider, $api_response, $tool_call ) {
 		if ( 'openai' === $provider || 'custom' === $provider ) {
 			return array(
 				'role'       => 'assistant',
 				'content'    => null,
 				'tool_calls' => array(
 					array(
-						'id'       => $tc['id'],
+						'id'       => $tool_call['id'],
 						'type'     => 'function',
 						'function' => array(
-							'name'      => $tc['name'],
-							'arguments' => wp_json_encode( $tc['arguments'] ),
+							'name'      => $tool_call['name'],
+							'arguments' => wp_json_encode( $tool_call['arguments'] ),
 						),
 					),
 				),
@@ -364,8 +388,8 @@ class CDW_AI_Providers {
 				'parts' => array(
 					array(
 						'functionCall' => array(
-							'name' => $tc['name'],
-							'args' => $tc['arguments'],
+							'name' => $tool_call['name'],
+							'args' => $tool_call['arguments'],
 						),
 					),
 				),
@@ -376,16 +400,16 @@ class CDW_AI_Providers {
 	/**
 	 * Formats a tool result message for feeding back to the provider.
 	 *
-	 * @param string              $provider    Provider slug.
-	 * @param array<string,mixed> $tc          Tool call {id, name, arguments}.
-	 * @param string              $tool_output Tool execution output.
+	 * @param string              $provider     Provider slug.
+	 * @param array<string,mixed> $tool_call   Tool call {id, name, arguments}.
+	 * @param string              $tool_output  Tool execution output.
 	 * @return array<string,mixed> Message array.
 	 */
-	public static function format_tool_result_message( $provider, $tc, $tool_output ) {
+	public static function format_tool_result_message( $provider, $tool_call, $tool_output ) {
 		if ( 'openai' === $provider || 'custom' === $provider ) {
 			return array(
 				'role'         => 'tool',
-				'tool_call_id' => $tc['id'],
+				'tool_call_id' => $tool_call['id'],
 				'content'      => $tool_output,
 			);
 		}
@@ -396,7 +420,7 @@ class CDW_AI_Providers {
 				'content' => array(
 					array(
 						'type'        => 'tool_result',
-						'tool_use_id' => $tc['id'],
+						'tool_use_id' => $tool_call['id'],
 						'content'     => $tool_output,
 					),
 				),
@@ -408,7 +432,7 @@ class CDW_AI_Providers {
 			'parts' => array(
 				array(
 					'functionResponse' => array(
-						'name'     => $tc['name'],
+						'name'     => $tool_call['name'],
 						'response' => array( 'output' => $tool_output ),
 					),
 				),

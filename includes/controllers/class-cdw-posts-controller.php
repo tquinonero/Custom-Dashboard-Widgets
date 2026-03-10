@@ -57,7 +57,7 @@ class CDW_Posts_Controller extends CDW_Base_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_posts( WP_REST_Request $request ) {
-		$per_page  = (int) $request->get_param( 'per_page' );
+		$per_page  = $request->get_param( 'per_page' );
 		$status    = $request->get_param( 'status' );
 		$post_type = $request->get_param( 'post_type' );
 

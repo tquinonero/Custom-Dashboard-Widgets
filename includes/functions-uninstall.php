@@ -38,6 +38,10 @@ function cdw_do_uninstall() {
 		'cdw_remove_default_widgets',
 		'cdw_delete_on_uninstall',
 		'cdw_db_version',
+		// MCP / welcome options.
+		'cdw_mcp_public',
+		'cdw_user_type',
+		'cdw_welcome_notice_dismissed',
 		// AI options.
 		'cdw_ai_enabled',
 		'cdw_ai_execution_mode',
@@ -57,6 +61,7 @@ function cdw_do_uninstall() {
 
 	// --- Transients (named) ---
 	delete_transient( 'cdw_stats_cache' );
+	delete_transient( 'cdw_admin_menu_cache' );
 
 	// --- Transients (pattern-matched via SQL) ---
 	$patterns = array(

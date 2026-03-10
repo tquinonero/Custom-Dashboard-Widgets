@@ -778,10 +778,11 @@ class CliServiceHandlersTest extends CDWTestCase {
     // -----------------------------------------------------------------------
 
     private function callReplaceInValue( $value, string $old, string $new ) {
-        $ref    = new \ReflectionClass( $this->service );
-        $method = $ref->getMethod( 'replace_in_value' );
+        $handler = new \CDW_Search_Replace_Handler();
+        $ref     = new \ReflectionClass( $handler );
+        $method  = $ref->getMethod( 'replace_in_value' );
         $method->setAccessible( true );
-        return $method->invoke( $this->service, $value, $old, $new );
+        return $method->invoke( $handler, $value, $old, $new );
     }
 
     public function test_replace_in_value_plain_string(): void {

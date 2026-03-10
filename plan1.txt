@@ -1,350 +1,704 @@
-# AI Service Refactoring Plan
+# Clean Code Refactoring Plan: class-cdw-ai-service.php
 
 ## Overview
 
-Refactor `includes/services/class-cdw-ai-service.php` from a monolithic 2,213-line class into a modular handler-based architecture.
+This plan refactors `/home/toni/Escritorio/Wordpress/wp-content/plugins/cdw/includes/services/class-cdw-ai-service.php` to follow clean code principles (SRP, DRY, KISS, meaningful naming).
 
-**Target**: Reduce main file from 2,213 lines to ~400 lines (82% reduction)
+## Current State
 
----
+- **File**: `includes/services/class-cdw-ai-service.php`
+- **Tests**: 31/31 passing
+- **Main Issues**:
+  1. SRP Violation: `execute_agentic_loop()` is 114 lines with too many responsibilities
+  2. DRY Violation: Provider routing logic duplicated 3 times
+  3. Code Duplication: Default usage array duplicated
+  4. Poor Naming: `$tc` is unclear
 
-## Current File Structure
+## Confirmed Scope
 
-The current `class-cdw-ai-service.php` contains 12 public static methods:
+- **Phases 1-5**: Execute now
+- **Phase 6 (Dependency Injection)**: Deferred to later
 
-| Method | Lines | Purpose |
-|--------|-------|---------|
-| `get_providers()` | ~65 | Returns provider catalogue |
-| `encrypt_api_key()` | ~25 | Encrypts API keys |
-| `decrypt_api_key()` | ~55 | Decrypts API keys |
-| `get_user_ai_settings()` | ~40 | Gets user AI settings |
-| `save_user_ai_settings()` | ~50 | Saves user AI settings |
-| `get_decrypted_api_key()` | ~20 | Gets decrypted API key |
-| `check_ai_rate_limit()` | ~30 | Rate limiting |
-| `get_tool_definitions()` | ~850 | Returns 40+ tool definitions (HUGE) |
-| `build_system_prompt()` | ~50 | Builds system prompt |
-| `execute_tool_call()` | ~110 | Executes tool calls |
-| `execute_agentic_loop()` | ~220 | Main orchestrator |
-| `test_api_key()` | ~20 | Tests API connection |
+## Execution Order
 
-Plus private methods:
-- `call_openai()` (~60 lines)
-- `call_anthropic()` (~50 lines)
-- `call_google()` (~50 lines)
-- `tool_name_to_cli_command()` (~100 lines)
-- Various helper methods
-
----
-
-## Proposed Architecture
-
-```
-includes/services/ai/
-├── class-cdw-ai-service.php       # Main orchestrator (~350 lines) - KEEP
-├── class-cdw-ai-tools.php          # Tool definitions (~900 lines) - EXTRACT
-├── class-cdw-ai-providers.php      # Provider API calls (~500 lines) - EXTRACT
-└── class-cdw-ai-prompts.php        # System prompts (~50 lines) - EXTRACT
-```
-
----
-
-## Extraction Details
-
-### 1. class-cdw-ai-tools.php (~900 lines)
-
-Extract these methods from `class-cdw-ai-service.php`:
-
-**get_tool_definitions()** (lines ~396-1245, ~850 lines)
-- Returns array of 40+ tool definitions for AI function calling
-- Each tool has name, description, parameters
-
-**tool_name_to_cli_command()** (lines ~1414-1523, ~110 lines)
-- Maps tool names to CLI command strings
-- Switch statement with 40+ cases
-
-**execute_tool_call()** (lines ~1296-1405, ~110 lines)
-- Executes tool calls from AI providers
-- Handles special cases (gutenberg_guide, post_set_content, post_create, page_create)
-- Delegates to CDW_CLI_Service for most commands
-
-### 2. class-cdw-ai-providers.php (~500 lines)
-
-Extract these private static methods:
-
-**call_openai()** (lines ~1634-1690, ~60 lines)
-- Makes API calls to OpenAI-compatible endpoints
-- Handles response parsing, errors, usage stats
-
-**call_anthropic()** (lines ~1692-1741, ~50 lines)
-- Makes API calls to Anthropic Claude
-- Different message format than OpenAI
-
-**call_google()** (lines ~1743-1791, ~50 lines)
-- Makes API calls to Google Gemini
-- Different message format and tool handling
-
-**Helper methods** (format_assistant_tool_call_message, format_tool_result_message, etc.)
-- Used by all provider methods
-
-### 3. class-cdw-ai-prompts.php (~50 lines)
-
-Extract:
-
-**build_system_prompt()** (lines ~1245-1295, ~50 lines)
-- Builds the system prompt that instructs the AI on capabilities
-
----
-
-## Implementation Steps
-
-### Step 1: Create Directory Structure
-```bash
-mkdir -p includes/services/ai
-```
-
-### Step 2: Create class-cdw-ai-tools.php
-
-File: `includes/services/ai/class-cdw-ai-tools.php`
-
-```php
-<?php
-/**
- * AI Tools for CDW - tool definitions and execution.
- *
- * @package CDW
- */
-
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
-
-require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-cli-service.php';
-
-/**
- * AI Tools handler - manages tool definitions and execution.
- */
-class CDW_AI_Tools {
-
-	/**
-	 * Get all tool definitions for AI function calling.
-	 *
-	 * @return array
-	 */
-	public static function get_tool_definitions() {
-		// Copy exact content from class-cdw-ai-service.php get_tool_definitions()
-	}
-
-	/**
-	 * Convert tool name + arguments to CLI command.
-	 *
-	 * @param string $tool_name Tool name.
-	 * @param array $arguments Tool arguments.
-	 * @return string|null CLI command string.
-	 */
-	public static function tool_name_to_cli_command( $tool_name, $arguments ) {
-		// Copy exact content from class-cdw-ai-service.php
-	}
-
-	/**
-	 * Execute a tool call.
-	 *
-	 * @param string $function_name Tool name.
-	 * @param array $arguments Tool arguments.
-	 * @param int $user_id User ID.
-	 * @return string|array Result.
-	 */
-	public static function execute_tool_call( $function_name, $arguments, $user_id ) {
-		// Copy exact content from class-cdw-ai-service.php
-	}
-}
-```
-
-### Step 3: Create class-cdw-ai-providers.php
-
-File: `includes/services/ai/class-cdw-ai-providers.php`
-
-```php
-<?php
-/**
- * AI Providers for CDW - OpenAI, Anthropic, Google API calls.
- *
- * @package CDW
- */
-
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
-
-/**
- * AI Providers handler - manages API calls to AI providers.
- */
-class CDW_AI_Providers {
-
-	/**
-	 * Call OpenAI API.
-	 */
-	public static function call_openai( $messages, $tools, $api_key, $model, $base_url = '' ) {
-		// Copy from class-cdw-ai-service.php
-	}
-
-	/**
-	 * Call Anthropic API.
-	 */
-	public static function call_anthropic( $messages, $tools, $api_key, $model, $system_prompt = '' ) {
-		// Copy from class-cdw-ai-service.php
-	}
-
-	/**
-	 * Call Google Gemini API.
-	 */
-	public static function call_google( $messages, $tools, $api_key, $model ) {
-		// Copy from class-cdw-ai-service.php
-	}
-
-	// Plus helper methods: format_assistant_tool_call_message, format_tool_result_message
-}
-```
-
-### Step 4: Create class-cdw-ai-prompts.php
-
-File: `includes/services/ai/class-cdw-ai-prompts.php`
-
-```php
-<?php
-/**
- * AI Prompts for CDW - system prompts.
- *
- * @package CDW
- */
-
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
-
-/**
- * AI Prompts handler.
- */
-class CDW_AI_Prompts {
-
-	/**
-	 * Build system prompt.
-	 */
-	public static function build_system_prompt( $custom_prompt = '' ) {
-		// Copy from class-cdw-ai-service.php
-	}
-}
-```
-
-### Step 5: Update Main Service
-
-In `class-cdw-ai-service.php`:
-
-1. ADD includes at top (after existing requires):
-```php
-require_once CDW_PLUGIN_DIR . 'includes/services/ai/class-cdw-ai-tools.php';
-require_once CDW_PLUGIN_DIR . 'includes/services/ai/class-cdw-ai-providers.php';
-require_once CDW_PLUGIN_DIR . 'includes/services/ai/class-cdw-ai-prompts.php';
-```
-
-2. REPLACE `get_tool_definitions()` with:
-```php
-public static function get_tool_definitions() {
-	return CDW_AI_Tools::get_tool_definitions();
-}
-```
-
-3. REPLACE `tool_name_to_cli_command()` with:
-```php
-private static function tool_name_to_cli_command( $tool_name, $arguments ) {
-	return CDW_AI_Tools::tool_name_to_cli_command( $tool_name, $arguments );
-}
-```
-
-4. REPLACE `execute_tool_call()` with:
-```php
-public static function execute_tool_call( $function_name, $arguments, $user_id ): string|array {
-	return CDW_AI_Tools::execute_tool_call( $function_name, $arguments, $user_id );
-}
-```
-
-5. REPLACE `call_openai()` with:
-```php
-private static function call_openai( $messages, $tools, $api_key, $model, $base_url = '' ) {
-	return CDW_AI_Providers::call_openai( $messages, $tools, $api_key, $model, $base_url );
-}
-```
-
-6. REPLACE `call_anthropic()` with:
-```php
-private static function call_anthropic( $messages, $tools, $api_key, $model, $system_prompt = '' ) {
-	return CDW_AI_Providers::call_anthropic( $messages, $tools, $api_key, $model, $system_prompt );
-}
-```
-
-7. REPLACE `call_google()` with:
-```php
-private static function call_google( $messages, $tools, $api_key, $model ) {
-	return CDW_AI_Providers::call_google( $messages, $tools, $api_key, $model );
-}
-```
-
-8. REPLACE `build_system_prompt()` with:
-```php
-public static function build_system_prompt( $custom_prompt = '' ) {
-	return CDW_AI_Prompts::build_system_prompt( $custom_prompt );
-}
-```
-
-9. DELETE the original method implementations that were copied
-
----
-
-## Testing Commands
-
-Run after EACH extraction:
+Execute each phase in order. After each phase, run tests to verify behavior is preserved.
 
 ```bash
-# Unit tests
-vendor/bin/phpunit --testsuite=Unit
-
-# PHPStan
-vendor/bin/phpstan analyse
-
-# PHPStan on specific files
-vendor/bin/phpstan analyse includes/services/class-cdw-ai-service.php
-vendor/bin/phpstan analyse includes/services/ai/class-cdw-ai-tools.php
-vendor/bin/phpstan analyse includes/services/ai/class-cdw-ai-providers.php
-vendor/bin/phpstan analyse includes/services/ai/class-cdw-ai-prompts.php
+cd /home/toni/Escritorio/Wordpress/wp-content/plugins/cdw
+vendor/bin/phpunit tests/php/unit/AiServiceTest.php
 ```
 
-All must pass before proceeding to next step.
+---
+
+# PHASE 1: Add Tests First
+
+## Objective
+
+Add tests for `execute_agentic_loop()` to create a safety net before refactoring.
+
+## File to Modify
+
+`tests/php/unit/AiServiceTest.php`
+
+## Changes Required
+
+Add the following test methods to the `AiServiceTest` class (before the closing brace):
+
+```php
+// -----------------------------------------------------------------------
+// execute_agentic_loop()
+// -----------------------------------------------------------------------
+
+public function test_execute_agentic_loop_returns_content_from_provider(): void {
+    // Mock WordPress functions
+    Functions\when( 'get_user_meta' )->justReturn( '' );
+    Functions\when( 'update_user_meta' )->justReturn( true );
+    Functions\when( 'get_transient' )->justReturn( 0 );
+    Functions\when( 'set_transient' )->justReturn( true );
+
+    // Mock the provider call to return a simple response
+    Functions\when( 'wp_remote_post' )->alias( function( $url, $args ) {
+        return array(
+            'body'     => json_encode( array(
+                'choices' => array(
+                    array(
+                        'message' => array(
+                            'content' => 'Hello, I can help you manage your WordPress site.'
+                        )
+                    )
+                ),
+                'usage' => array(
+                    'prompt_tokens'     => 10,
+                    'completion_tokens' => 20,
+                    'total_tokens'      => 30
+                )
+            )),
+            'response' => array( 'code' => 200 )
+        );
+    });
+
+    $result = \CDW_AI_Service::execute_agentic_loop(
+        'Hello',
+        array(),
+        'test-api-key',
+        'openai',
+        'gpt-4o-mini',
+        1,
+        '',
+        ''
+    );
+
+    $this->assertIsArray( $result );
+    $this->assertArrayHasKey( 'content', $result );
+    $this->assertStringContainsString( 'WordPress', $result['content'] );
+    $this->assertArrayHasKey( 'usage', $result );
+    $this->assertArrayHasKey( 'tool_calls_made', $result );
+}
+
+public function test_execute_agentic_loop_handles_tool_calls(): void {
+    Functions\when( 'get_user_meta' )->justReturn( '' );
+    Functions\when( 'update_user_meta' )->justReturn( true );
+    Functions\when( 'get_transient' )->justReturn( 0 );
+    Functions\when( 'set_transient' )->justReturn( true );
+    Functions\when( 'sanitize_text_field' )->returnArg();
+    Functions\when( 'sanitize_textarea_field' )->returnArg();
+
+    // First call returns a tool call, second returns final response
+    $call_count = 0;
+    Functions\when( 'wp_remote_post' )->alias( function( $url, $args ) use ( &$call_count ) {
+        $call_count++;
+        
+        if ( 1 === $call_count ) {
+            // First call: provider wants to call a tool
+            return array(
+                'body' => json_encode( array(
+                    'choices' => array(
+                        array(
+                            'message' => array(
+                                'tool_calls' => array(
+                                    array(
+                                        'id'       => 'call_123',
+                                        'type'     => 'function',
+                                        'function' => array(
+                                            'name'      => 'plugin_list',
+                                            'arguments' => '{}'
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    ),
+                    'usage' => array(
+                        'prompt_tokens'     => 10,
+                        'completion_tokens' => 5,
+                        'total_tokens'      => 15
+                    )
+                )),
+                'response' => array( 'code' => 200 )
+            );
+        } else {
+            // Second call: final response after tool execution
+            return array(
+                'body' => json_encode( array(
+                    'choices' => array(
+                        array(
+                            'message' => array(
+                                'content' => 'Here is the list of plugins: akismet, hello-dolly'
+                            )
+                        )
+                    ),
+                    'usage' => array(
+                        'prompt_tokens'     => 20,
+                        'completion_tokens' => 30,
+                        'total_tokens'      => 50
+                    )
+                )),
+                'response' => array( 'code' => 200 )
+            );
+        }
+    });
+
+    // Mock plugin list command execution
+    Functions\when( 'get_plugins' )->justReturn( array(
+        'akismet/akismet.php' => array( 'Name' => 'Akismet', 'Version' => '5.0' ),
+        'hello.php' => array( 'Name' => 'Hello Dolly', 'Version' => '1.7.2' )
+    ) );
+    Functions\when( 'is_plugin_active' )->justReturn( true );
+    Functions\when( 'get_option' )->justReturn( array() );
+
+    $result = \CDW_AI_Service::execute_agentic_loop(
+        'List my plugins',
+        array(),
+        'test-api-key',
+        'openai',
+        'gpt-4o-mini',
+        1,
+        '',
+        ''
+    );
+
+    $this->assertIsArray( $result );
+    $this->assertArrayHasKey( 'tool_calls_made', $result );
+    $this->assertNotEmpty( $result['tool_calls_made'] );
+    $this->assertSame( 'plugin_list', $result['tool_calls_made'][0]['name'] );
+}
+
+public function test_execute_agentic_loop_returns_wp_error_on_api_failure(): void {
+    Functions\when( 'get_user_meta' )->justReturn( '' );
+    Functions\when( 'update_user_meta' )->justReturn( true );
+    Functions\when( 'get_transient' )->justReturn( 0 );
+    Functions\when( 'set_transient' )->justReturn( true );
+    Functions\when( 'sanitize_text_field' )->returnArg();
+    Functions\when( 'sanitize_textarea_field' )->returnArg();
+
+    Functions\when( 'wp_remote_post' )->alias( function( $url, $args ) {
+        return array(
+            'body'     => json_encode( array(
+                'error' => array( 'message' => 'Invalid API key' )
+            )),
+            'response' => array( 'code' => 401 )
+        );
+    });
+
+    $result = \CDW_AI_Service::execute_agentic_loop(
+        'Hello',
+        array(),
+        'invalid-key',
+        'openai',
+        'gpt-4o-mini',
+        1,
+        '',
+        ''
+    );
+
+    $this->assertInstanceOf( \WP_Error::class, $result );
+}
+```
+
+## Verification
+
+After adding tests, run:
+```bash
+vendor/bin/phpunit tests/php/unit/AiServiceTest.php
+```
+
+Expected: All 34 tests pass (31 existing + 3 new).
 
 ---
 
-## Key Decisions
+# PHASE 2: Add Class Constants
 
-1. **Extract incrementally** - Do one file at a time, test after each
-2. **Keep method signatures identical** - Don't change method signatures, just delegate
-3. **Static methods** - All methods remain static (same as original)
-4. **Test after each extraction** - Don't skip testing
-5. **No functional changes** - Copy/paste only, don't refactor logic
+## Objective
+
+Eliminate code duplication for the default usage array.
+
+## File to Modify
+
+`includes/services/class-cdw-ai-service.php`
+
+## Changes Required
+
+Add this constant after line 70 (after `RATE_LIMIT_WINDOW`):
+
+```php
+	/**
+	 * Default token usage structure.
+	 *
+	 * @var array<string,int>
+	 */
+	const DEFAULT_USAGE = array(
+		'prompt_tokens'     => 0,
+		'completion_tokens' => 0,
+		'total_tokens'      => 0,
+		'request_count'     => 0,
+	);
+```
+
+## Update Existing Code
+
+### Replace lines 275-280 (in `get_user_ai_settings()`):
+
+**Before:**
+```php
+$default_usage = array(
+    'prompt_tokens'     => 0,
+    'completion_tokens' => 0,
+    'total_tokens'      => 0,
+    'request_count'     => 0,
+);
+```
+
+**After:**
+```php
+$default_usage = self::DEFAULT_USAGE;
+```
+
+### Replace lines 444-450 (in `record_usage()`):
+
+**Before:**
+```php
+$existing = get_user_meta( $user_id, self::USAGE_META_KEY, true );
+if ( ! is_array( $existing ) ) {
+    $existing = array(
+        'prompt_tokens'     => 0,
+        'completion_tokens' => 0,
+        'total_tokens'      => 0,
+        'request_count'    => 0,
+    );
+}
+```
+
+**After:**
+```php
+$existing = get_user_meta( $user_id, self::USAGE_META_KEY, true );
+if ( ! is_array( $existing ) ) {
+    $existing = self::DEFAULT_USAGE;
+}
+```
+
+## Verification
+
+Run tests to ensure nothing broke:
+```bash
+vendor/bin/phpunit tests/php/unit/AiServiceTest.php
+```
 
 ---
 
-## Important Notes for Next Agent
+# PHASE 3: Extract Provider Routing (DRY)
 
-1. The CLI service refactoring was ALREADY COMPLETED in previous session
-   - Main file: `class-cdw-cli-service.php` is now 603 lines (was ~3,200)
-   - Handlers are in `includes/services/cli/handlers/`
+## Objective
 
-2. This plan is for the AI service refactoring - DIFFERENT from CLI
+Eliminate the triplicated if-else pattern for calling different AI providers.
 
-3. Start with creating the new files in `includes/services/ai/`
+## File to Modify
 
-4. Copy exact code from original methods - don't change logic
+`includes/services/class-cdw-ai-service.php`
 
-5. Test after each file extraction, not at the end
+## New Method to Add
 
-6. The original methods in class-cdw-ai-service.php should be DELETED after successful delegation
+Add this new method after line 515 (after `parse_http_response`):
 
-7. Do NOT create interfaces or abstract classes - keep it simple like the CLI handlers were done
+```php
+	/**
+	 * Routes the chat request to the appropriate provider.
+	 *
+	 * @param array<int,array<string,mixed>> $messages       Chat messages.
+	 * @param array<int,array<string,mixed>> $tools          Tool definitions.
+	 * @param string                         $api_key        Provider API key.
+	 * @param string                         $model          Model ID.
+	 * @param string                         $system_prompt  System prompt (used for Anthropic).
+	 * @param string                         $base_url       Custom base URL for OpenAI-compatible.
+	 * @param string                         $provider       Provider slug.
+	 * @return array<string,mixed>|WP_Error Parsed response or WP_Error.
+	 */
+	private static function call_provider( $messages, $tools, $api_key, $model, $system_prompt = '', $base_url = '', $provider = '' ) {
+		if ( 'openai' === $provider || 'custom' === $provider ) {
+			return self::call_openai( $messages, $tools, $api_key, $model, $base_url );
+		}
+
+		if ( 'anthropic' === $provider ) {
+			return self::call_anthropic( $messages, $tools, $api_key, $model, $system_prompt );
+		}
+
+		return self::call_google( $messages, $tools, $api_key, $model );
+	}
+```
+
+## Update Existing Code
+
+### Update FIRST provider call (lines 598-604)
+
+**Before:**
+```php
+if ( 'openai' === $provider || 'custom' === $provider ) {
+    $api_response = self::call_openai( $messages, $tools, $api_key, $model, $base_url );
+} elseif ( 'anthropic' === $provider ) {
+    $api_response = self::call_anthropic( $messages, $tools, $api_key, $model, $system_prompt );
+} else {
+    $api_response = self::call_google( $messages, $tools, $api_key, $model );
+}
+```
+
+**After:**
+```php
+$api_response = self::call_provider( $messages, $tools, $api_key, $model, $system_prompt, $base_url, $provider );
+```
+
+### Update SECOND provider call (lines 629-635)
+
+**Before:**
+```php
+if ( 'openai' === $provider || 'custom' === $provider ) {
+    $final_response = self::call_openai( $messages, $tools, $api_key, $model, $base_url );
+} elseif ( 'anthropic' === $provider ) {
+    $final_response = self::call_anthropic( $messages, $tools, $api_key, $model, $system_prompt );
+} else {
+    $final_response = self::call_google( $messages, $tools, $api_key, $model );
+}
+```
+
+**After:**
+```php
+$final_response = self::call_provider( $messages, $tools, $api_key, $model, $system_prompt, $base_url, $provider );
+```
+
+### Update test_api_key() method (lines 698-704)
+
+**Before:**
+```php
+if ( 'openai' === $provider || 'custom' === $provider ) {
+    $result = self::call_openai( $minimal_messages, array(), $api_key, $model, $base_url );
+} elseif ( 'anthropic' === $provider ) {
+    $result = self::call_anthropic( $minimal_messages, array(), $api_key, $model );
+} else {
+    $result = self::call_google( $minimal_messages, array(), $api_key, $model );
+}
+```
+
+**After:**
+```php
+$result = self::call_provider( $minimal_messages, array(), $api_key, $model, '', $base_url, $provider );
+```
+
+## Verification
+
+```bash
+vendor/bin/phpunit tests/php/unit/AiServiceTest.php
+```
+
+---
+
+# PHASE 4: Split execute_agentic_loop() (SRP)
+
+## Objective
+
+Break down the 114-line `execute_agentic_loop()` into smaller, focused methods.
+
+## File to Modify
+
+`includes/services/class-cdw-ai-service.php`
+
+## New Methods to Add
+
+Add these methods after the `call_provider()` method (around line 540):
+
+### Method 1: build_messages_array()
+
+```php
+	/**
+	 * Builds the messages array for the AI provider.
+	 *
+	 * @param string                         $system_prompt  System prompt.
+	 * @param array<int,array<string,mixed>> $history        Previous conversation turns.
+	 * @param string                         $user_message   Current user message.
+	 * @param string                         $provider       Provider slug (affects format).
+	 * @return array<int,array<string,mixed>> Messages array.
+	 */
+	private static function build_messages_array( $system_prompt, $history, $user_message, $provider ) {
+		$messages = array();
+
+		if ( 'anthropic' !== $provider ) {
+			$messages[] = array(
+				'role'    => 'system',
+				'content' => $system_prompt,
+			);
+		}
+
+		$capped_history = array_slice( $history, -20 );
+		foreach ( $capped_history as $turn ) {
+			if ( isset( $turn['role'], $turn['content'] ) ) {
+				$messages[] = array(
+					'role'    => sanitize_text_field( $turn['role'] ),
+					'content' => sanitize_textarea_field( $turn['content'] ),
+				);
+			}
+		}
+
+		$messages[] = array(
+			'role'    => 'user',
+			'content' => sanitize_textarea_field( $user_message ),
+		);
+
+		return $messages;
+	}
+```
+
+### Method 2: handle_tool_calls()
+
+```php
+	/**
+	 * Executes tool calls from the AI response and updates messages.
+	 *
+	 * @param array<string,mixed>            $api_response  The AI response with tool_calls.
+	 * @param string                         $provider      Provider slug.
+	 * @param int                           $user_id       WordPress user ID.
+	 * @param array<int,array<string,mixed>> &$messages    Messages array to append to.
+	 * @return array<int,array<string,mixed>> Array of tool calls made.
+	 */
+	private static function handle_tool_calls( $api_response, $provider, $user_id, &$messages ) {
+		$tool_calls_made = array();
+
+		if ( empty( $api_response['tool_calls'] ) ) {
+			return $tool_calls_made;
+		}
+
+		foreach ( $api_response['tool_calls'] as $tool_call ) {
+			$tool_output = self::execute_tool_call( $tool_call['name'], $tool_call['arguments'], $user_id );
+
+			$tool_calls_made[] = array(
+				'name'      => $tool_call['name'],
+				'arguments' => $tool_call['arguments'],
+				'output'    => $tool_output,
+			);
+
+			$messages[] = self::format_assistant_tool_call_message( $provider, $api_response, $tool_call );
+			$messages[] = self::format_tool_result_message( $provider, $tool_call, $tool_output );
+		}
+
+		return $tool_calls_made;
+	}
+```
+
+### Method 3: process_response()
+
+```php
+	/**
+	 * Processes the final AI response and handles edge cases.
+	 *
+	 * @param array<string,mixed>            $final_response  The final AI response.
+	 * @param array<int,array<string,mixed>> $tool_calls_made Array of tool calls executed.
+	 * @param array<string,int>              $total_usage     Current usage totals.
+	 * @return array{content: string, usage: array<string,int>} Processed result.
+	 */
+	private static function process_response( $final_response, $tool_calls_made, $total_usage ) {
+		$final_content = $final_response['content'];
+
+		if ( isset( $final_response['usage'] ) ) {
+			$total_usage['prompt_tokens']     += (int) ( $final_response['usage']['prompt_tokens'] ?? 0 );
+			$total_usage['completion_tokens'] += (int) ( $final_response['usage']['completion_tokens'] ?? 0 );
+			$total_usage['total_tokens']      += (int) ( $final_response['usage']['total_tokens'] ?? 0 );
+		}
+
+		if ( '' === trim( $final_content ) && ! empty( $tool_calls_made ) ) {
+			$outputs       = array_map(
+				function ( $tc ) {
+					return $tc['output'];
+				},
+				$tool_calls_made
+			);
+			$final_content = implode( "\n\n", array_map( 'strval', $outputs ) );
+		}
+
+		return array(
+			'content' => $final_content,
+			'usage'   => $total_usage,
+		);
+	}
+```
+
+## Refactor execute_agentic_loop()
+
+Replace the entire `execute_agentic_loop()` method (lines 563-676) with this refactored version:
+
+```php
+	public static function execute_agentic_loop( $user_message, $history, $api_key, $provider, $model, $user_id, $custom_prompt = '', $base_url = '' ) {
+		$tools         = self::get_tool_definitions();
+		$system_prompt = self::build_system_prompt( $custom_prompt );
+
+		// Build messages array
+		$messages = self::build_messages_array( $system_prompt, $history, $user_message, $provider );
+
+		// First provider call
+		$api_response = self::call_provider( $messages, $tools, $api_key, $model, $system_prompt, $base_url, $provider );
+
+		if ( is_wp_error( $api_response ) ) {
+			return $api_response;
+		}
+
+		$total_usage = isset( $api_response['usage'] ) ? $api_response['usage'] : self::DEFAULT_USAGE;
+
+		// Handle tool calls
+		$tool_calls_made = self::handle_tool_calls( $api_response, $provider, $user_id, $messages );
+
+		// If tools were called, make second provider call
+		if ( ! empty( $tool_calls_made ) ) {
+			$final_response = self::call_provider( $messages, $tools, $api_key, $model, $system_prompt, $base_url, $provider );
+
+			if ( is_wp_error( $final_response ) ) {
+				return array(
+					'content'         => $api_response['content'],
+					'tool_calls_made' => $tool_calls_made,
+					'usage'           => $total_usage,
+				);
+			}
+
+			$processed = self::process_response( $final_response, $tool_calls_made, $total_usage );
+			$final_content = $processed['content'];
+			$total_usage   = $processed['usage'];
+		} else {
+			$final_content = $api_response['content'];
+		}
+
+		self::record_usage( $user_id, $total_usage );
+
+		return array(
+			'content'         => $final_content,
+			'tool_calls_made' => $tool_calls_made,
+			'usage'           => $total_usage,
+		);
+	}
+```
+
+## Verification
+
+```bash
+vendor/bin/phpunit tests/php/unit/AiServiceTest.php
+```
+
+Expected: All tests pass.
+
+---
+
+# PHASE 5: Improve Naming
+
+## Objective
+
+Replace unclear variable names with more descriptive ones.
+
+## File to Modify
+
+`includes/services/class-cdw-ai-service.php`
+
+## Changes Required
+
+### In format_assistant_tool_call_message() (line ~525)
+
+Change parameter name:
+
+**Before:**
+```php
+private static function format_assistant_tool_call_message( $provider, $api_response, $tc ) {
+```
+
+**After:**
+```php
+private static function format_assistant_tool_call_message( $provider, $api_response, $tool_call ) {
+```
+
+### In format_tool_result_message() (line ~537)
+
+Change parameter name:
+
+**Before:**
+```php
+private static function format_tool_result_message( $provider, $tc, $tool_output ) {
+```
+
+**After:**
+```php
+private static function format_tool_result_message( $provider, $tool_call, $tool_output ) {
+```
+
+### Update internal references
+
+In `format_tool_result_message()`, update the references from `$tc` to `$tool_call`:
+
+```php
+// Inside format_tool_result_message, change:
+'tool_use_id' => $tc['id'],
+
+// To:
+'tool_use_id' => $tool_call['id'],
+```
+
+In `format_assistant_tool_call_message()`, update similarly.
+
+## Update CDW_AI_Providers.php
+
+The same naming issue exists in `class-cdw-ai-providers.php`. Update:
+
+1. `format_assistant_tool_call_message()` - parameter `$tc` → `$tool_call`
+2. `format_tool_result_message()` - parameter `$tc` → `$tool_call`
+3. Update all internal references within those methods
+
+## Verification
+
+```bash
+vendor/bin/phpunit tests/php/unit/AiServiceTest.php
+```
+
+---
+
+# FINAL VERIFICATION
+
+After completing all phases, run the full test suite:
+
+```bash
+cd /home/toni/Escritorio/Wordpress/wp-content/plugins/cdw
+vendor/bin/phpunit tests/php/unit/AiServiceTest.php
+```
+
+Expected: All tests pass.
+
+---
+
+# SUMMARY OF CHANGES
+
+| Phase | File | Changes |
+|-------|------|---------|
+| 1 | `tests/php/unit/AiServiceTest.php` | Add 3 new tests |
+| 2 | `class-cdw-ai-service.php` | Add `DEFAULT_USAGE` constant, update 2 locations |
+| 3 | `class-cdw-ai-service.php` | Add `call_provider()`, update 3 call sites |
+| 4 | `class-cdw-ai-service.php` | Add 3 new methods, refactor `execute_agentic_loop()` |
+| 5 | `class-cdw-ai-service.php`, `class-cdw-ai-providers.php` | Rename `$tc` to `$tool_call` |
+
+---
+
+# NOTES FOR NEXT AGENT
+
+1. **Always run tests after each phase** to catch regressions early
+2. **If tests fail**, revert changes and investigate before continuing
+3. **Phase 6 (Dependency Injection)** is deferred - do not attempt
+4. **The calling code** (`class-cdw-ai-controller.php`) should work without changes since we're keeping the same public method signatures
+5. **If you need to add more tests** for edge cases, add them in Phase 1 style

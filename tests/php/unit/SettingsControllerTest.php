@@ -74,30 +74,6 @@ class SettingsControllerTest extends CDWTestCase {
     }
 
     // -----------------------------------------------------------------------
-    // save_settings() — validation
-    // -----------------------------------------------------------------------
-
-    public function test_save_settings_returns_error_when_body_is_null(): void {
-        $request = new \WP_REST_Request();
-        $request->set_json_params( null );
-
-        $result = $this->controller->save_settings( $request );
-
-        $this->assertInstanceOf( \WP_Error::class, $result );
-        $this->assertSame( 400, $result->get_error_data()['status'] );
-    }
-
-    public function test_save_settings_returns_error_when_body_is_string(): void {
-        $request = new \WP_REST_Request();
-        $request->set_json_params( 'not-an-array' );
-
-        $result = $this->controller->save_settings( $request );
-
-        $this->assertInstanceOf( \WP_Error::class, $result );
-        $this->assertSame( 400, $result->get_error_data()['status'] );
-    }
-
-    // -----------------------------------------------------------------------
     // save_settings() — email field
     // -----------------------------------------------------------------------
 

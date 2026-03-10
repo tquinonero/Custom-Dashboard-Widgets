@@ -17,10 +17,10 @@ class CDW_Section_Renderers {
 	/**
 	 * Render a cover section.
 	 *
-	 * @param array $data Section data.
+	 * @param array{title?: string, subtitle?: string, image?: string, minHeight?: int} $data Section data.
 	 * @return string Block markup.
 	 */
-	public static function render_cover( $data ) {
+	public static function render_cover( array $data ): string {
 		$title      = isset( $data['title'] ) ? $data['title'] : '';
 		$subtitle   = isset( $data['subtitle'] ) ? $data['subtitle'] : '';
 		$image      = isset( $data['image'] ) ? $data['image'] : '';
@@ -65,10 +65,10 @@ class CDW_Section_Renderers {
 	/**
 	 * Render a two-column section.
 	 *
-	 * @param array $data Section data.
+	 * @param array<string, mixed> $data Section data.
 	 * @return string Block markup.
 	 */
-	public static function render_two_column( $data ) {
+	public static function render_two_column( array $data ): string {
 		$left    = isset( $data['left'] ) ? $data['left'] : array();
 		$right   = isset( $data['right'] ) ? $data['right'] : array();
 		$reverse = isset( $data['reverse'] ) && $data['reverse'];
@@ -108,10 +108,10 @@ class CDW_Section_Renderers {
 	/**
 	 * Render an image column.
 	 *
-	 * @param array $data Column data.
+	 * @param array{src?: string, image?: string, alt?: string} $data Column data.
 	 * @return string Block markup.
 	 */
-	private static function render_image_column( $data ) {
+	private static function render_image_column( array $data ): string {
 		$src = isset( $data['src'] ) ? $data['src'] : ( isset( $data['image'] ) ? $data['image'] : '' );
 		$alt = isset( $data['alt'] ) ? $data['alt'] : 'Image';
 
@@ -133,10 +133,10 @@ class CDW_Section_Renderers {
 	/**
 	 * Render a text column.
 	 *
-	 * @param array $data Column data.
+	 * @param array<string, mixed> $data Column data.
 	 * @return string Block markup.
 	 */
-	private static function render_text_column( $data ) {
+	private static function render_text_column( array $data ): string {
 		$heading    = isset( $data['heading'] ) ? $data['heading'] : '';
 		$text       = isset( $data['text'] ) ? $data['text'] : '';
 		$paragraphs = isset( $data['paragraphs'] ) ? $data['paragraphs'] : array();
@@ -171,10 +171,10 @@ class CDW_Section_Renderers {
 	/**
 	 * Render a three-column section.
 	 *
-	 * @param array $data Section data.
+	 * @param array<string, mixed> $data Section data.
 	 * @return string Block markup.
 	 */
-	public static function render_three_column( $data ) {
+	public static function render_three_column( array $data ): string {
 		$columns = isset( $data['columns'] ) ? $data['columns'] : array();
 
 		$attributes = array(
@@ -209,10 +209,10 @@ class CDW_Section_Renderers {
 	/**
 	 * Render a feature column.
 	 *
-	 * @param array $data Column data.
+	 * @param array{heading?: string, text?: string} $data Column data.
 	 * @return string Block markup.
 	 */
-	private static function render_feature_column( $data ) {
+	private static function render_feature_column( array $data ): string {
 		$heading = isset( $data['heading'] ) ? $data['heading'] : '';
 		$text    = isset( $data['text'] ) ? $data['text'] : '';
 
@@ -240,10 +240,10 @@ class CDW_Section_Renderers {
 	/**
 	 * Render a footer section.
 	 *
-	 * @param array $data Section data.
+	 * @param array<string, mixed> $data Section data.
 	 * @return string Block markup.
 	 */
-	public static function render_footer( $data ) {
+	public static function render_footer( array $data ): string {
 		$columns = isset( $data['columns'] ) ? $data['columns'] : array();
 
 		$markup  = "<!-- wp:group {\"tagName\":\"footer\",\"align\":\"full\",\"style\":{\"spacing\":{\"padding\":{\"top\":\"60px\",\"bottom\":\"40px\",\"left\":\"40px\",\"right\":\"40px\"}},\"color\":{\"background\":\"#FDF6E3\",\"text\":\"#5D4E37\"}}} -->\n";
@@ -314,10 +314,10 @@ class CDW_Section_Renderers {
 	/**
 	 * Render a footer column.
 	 *
-	 * @param array $data Column data.
+	 * @param array<string, mixed> $data Column data.
 	 * @return string Block markup.
 	 */
-	private static function render_footer_column( $data ) {
+	private static function render_footer_column( array $data ): string {
 		$type = isset( $data['type'] ) ? $data['type'] : 'text';
 
 		$markup  = "<!-- wp:column -->\n";
@@ -401,10 +401,10 @@ class CDW_Section_Renderers {
 	/**
 	 * Render all sections and return complete page content.
 	 *
-	 * @param array $sections Array of section data.
+	 * @param array<int, array{type: string}> $sections Array of section data.
 	 * @return string Complete block markup.
 	 */
-	public static function render_sections( $sections ) {
+	public static function render_sections( array $sections ): string {
 		$markup = '';
 
 		foreach ( $sections as $section ) {

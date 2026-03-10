@@ -1,0 +1,114 @@
+# Plan: Refactor CDW AI Service (Split God Class + Fix Errors)
+
+## TL;DR
+CDW_AI_Service (550 lines) handles 4 unrelated concerns: encryption,
+user-settings/key-storage, rate limiting, and usage tracking — on top of
+being a pass-through wrapper to CDW_AI_Providers. Extract each concern into
+a focused single-responsibility class inside includes/services/ai/, update
+CDW_Agentic_Loop to call them directly; keep CDW_AI_Service as a thin BC
+facade so CDW_AI_Controller requires zero changes. Also fix two correctness
+issues found during audit.
+
+---
+
+## Phases
+
+### Phase 1 — Create CDW_AI_Encryption (independent)
+- New file: includes/services/ai/class-cdw-ai-encryption.php
+- Move from CDW_AI_Service:
+    encrypt_api_key()      (L133)
+    decrypt_api_key()      (L162)
+    derive_encryption_key() (L200)
+- No external dependencies — pure crypto
+
+### Phase 2 — Create CDW_AI_User_Settings (depends on Phase 1)
+- New file: includes/services/ai/class-cdw-ai-user-settings.php
+- Move from CDW_AI_Service:
+    get_user_ai_settings()   (L218)
+    save_user_ai_settings()  (L255)
+    get_decrypted_api_key()  (L303)
+- Replace internal encrypt/decrypt calls with CDW_AI_Encryption::
+
+### Phase 3 — Create CDW_AI_Rate_Limiter (independent)
+- New file: includes/services/ai/class-cdw-ai-rate-limiter.php
+- Move from CDW_AI_Service:
+    check_ai_rate_limit()           (L321)
+    constants RATE_LIMIT_COUNT, RATE_LIMIT_WINDOW
+- No dependencies on other AI classes
+
+### Phase 4 — Create CDW_AI_Usage_Tracker (independent)
+- New file: includes/services/ai/class-cdw-ai-usage-tracker.php
+- Move from CDW_AI_Service:
+    record_usage()    (L401)
+    constant USAGE_META_KEY
+- Add reset_usage($user_id) here (currently CDW_AI_Controller::reset_usage()
+  deletes user meta directly — this centralises the responsibility)
+
+### Phase 5 — Slim CDW_AI_Service to a facade (depends on Phases 1-4)
+- Replace the body of each moved method with a one-liner delegation:
+    e.g. public static function check_ai_rate_limit($user_id) {
+             return CDW_AI_Rate_Limiter::check($user_id);
+         }
+- Remove private pass-through wrappers call_openai(), call_anthropic(),
+  call_google() — CDW_Agentic_Loop will call CDW_AI_Providers directly
+- Add require_once for the 4 new files at the top of class-cdw-ai-service.php
+- CDW_AI_Controller needs no changes
+
+### Phase 6 — Update CDW_Agentic_Loop (depends on Phases 3, 4, 5)
+- In execute_agentic_loop() (L27):
+    Replace CDW_AI_Service::call_provider()  → CDW_AI_Providers::call_provider()
+    Replace CDW_AI_Service::record_usage()   → CDW_AI_Usage_Tracker::record_usage()
+- FIX #1 — Tool error handling in handle_tool_calls() (L129):
+    After CDW_AI_Tools::execute_tool_call(), check is_wp_error($tool_output)
+    and convert to a descriptive error string instead of silently passing a
+    WP_Error object into the messages array
+
+### Phase 7 — Fix CDW_AI_Controller::reset_usage() (depends on Phase 4)
+- Replace direct delete_user_meta($user_id, CDW_AI_Service::USAGE_META_KEY)
+  with CDW_AI_Usage_Tracker::reset_usage($user_id)
+
+### Phase 8 — Update tests (depends on Phases 1-7)
+- Update tests/php/unit/AiServiceTest.php to test new classes directly
+- Add thin test files:
+    AiEncryptionTest.php
+    AiRateLimiterTest.php
+    AiUsageTrackerTest.php
+    AiUserSettingsTest.php
+- Extend AiAgenticLoopTest.php with a tool-failure scenario:
+    tool returns WP_Error → error string appears in chat, no PHP warning
+
+---
+
+## Relevant Files
+
+Modified:
+  includes/services/class-cdw-ai-service.php        — becomes thin facade
+  includes/services/ai/class-cdw-agentic-loop.php   — Phase 6 changes + Fix #1
+  includes/controllers/class-cdw-ai-controller.php  — only reset_usage() (Phase 7)
+  includes/services/ai/class-cdw-ai-providers.php   — called directly by loop
+
+New:
+  includes/services/ai/class-cdw-ai-encryption.php
+  includes/services/ai/class-cdw-ai-user-settings.php
+  includes/services/ai/class-cdw-ai-rate-limiter.php
+  includes/services/ai/class-cdw-ai-usage-tracker.php
+
+---
+
+## Verification
+1. vendor/bin/phpunit --testsuite unit       — all existing AI tests pass
+2. vendor/bin/phpunit --testsuite integration — roundtrip tests pass
+3. vendor/bin/phpcs includes/services/ai/    — no new PHPCS violations
+4. vendor/bin/phpstan analyse includes/services/ includes/controllers/class-cdw-ai-controller.php
+5. Manual: dashboard → AI chat → send message → tool executes → response returned
+6. Manual: trigger tool failure (invalid tool name) → error string in chat, no PHP warning
+
+---
+
+## Key Decisions
+- CDW_AI_Service kept as BC facade — CDW_AI_Controller is untouched (except Phase 7)
+- Private wrappers call_openai/anthropic/google removed from CDW_AI_Service;
+  CDW_Agentic_Loop calls CDW_AI_Providers directly
+- All new classes live in includes/services/ai/ alongside existing sub-files
+- Phases 1, 3, 4 are fully independent and can be implemented in parallel
+- Phase 2 depends on Phase 1; Phases 5+ depend on all prior phases

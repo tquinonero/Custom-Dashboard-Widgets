@@ -40,6 +40,12 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'save_settings' ),
 				'permission_callback' => array( $this, 'check_admin_permission' ),
+				'args'                => array(
+					'settings' => array(
+						'type'     => 'array',
+						'required' => true,
+					),
+				),
 			)
 		);
 	}
@@ -63,7 +69,7 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 		$ai_execution_mode       = get_option( 'cdw_ai_execution_mode', 'confirm' );
 		$ai_custom_system_prompt = get_option( 'cdw_ai_custom_system_prompt', '' );
 		$mcp_public              = get_option( 'cdw_mcp_public', false );
-		$user_type                = get_option( 'cdw_user_type', null );
+		$user_type               = get_option( 'cdw_user_type', null );
 
 		return rest_ensure_response(
 			array(
@@ -103,10 +109,6 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 		}
 
 		$settings = $request->get_json_params();
-
-		if ( ! is_array( $settings ) ) {
-			return new WP_Error( 'invalid_data', 'Invalid settings data', array( 'status' => 400 ) );
-		}
 
 		if ( isset( $settings['email'] ) ) {
 			$email = sanitize_email( $settings['email'] );

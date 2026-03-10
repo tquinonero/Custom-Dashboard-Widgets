@@ -9,6 +9,7 @@ require_once CDW_PLUGIN_DIR . 'tests/php/stubs/wp-stubs.php';
 require_once CDW_PLUGIN_DIR . 'includes/controllers/class-cdw-base-controller.php';
 require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-cli-service.php';
 require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-ai-service.php';
+require_once CDW_PLUGIN_DIR . 'includes/services/ai/class-cdw-agentic-loop.php';
 
 class AiServiceTest extends CDWTestCase {
 
@@ -318,5 +319,274 @@ class AiServiceTest extends CDWTestCase {
         $result = \CDW_AI_Service::save_user_ai_settings( 1, array( 'base_url' => 'https://my-openai-proxy.com' ) );
 
         $this->assertTrue( $result );
+    }
+
+    // -----------------------------------------------------------------------
+    // execute_agentic_loop()
+    // -----------------------------------------------------------------------
+
+    public function test_execute_agentic_loop_returns_content_from_provider(): void {
+        Functions\when( 'get_user_meta' )->justReturn( '' );
+        Functions\when( 'update_user_meta' )->justReturn( true );
+        Functions\when( 'get_transient' )->justReturn( 0 );
+        Functions\when( 'set_transient' )->justReturn( true );
+        Functions\when( 'wp_get_current_user' )->alias( function() {
+            $user = new \WP_User();
+            $user->user_login = 'testuser';
+            return $user;
+        } );
+
+        Functions\when( 'wp_remote_post' )->alias( function( $url, $args ) {
+            return array(
+                'body'     => json_encode( array(
+                    'choices' => array(
+                        array(
+                            'message' => array(
+                                'content' => 'Hello, I can help you manage your WordPress site.'
+                            )
+                        )
+                    ),
+                    'usage' => array(
+                        'prompt_tokens'     => 10,
+                        'completion_tokens' => 20,
+                        'total_tokens'      => 30
+                    )
+                )),
+                'response' => array( 'code' => 200 )
+            );
+        });
+
+        $result = \CDW_Agentic_Loop::execute_agentic_loop(
+            'Hello',
+            array(),
+            'test-api-key',
+            'openai',
+            'gpt-4o-mini',
+            1,
+            '',
+            ''
+        );
+
+        $this->assertIsArray( $result );
+        $this->assertArrayHasKey( 'content', $result );
+        $this->assertStringContainsString( 'WordPress', $result['content'] );
+        $this->assertArrayHasKey( 'usage', $result );
+        $this->assertArrayHasKey( 'tool_calls_made', $result );
+    }
+
+    public function test_execute_agentic_loop_handles_tool_calls(): void {
+        Functions\when( 'get_user_meta' )->justReturn( '' );
+        Functions\when( 'update_user_meta' )->justReturn( true );
+        Functions\when( 'get_transient' )->justReturn( 0 );
+        Functions\when( 'set_transient' )->justReturn( true );
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'sanitize_textarea_field' )->returnArg();
+        Functions\when( 'wp_get_current_user' )->alias( function() {
+            $user = new \WP_User();
+            $user->user_login = 'testuser';
+            return $user;
+        } );
+
+        $call_count = 0;
+        Functions\when( 'wp_remote_post' )->alias( function( $url, $args ) use ( &$call_count ) {
+            $call_count++;
+            
+            if ( 1 === $call_count ) {
+                return array(
+                    'body' => json_encode( array(
+                        'choices' => array(
+                            array(
+                                'message' => array(
+                                    'tool_calls' => array(
+                                        array(
+                                            'id'       => 'call_123',
+                                            'type'     => 'function',
+                                            'function' => array(
+                                                'name'      => 'plugin_list',
+                                                'arguments' => '{}'
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+                        'usage' => array(
+                            'prompt_tokens'     => 10,
+                            'completion_tokens' => 5,
+                            'total_tokens'      => 15
+                        )
+                    )),
+                    'response' => array( 'code' => 200 )
+                );
+            } else {
+                return array(
+                    'body' => json_encode( array(
+                        'choices' => array(
+                            array(
+                                'message' => array(
+                                    'content' => 'Here is the list of plugins: akismet, hello-dolly'
+                                )
+                            )
+                        ),
+                        'usage' => array(
+                            'prompt_tokens'     => 20,
+                            'completion_tokens' => 30,
+                            'total_tokens'      => 50
+                        )
+                    )),
+                    'response' => array( 'code' => 200 )
+                );
+            }
+        });
+
+        Functions\when( 'get_plugins' )->justReturn( array(
+            'akismet/akismet.php' => array( 'Name' => 'Akismet', 'Version' => '5.0' ),
+            'hello.php' => array( 'Name' => 'Hello Dolly', 'Version' => '1.7.2' )
+        ) );
+        Functions\when( 'is_plugin_active' )->justReturn( true );
+        Functions\when( 'get_option' )->justReturn( array() );
+
+        $result = \CDW_Agentic_Loop::execute_agentic_loop(
+            'List my plugins',
+            array(),
+            'test-api-key',
+            'openai',
+            'gpt-4o-mini',
+            1,
+            '',
+            ''
+        );
+
+        $this->assertIsArray( $result );
+        $this->assertArrayHasKey( 'tool_calls_made', $result );
+        $this->assertNotEmpty( $result['tool_calls_made'] );
+        $this->assertSame( 'plugin_list', $result['tool_calls_made'][0]['name'] );
+    }
+
+    public function test_execute_agentic_loop_returns_wp_error_on_api_failure(): void {
+        Functions\when( 'get_user_meta' )->justReturn( '' );
+        Functions\when( 'update_user_meta' )->justReturn( true );
+        Functions\when( 'get_transient' )->justReturn( 0 );
+        Functions\when( 'set_transient' )->justReturn( true );
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'sanitize_textarea_field' )->returnArg();
+        Functions\when( 'wp_get_current_user' )->alias( function() {
+            $user = new \WP_User();
+            $user->user_login = 'testuser';
+            return $user;
+        } );
+
+        Functions\when( 'wp_remote_post' )->alias( function( $url, $args ) {
+            return array(
+                'body'     => json_encode( array(
+                    'error' => array( 'message' => 'Invalid API key' )
+                )),
+                'response' => array( 'code' => 401 )
+            );
+        });
+
+        $result = \CDW_Agentic_Loop::execute_agentic_loop(
+            'Hello',
+            array(),
+            'invalid-key',
+            'openai',
+            'gpt-4o-mini',
+            1,
+            '',
+            ''
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+    }
+
+    public function test_execute_agentic_loop_converts_wp_error_tool_output_to_string(): void {
+        Functions\when( 'get_user_meta' )->justReturn( '' );
+        Functions\when( 'update_user_meta' )->justReturn( true );
+        Functions\when( 'get_transient' )->justReturn( 0 );
+        Functions\when( 'set_transient' )->justReturn( true );
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'sanitize_textarea_field' )->returnArg();
+        Functions\when( 'wp_get_current_user' )->alias( function() {
+            $user = new \WP_User();
+            $user->user_login = 'testuser';
+            return $user;
+        } );
+
+        $call_count = 0;
+        Functions\when( 'wp_remote_post' )->alias( function( $url, $args ) use ( &$call_count ) {
+            $call_count++;
+
+            if ( 1 === $call_count ) {
+                return array(
+                    'body' => json_encode( array(
+                        'choices' => array(
+                            array(
+                                'message' => array(
+                                    'tool_calls' => array(
+                                        array(
+                                            'id'       => 'call_123',
+                                            'type'     => 'function',
+                                            'function' => array(
+                                                'name'      => 'plugin_list',
+                                                'arguments' => '{}'
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+                        'usage' => array(
+                            'prompt_tokens'     => 10,
+                            'completion_tokens' => 5,
+                            'total_tokens'      => 15
+                        )
+                    )),
+                    'response' => array( 'code' => 200 )
+                );
+            } else {
+                return array(
+                    'body' => json_encode( array(
+                        'choices' => array(
+                            array(
+                                'message' => array(
+                                    'content' => 'Here is the result'
+                                )
+                            )
+                        ),
+                        'usage' => array(
+                            'prompt_tokens'     => 20,
+                            'completion_tokens' => 30,
+                            'total_tokens'      => 50
+                        )
+                    )),
+                    'response' => array( 'code' => 200 )
+                );
+            }
+        });
+
+        Functions\when( 'get_plugins' )->alias( function() {
+            return new \WP_Error( 'plugins_error', 'Could not read plugins directory' );
+        });
+        Functions\when( 'get_option' )->justReturn( array() );
+
+        $result = \CDW_Agentic_Loop::execute_agentic_loop(
+            'List my plugins',
+            array(),
+            'test-api-key',
+            'openai',
+            'gpt-4o-mini',
+            1,
+            '',
+            ''
+        );
+
+        $this->assertIsArray( $result );
+        $this->assertArrayHasKey( 'tool_calls_made', $result );
+        $this->assertNotEmpty( $result['tool_calls_made'] );
+
+        $tool_output = $result['tool_calls_made'][0]['output'];
+        $this->assertIsString( $tool_output );
+        $this->assertStringContainsString( 'Error:', $tool_output );
+        $this->assertStringContainsString( 'plugins_error', $tool_output );
     }
 }

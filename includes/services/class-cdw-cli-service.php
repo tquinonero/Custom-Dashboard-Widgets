@@ -355,6 +355,7 @@ class CDW_CLI_Service {
 		$cmd      = strtolower( $parts[0] ?? '' );
 		$subcmd   = strtolower( $parts[1] ?? '' );
 		$raw_args = 'search-replace' === $cmd ? array_slice( $parts, 1 ) : array_slice( $parts, 2 );
+		$raw_args = array_map( 'rawurldecode', $raw_args );
 
 		$force_bypass = $this->has_dry_run_flag( $raw_args );
 

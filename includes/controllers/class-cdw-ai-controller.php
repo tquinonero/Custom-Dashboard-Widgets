@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once CDW_PLUGIN_DIR . 'includes/controllers/class-cdw-base-controller.php';
 require_once CDW_PLUGIN_DIR . 'includes/services/class-cdw-ai-service.php';
+require_once CDW_PLUGIN_DIR . 'includes/services/ai/class-cdw-agentic-loop.php';
 
 /**
  * Handles CDW REST AI endpoints: settings, chat, providers, test, and usage.
@@ -45,6 +46,26 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'save_ai_settings' ),
 				'permission_callback' => array( $this, 'check_admin_permission' ),
+				'args'                => array(
+					'provider'       => array(
+						'type'     => 'string',
+						'enum'     => array( 'openai', 'anthropic', 'google', 'custom' ),
+						'required' => false,
+					),
+					'model'          => array(
+						'type'     => 'string',
+						'required' => false,
+					),
+					'execution_mode' => array(
+						'type'     => 'string',
+						'enum'     => array( 'confirm', 'auto' ),
+						'required' => false,
+					),
+					'custom_url'     => array(
+						'type'     => 'string',
+						'required' => false,
+					),
+				),
 			)
 		);
 
@@ -56,6 +77,16 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'chat' ),
 				'permission_callback' => array( $this, 'check_admin_permission' ),
+				'args'                => array(
+					'message' => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+					'history' => array(
+						'type'     => 'array',
+						'required' => false,
+					),
+				),
 			)
 		);
 
@@ -67,6 +98,16 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'execute_tool' ),
 				'permission_callback' => array( $this, 'check_admin_permission' ),
+				'args'                => array(
+					'tool_name' => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+					'arguments' => array(
+						'type'     => 'object',
+						'required' => false,
+					),
+				),
 			)
 		);
 
@@ -89,6 +130,21 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'test_connection' ),
 				'permission_callback' => array( $this, 'check_admin_permission' ),
+				'args'                => array(
+					'provider' => array(
+						'type'     => 'string',
+						'enum'     => array( 'openai', 'anthropic', 'google', 'custom' ),
+						'required' => false,
+					),
+					'model'    => array(
+						'type'     => 'string',
+						'required' => false,
+					),
+					'base_url' => array(
+						'type'     => 'string',
+						'required' => false,
+					),
+				),
 			)
 		);
 
@@ -124,7 +180,7 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 	 *
 	 * The raw API key is never included; has_key (bool) indicates existence.
 	 *
-	 * @return WP_REST_Response
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_ai_settings() {
 		$rate_check = $this->check_rate_limit( 'ai_settings_read' );
@@ -158,12 +214,7 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 			return $rate_check;
 		}
 
-		$params = $request->get_json_params();
-
-		if ( ! is_array( $params ) ) {
-			return $this->error_response( 'Invalid request body.', 400 );
-		}
-
+		$params  = $request->get_json_params();
 		$user_id = get_current_user_id();
 		$result  = CDW_AI_Service::save_user_ai_settings( $user_id, $params );
 
@@ -196,12 +247,7 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 			return $nonce_check;
 		}
 
-		$params = $request->get_json_params();
-
-		if ( ! is_array( $params ) ) {
-			return $this->error_response( 'Invalid request body.', 400 );
-		}
-
+		$params  = $request->get_json_params();
 		$message = isset( $params['message'] ) ? trim( (string) $params['message'] ) : '';
 		if ( '' === $message ) {
 			return $this->error_response( 'Message cannot be empty.', 400 );
@@ -233,7 +279,7 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 		// Custom system prompt from site-wide option (set in Settings page).
 		$custom_prompt = (string) get_option( 'cdw_ai_custom_system_prompt', '' );
 
-		$result = CDW_AI_Service::execute_agentic_loop(
+		$result = CDW_Agentic_Loop::execute_agentic_loop(
 			$message,
 			$history,
 			$api_key,
@@ -273,17 +319,8 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 			return $nonce_check;
 		}
 
-		$params = $request->get_json_params();
-
-		if ( ! is_array( $params ) ) {
-			return $this->error_response( 'Invalid request body.', 400 );
-		}
-
+		$params    = $request->get_json_params();
 		$tool_name = isset( $params['tool_name'] ) ? sanitize_text_field( $params['tool_name'] ) : '';
-		if ( '' === $tool_name ) {
-			return $this->error_response( 'tool_name is required.', 400 );
-		}
-
 		$arguments = isset( $params['arguments'] ) && is_array( $params['arguments'] ) ? $params['arguments'] : array();
 
 		// Validate tool_name against known tools.
@@ -310,7 +347,7 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 	/**
 	 * Returns the list of supported AI providers and their available models.
 	 *
-	 * @return WP_REST_Response
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_providers() {
 		$rate_check = $this->check_rate_limit( 'ai_providers_read' );
@@ -383,7 +420,7 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 	/**
 	 * Returns the accumulated token usage statistics for the current user.
 	 *
-	 * @return WP_REST_Response
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_usage() {
 		$rate_check = $this->check_rate_limit( 'ai_usage_read' );
@@ -403,7 +440,7 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 	/**
 	 * Resets the token usage statistics for the current user.
 	 *
-	 * @return WP_REST_Response
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function reset_usage() {
 		$nonce_check = $this->verify_nonce();
@@ -417,7 +454,7 @@ class CDW_AI_Controller extends CDW_Base_Controller {
 		}
 
 		$user_id = get_current_user_id();
-		delete_user_meta( $user_id, CDW_AI_Service::USAGE_META_KEY );
+		CDW_AI_Usage_Tracker::reset_usage( $user_id );
 		return $this->success_response( array( 'reset' => true ) );
 	}
 }

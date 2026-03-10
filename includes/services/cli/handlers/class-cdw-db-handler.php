@@ -56,7 +56,7 @@ class CDW_DB_Handler extends CDW_Abstract_Handler {
 	 * @return bool
 	 */
 	public function requires_force( string $subcmd ): bool {
-		return true;
+		return in_array( $subcmd, array( 'export', 'import' ), true );
 	}
 
 	/**

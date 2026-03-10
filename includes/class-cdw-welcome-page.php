@@ -14,9 +14,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Renders the welcome page based on user type and step.
  */
-function cdw_render_welcome_page() {
+function cdw_render_welcome_page(): void {
 	$user_type = get_option( 'cdw_user_type', null );
-	$step      = isset( $_GET['step'] ) ? absint( $_GET['step'] ) : 0;
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation, no data modification.
+	$step = isset( $_GET['step'] ) ? absint( $_GET['step'] ) : 0;
 
 	if ( null === $user_type ) {
 		cdw_render_welcome_choice();
@@ -30,7 +31,7 @@ function cdw_render_welcome_page() {
 /**
  * Renders the initial choice: developer or user.
  */
-function cdw_render_welcome_choice() {
+function cdw_render_welcome_choice(): void {
 	$action_url = admin_url( 'admin-post.php' );
 	?>
 	<div class="cdw-welcome-container">
@@ -56,7 +57,7 @@ function cdw_render_welcome_choice() {
 /**
  * Renders the developer welcome message.
  */
-function cdw_render_developer_message() {
+function cdw_render_developer_message(): void {
 	$nonce_url = wp_nonce_url( admin_url( 'admin-post.php?action=cdw_reset_user_type' ), 'cdw_reset_user_type' );
 	?>
 	<div class="cdw-welcome-container">
@@ -80,9 +81,9 @@ function cdw_render_developer_message() {
  *
  * @param int $step The current step (0-4).
  */
-function cdw_render_onboarding_steps( $step ) {
-	$steps = cdw_get_onboarding_steps();
-	$step  = max( 0, min( $step, count( $steps ) - 1 ) );
+function cdw_render_onboarding_steps( int $step ): void {
+	$steps   = cdw_get_onboarding_steps();
+	$step    = max( 0, min( $step, count( $steps ) - 1 ) );
 	$current = $steps[ $step ];
 	?>
 	<div class="cdw-onboarding-container">
@@ -90,11 +91,11 @@ function cdw_render_onboarding_steps( $step ) {
 			<div class="cdw-onboarding-progress">
 				<?php
 				foreach ( $steps as $i => $s ) {
-					$active      = ( $i === $step ) ? 'active' : '';
-					$completed   = ( $i < $step ) ? 'completed' : '';
-					$step_url    = admin_url( 'tools.php?page=cdw-welcome&step=' . $i );
+					$active    = ( $i === $step ) ? 'active' : '';
+					$completed = ( $i < $step ) ? 'completed' : '';
+					$step_url  = admin_url( 'tools.php?page=cdw-welcome&step=' . $i );
 					echo '<div class="cdw-progress-step ' . esc_attr( $active ) . ' ' . esc_attr( $completed ) . '">';
-					echo '<span class="cdw-progress-number">' . ( $i + 1 ) . '</span>';
+					echo '<span class="cdw-progress-number">' . esc_html( (string) ( $i + 1 ) ) . '</span>';
 					echo '<span class="cdw-progress-label">' . esc_html( $s['title'] ) . '</span>';
 					echo '</div>';
 				}
@@ -102,10 +103,10 @@ function cdw_render_onboarding_steps( $step ) {
 			</div>
 		</div>
 		<div class="cdw-onboarding-card">
-			<div class="cdw-onboarding-icon"><?php echo $current['icon']; ?></div>
+			<div class="cdw-onboarding-icon"><?php echo esc_html( $current['icon'] ); ?></div>
 			<h1><?php echo esc_html( $current['title'] ); ?></h1>
 			<div class="cdw-onboarding-content">
-				<?php echo $current['content']; ?>
+				<?php echo wp_kses_post( $current['content'] ); ?>
 			</div>
 			<div class="cdw-onboarding-actions">
 				<?php
@@ -129,9 +130,9 @@ function cdw_render_onboarding_steps( $step ) {
 /**
  * Returns the onboarding steps content.
  *
- * @return array
+ * @return array<int, array{title: string, icon: string, content: string}>
  */
-function cdw_get_onboarding_steps() {
+function cdw_get_onboarding_steps(): array {
 	$dashboard_url = admin_url( 'index.php' );
 	$settings_url  = admin_url( 'options-general.php?page=cdw-settings' );
 
@@ -162,14 +163,14 @@ function cdw_get_onboarding_steps() {
 /**
  * Handles the user type selection form submission.
  */
-function cdw_handle_set_user_type() {
+function cdw_handle_set_user_type(): void {
 	check_admin_referer( 'cdw_set_user_type', 'cdw_nonce' );
 
 	if ( ! current_user_can( 'manage_options' ) ) {
 		wp_die( 'Unauthorized' );
 	}
 
-	$user_type = isset( $_POST['user_type'] ) ? sanitize_text_field( $_POST['user_type'] ) : '';
+	$user_type = isset( $_POST['user_type'] ) ? sanitize_text_field( wp_unslash( $_POST['user_type'] ) ) : '';
 
 	if ( in_array( $user_type, array( 'developer', 'user' ), true ) ) {
 		update_option( 'cdw_user_type', $user_type, false );
@@ -183,7 +184,7 @@ function cdw_handle_set_user_type() {
 /**
  * Handles resetting the user type to show onboarding again.
  */
-function cdw_handle_reset_user_type() {
+function cdw_handle_reset_user_type(): void {
 	check_admin_referer( 'cdw_reset_user_type' );
 
 	if ( ! current_user_can( 'manage_options' ) ) {

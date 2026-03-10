@@ -1,0 +1,148 @@
+# Refactoring Plan: class-cdw-abilities.php
+
+## Overview
+
+Refactor `class-cdw-abilities.php` using a config-driven approach, similar to the AI Tools refactoring (plan1). The file currently has 2007 lines with repetitive ability definitions.
+
+---
+
+## Current State
+
+- **File**: `includes/class-cdw-abilities.php`
+- **Lines**: 2007
+- **Abilities**: 70 total (59 in array + 11 inline)
+- **Pattern**: Large arrays + `build_cli_command()` switch statement (~100 lines)
+
+---
+
+## Problem
+
+The file contains:
+1. ~59 ability definitions as large arrays (~30-40 lines each)
+2. A `build_cli_command()` method with ~100 lines of switch cases
+3. Significant duplication of CLI command patterns already defined in AI Tools config
+
+---
+
+## Solution: Config-Driven Approach
+
+### Step 1: Create config file
+
+**File**: `includes/config/class-cdw-abilities-config.php`
+
+Structure:
+```php
+return [
+    'cdw/plugin-list' => [
+        'label' => 'List Plugins',
+        'desc' => 'Returns a list of all installed plugins...',
+        'input' => [],
+        'cli' => 'plugin list',  // null = use build_cli_command
+        'readonly' => true,
+        'destructive' => false,
+    ],
+    // ... all 70 abilities
+];
+```
+
+### Step 2: Refactor class-cdw-abilities.php
+
+Replace the 1700-line ability array with:
+- Config loading (cached)
+- Loop to build definitions
+- Keep `register_one()` helper
+- Keep `build_cli_command()` for dynamic CLI building
+
+### Step 3: Expected result
+
+| Before | After |
+|--------|-------|
+| `class-cdw-abilities.php`: 2007 lines | ~350 lines |
+| New config file: 0 | ~1700 lines |
+
+---
+
+## Benefits
+
+1. **Single source of truth**: CLI commands defined once
+2. **Easier maintenance**: Add new abilities by editing config
+3. **DRY**: Reuse CLI patterns from AI Tools config
+4. **Testable**: Config is plain data, easy to validate
+
+---
+
+## Implementation Details
+
+### Config File Structure
+
+Each ability needs:
+- `name`: cdw/ability-name
+- `label`: Human-readable label
+- `desc`: Description
+- `input`: Parameter schema (empty array for no params)
+- `cli`: CLI command pattern (null = use build_cli_command)
+- `readonly`: boolean
+- `destructive`: boolean
+
+### Special Cases (keep inline)
+
+These abilities have complex CLI building logic and should remain inline:
+- `cdw/post-set-content` - direct wp_update_post
+- `cdw/post-get-content` - direct WP function
+- `cdw/post-append-content` - direct WP function
+- `cdw/build-page` - JSON page builder
+- `cdw/custom-patterns-*` - JSON input handling
+
+### Helper Methods to Keep
+
+- `register()` - Entry point
+- `register_category()` - Register ability category
+- `register_abilities()` - Loop through config
+- `register_one()` - Register single ability
+- `build_cli_command()` - Dynamic CLI building (for null cli entries)
+- `sanitize_cli_arg()` - Argument sanitization
+
+---
+
+## Testing Considerations
+
+The existing test expects exactly 70 abilities:
+```php
+$this->assertSame( 70, $count );
+```
+
+This must continue to pass after refactoring.
+
+---
+
+## Files to Modify
+
+1. **Create**: `includes/config/class-cdw-abilities-config.php`
+2. **Modify**: `includes/class-cdw-abilities.php`
+
+---
+
+## Estimated Impact
+
+- Remove ~1650 lines from main class
+- Add ~1700 lines to config file
+- Net: Slightly larger total, but better organized
+
+---
+
+## Verification Steps
+
+1. Run PHP syntax check
+2. Run PHPStan (--level=6)
+3. Run PHPCS
+4. Run unit tests (must pass: 70 abilities)
+5. Test on WP 6.9+ (verify abilities register)
+
+---
+
+## Timeline Estimate
+
+- Config file creation: ~30 minutes
+- Main class refactor: ~20 minutes
+- Testing/verification: ~20 minutes
+- **Total**: ~70 minutes

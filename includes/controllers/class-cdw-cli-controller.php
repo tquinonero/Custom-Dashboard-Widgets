@@ -77,6 +77,12 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'execute_cli_command' ),
 				'permission_callback' => array( $this, 'check_admin_permission' ),
+				'args'                => array(
+					'command' => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+				),
 			)
 		);
 	}
@@ -84,7 +90,7 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 	/**
 	 * Returns the CLI command history for the current user.
 	 *
-	 * @return WP_REST_Response
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_cli_history() {
 		$rate_check = $this->check_rate_limit( 'cli_history_read' );
@@ -101,7 +107,7 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 	/**
 	 * Clears the CLI command history for the current user.
 	 *
-	 * @return WP_REST_Response
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function clear_cli_history() {
 		$nonce_check = $this->verify_nonce();
@@ -129,7 +135,7 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 	/**
 	 * Returns the available CLI command definitions for the autocomplete UI.
 	 *
-	 * @return WP_REST_Response
+	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_cli_commands() {
 		$rate_check = $this->check_rate_limit( 'cli_commands_read' );
@@ -154,14 +160,6 @@ class CDW_CLI_Controller extends CDW_Base_Controller {
 
 		$command = $request->get_param( 'command' );
 		$user_id = get_current_user_id();
-
-		if ( empty( $command ) ) {
-			return new WP_Error(
-				'empty_command',
-				'Command cannot be empty',
-				array( 'status' => 400 )
-			);
-		}
 
 		$ob_level = ob_get_level();
 		ob_start();
