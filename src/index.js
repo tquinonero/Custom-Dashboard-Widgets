@@ -9,7 +9,9 @@ import UpdatesWidget from './components/UpdatesWidget';
 import QuickLinksWidget from './components/QuickLinksWidget';
 import ToolsOtherWidget from './components/ToolsOtherWidget';
 import CommandWidget from './components/CommandWidget';
+import FloatingCommandWidget from './components/FloatingCommandWidget';
 import SettingsPanel from './components/SettingsPanel';
+import useFloatingWidget from './hooks/useFloatingWidget';
 import './data/store';
 import './styles/index.scss';
 
@@ -75,6 +77,20 @@ document.addEventListener('DOMContentLoaded', () => {
             errorDiv.textContent = 'Error loading settings: ' + e.message;
             settingsRoot.appendChild(errorDiv);
         }
+    }
+
+    // Render floating command widget (Ctrl+Shift+C)
+    if (window.cdwData?.floatingEnabled) {
+        const floatingRoot = document.createElement('div');
+        floatingRoot.id = 'cdw-floating-root';
+        document.body.appendChild(floatingRoot);
+        
+        const FloatingWrapper = () => {
+            const floating = useFloatingWidget('C');
+            return <FloatingCommandWidget {...floating} />;
+        };
+        
+        createRoot(floatingRoot).render(<FloatingWrapper />);
     }
 
 });

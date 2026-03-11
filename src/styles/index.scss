@@ -1751,3 +1751,104 @@ body.cdw-sidebar-hidden {
         margin-left: 0;
     }
 }
+
+// Floating Command Widget
+.cdw-floating-toggle {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 99999;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    svg {
+        width: 24px;
+        height: 24px;
+    }
+}
+
+.cdw-floating-widget {
+    position: fixed;
+    z-index: 99999;
+    width: 420px;
+    max-width: calc(100vw - 40px);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    max-height: calc(100vh - 40px);
+
+    &.is-dragging {
+        cursor: move;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+        opacity: 0.95;
+    }
+
+    .cdw-command-header {
+        cursor: move;
+        flex-shrink: 0;
+    }
+
+    .cdw-command-output {
+        height: 250px;
+    }
+
+    .cdw-floating-body {
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+
+        .cdw-command-output {
+            flex: 1;
+            min-height: 150px;
+            max-height: 350px;
+        }
+
+        .cdw-ai-output {
+            flex: 1;
+            min-height: 200px;
+            max-height: 400px;
+        }
+    }
+
+    .cdw-command-input {
+        flex-shrink: 0;
+    }
+
+    .cdw-command-footer {
+        flex-shrink: 0;
+    }
+}
+
+// Responsive adjustments
+@media (max-width: 480px) {
+    .cdw-floating-widget {
+        width: calc(100vw - 24px);
+        left: 12px !important;
+        right: 12px;
+        bottom: 12px;
+        top: 12px !important;
+        max-height: calc(100vh - 24px);
+    }
+
+    .cdw-floating-toggle {
+        bottom: 16px;
+        right: 16px;
+    }
+}

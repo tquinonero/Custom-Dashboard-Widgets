@@ -77,6 +77,11 @@ class CDW_Loader {
 		add_action( 'delete_post', array( $this, 'clear_content_cache' ) );
 		add_action( 'add_attachment', array( $this, 'clear_content_cache' ) );
 		add_action( 'edit_attachment', array( $this, 'clear_content_cache' ) );
+
+		// Clear admin menu cache when plugins or themes change.
+		add_action( 'activated_plugin', array( $this, 'clear_menu_cache' ) );
+		add_action( 'deactivated_plugin', array( $this, 'clear_menu_cache' ) );
+		add_action( 'switch_theme', array( $this, 'clear_menu_cache' ) );
 	}
 
 	/**
@@ -93,7 +98,7 @@ class CDW_Loader {
 
 		// Delete all CDW transients in a single query using REGEXP
 		// Matches: _transient_cdw_posts_cache_*, _transient_cdw_media_cache_*,
-		// _transient_timeout_cdw_posts_cache_*, _transient_timeout_cdw_media_cache_*
+		// _transient_timeout_cdw_posts_cache_*, _transient_timeout_cdw_media_cache_*.
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- pattern is a hardcoded literal, no user input
 		$wpdb->query(
 			"DELETE FROM {$wpdb->options} WHERE option_name REGEXP '^_transient(_timeout)?_cdw_(posts|media)_cache_'"
@@ -101,16 +106,34 @@ class CDW_Loader {
 	}
 
 	/**
+	 * Clears the admin menu cache.
+	 *
+	 * Hooked to activated_plugin, deactivated_plugin, switch_theme.
+	 *
+	 * @return void
+	 */
+	public function clear_menu_cache() {
+		delete_transient( 'cdw_admin_menu_cache' );
+	}
+
+	/**
 	 * Enqueues the compiled React bundle and optional inline CSS.
 	 *
-	 * Hooked to admin_enqueue_scripts. Only runs on index.php and the
-	 * CDW settings page; exits early on all other admin screens.
+	 * Hooked to admin_enqueue_scripts. Runs on all admin pages when the floating
+	 * widget is enabled, or on index.php and settings pages for dashboard widgets.
 	 *
 	 * @param string $hook_suffix The current admin page hook suffix.
 	 * @return void
 	 */
 	public function enqueue_assets( $hook_suffix ) {
-		if ( ! in_array( $hook_suffix, array( 'index.php', 'settings_page_cdw-settings', 'tools_page_cdw-welcome' ), true ) ) {
+		$cli_enabled      = get_option( 'cdw_cli_enabled', true );
+		$floating_enabled = get_option( 'cdw_floating_enabled', true );
+		$user_can_cli     = current_user_can( 'manage_options' );
+		$show_floating    = $cli_enabled && $floating_enabled && $user_can_cli;
+
+		$is_widget_page = in_array( $hook_suffix, array( 'index.php', 'settings_page_cdw-settings', 'tools_page_cdw-welcome' ), true );
+
+		if ( ! $show_floating && ! $is_widget_page ) {
 			return;
 		}
 
@@ -118,14 +141,16 @@ class CDW_Loader {
 		$js_file    = CDW_PLUGIN_DIR . 'build/index.js';
 
 		if ( ! file_exists( $asset_file ) || ! file_exists( $js_file ) ) {
-			add_action(
-				'admin_notices',
-				function () {
-					echo '<div class="notice notice-warning">';
-					echo '<p><strong>CDW Plugin:</strong> Build files not found. Please run <code>npm install && npm run build</code>.</p>';
-					echo '</div>';
-				}
-			);
+			if ( $show_floating ) {
+				add_action(
+					'admin_notices',
+					function () {
+						echo '<div class="notice notice-warning">';
+						echo '<p><strong>CDW Plugin:</strong> Build files not found. Please run <code>npm install && npm run build</code>.</p>';
+						echo '</div>';
+					}
+				);
+			}
 			return;
 		}
 
@@ -171,19 +196,23 @@ class CDW_Loader {
 		$is_dashboard     = 'index.php' === $hook_suffix;
 		$admin_menu_data  = $this->get_admin_menu_data();
 		$admin_tools_data = $this->get_admin_tools_data();
+		$cli_enabled      = get_option( 'cdw_cli_enabled', true );
+		$floating_enabled = get_option( 'cdw_floating_enabled', true );
+		$user_can_cli     = current_user_can( 'manage_options' );
 
 		wp_localize_script(
 			'cdw-script',
 			'cdwData',
 			array(
-				'root'           => esc_url_raw( rest_url() ),
-				'nonce'          => wp_create_nonce( 'wp_rest' ),
-				'pluginUrl'      => CDW_PLUGIN_URL,
-				'adminUrl'       => admin_url(),
-				'isSettings'     => $is_settings_page,
-				'isDashboard'    => $is_dashboard,
-				'adminMenuData'  => $admin_menu_data,
-				'adminToolsData' => $admin_tools_data,
+				'root'              => esc_url_raw( rest_url() ),
+				'nonce'             => wp_create_nonce( 'wp_rest' ),
+				'pluginUrl'         => CDW_PLUGIN_URL,
+				'adminUrl'          => admin_url(),
+				'isSettings'        => $is_settings_page,
+				'isDashboard'       => $is_dashboard,
+				'adminMenuData'     => $admin_menu_data,
+				'adminToolsData'    => $admin_tools_data,
+				'floatingEnabled'   => $cli_enabled && $floating_enabled && $user_can_cli,
 			)
 		);
 	}
@@ -405,7 +434,7 @@ class CDW_Loader {
 			set_transient( 'cdw_admin_menu_cache', $categories, HOUR_IN_SECONDS );
 		}
 
-		$excluded = array( 'tools', 'other' );
+		$excluded   = array( 'tools', 'other' );
 		$categories = array_filter(
 			$categories,
 			function ( $cat, $key ) use ( $excluded ) {
@@ -431,7 +460,7 @@ class CDW_Loader {
 			set_transient( 'cdw_admin_menu_cache', $categories, HOUR_IN_SECONDS );
 		}
 
-		$included = array( 'tools', 'other' );
+		$included   = array( 'tools', 'other' );
 		$categories = array_filter(
 			$categories,
 			function ( $cat, $key ) use ( $included ) {

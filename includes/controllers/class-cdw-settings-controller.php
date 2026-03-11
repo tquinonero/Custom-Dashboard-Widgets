@@ -63,6 +63,7 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 		$header_bg_color         = get_option( 'cdw_header_bg_color', get_option( 'custom_dashboard_widget_header_background_color', '' ) );
 		$header_text_color       = get_option( 'cdw_header_text_color', get_option( 'custom_dashboard_widget_header_text_color', '' ) );
 		$cli_enabled             = get_option( 'cdw_cli_enabled', true );
+		$floating_enabled        = get_option( 'cdw_floating_enabled', true );
 		$remove_default_widgets  = get_option( 'cdw_remove_default_widgets', true );
 		$delete_on_uninstall     = get_option( 'cdw_delete_on_uninstall', true );
 		$ai_enabled              = get_option( 'cdw_ai_enabled', false );
@@ -80,6 +81,7 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 				'header_bg_color'         => $header_bg_color,
 				'header_text_color'       => $header_text_color,
 				'cli_enabled'             => $cli_enabled,
+				'floating_enabled'        => $floating_enabled,
 				'remove_default_widgets'  => $remove_default_widgets,
 				'delete_on_uninstall'     => $delete_on_uninstall,
 				'ai_enabled'              => $ai_enabled,
@@ -154,6 +156,10 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 
 		if ( isset( $settings['cli_enabled'] ) ) {
 			update_option( 'cdw_cli_enabled', (bool) $settings['cli_enabled'], false );
+		}
+
+		if ( isset( $settings['floating_enabled'] ) ) {
+			update_option( 'cdw_floating_enabled', (bool) $settings['floating_enabled'], false );
 		}
 
 		if ( isset( $settings['remove_default_widgets'] ) ) {

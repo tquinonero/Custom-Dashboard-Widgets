@@ -17,6 +17,8 @@ export default function CommandHeader({
     saveGearProvider,
     gearSaving,
     aiSettings,
+    onClose,
+    isFloating,
 }) {
     return (
         <div className="cdw-command-header">
@@ -104,6 +106,15 @@ export default function CommandHeader({
                             </div>
                         )}
                     </div>
+                )}
+                {isFloating && onClose && (
+                    <button
+                        className="cdw-command-btn cdw-close-btn"
+                        onClick={(e) => { e.stopPropagation(); onClose(); }}
+                        title="Close (Ctrl+Shift+C)"
+                    >
+                        ✕
+                    </button>
                 )}
             </div>
         </div>

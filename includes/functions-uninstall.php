@@ -35,6 +35,7 @@ function cdw_do_uninstall() {
 		'cdw_header_bg_color',
 		'cdw_header_text_color',
 		'cdw_cli_enabled',
+		'cdw_floating_enabled',
 		'cdw_remove_default_widgets',
 		'cdw_delete_on_uninstall',
 		'cdw_db_version',

@@ -70,6 +70,7 @@ export default function SettingsPanel() {
         header_bg_color: '',
         header_text_color: '',
         cli_enabled: true,
+        floating_enabled: true,
         remove_default_widgets: true,
         delete_on_uninstall: true,
         ai_enabled: false,
@@ -446,6 +447,22 @@ export default function SettingsPanel() {
                         </label>
                         <span className="description">
                             Show the Command Line widget on the dashboard. Administrators can use it to manage plugins, themes, users, and more via CLI commands.
+                        </span>
+                    </div>
+
+                    <div className="cdw-field">
+                        <label htmlFor="floating_enabled" className="cdw-checkbox-label">
+                            <input
+                                type="checkbox"
+                                id="floating_enabled"
+                                name="floating_enabled"
+                                checked={formData.floating_enabled}
+                                onChange={handleChange}
+                            />
+                            <span>Enable Floating CLI Widget</span>
+                        </label>
+                        <span className="description">
+                            Show a floating CLI/AI widget on all admin pages. Toggle with <kbd>Ctrl+Shift+C</kbd> (or <kbd>Cmd+Shift+C</kbd> on Mac). Draggable and remembers position.
                         </span>
                     </div>
 

@@ -46,6 +46,7 @@ function CDW_activate() {
 	$cli_service->create_audit_log_table();
 	update_option( 'cdw_db_version', CDW_CLI_Service::DB_VERSION, false );
 	update_option( 'cdw_cli_enabled', true, false );
+	update_option( 'cdw_floating_enabled', true, false );
 	update_option( 'cdw_remove_default_widgets', true, false );
 	update_option( 'cdw_delete_on_uninstall', true, false );
 }
