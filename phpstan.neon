@@ -22,4 +22,10 @@ parameters:
         - '#is_wp_error\(.+\) will always evaluate to (true|false)\.#'
         # plugins_api() stubs type is broader than its actual object return; $download_link access is safe.
         - '#Cannot access property \$download_link on array\|object\.#'
+        # Abilities Explorer - WP_List_Table and WP Abilities API are WordPress core/feature.
+        - '#Call to method .+ on an unknown class WP_List_Table#'
+        - '#Function wp_get_abilities invoked#'
+        - '#Function wp_get_ability invoked#'
+        - '#Method .+ should return array<int, array<string, mixed>> but returns array<int, WP_Ability>#'
+        - '#Method .+ should return array<string, mixed>\|null but returns WP_Ability#'
     tmpDir: /tmp/phpstan-cdw

@@ -1,0 +1,26 @@
+/**
+ * CDW Abilities Explorer Styles
+ */
+
+.cdw-abilities-stats {
+	font-size: 14px;
+}
+
+.cdw-abilities-stats p {
+	margin: 0;
+}
+
+#cdw-ability-input {
+	font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+	font-size: 13px;
+}
+
+.cdw-copy-schema {
+	margin-bottom: 10px;
+}
+
+#cdw-input-schema,
+#cdw-output-schema {
+	font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+	font-size: 12px;
+}

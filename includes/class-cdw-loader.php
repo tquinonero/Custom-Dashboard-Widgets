@@ -53,6 +53,13 @@ class CDW_Loader {
 		require_once CDW_PLUGIN_DIR . 'includes/class-cdw-abilities.php';
 		CDW_Abilities::register();
 
+		// Abilities Explorer admin page.
+		require_once CDW_PLUGIN_DIR . 'includes/abilities/explorer/class-cdw-ability-handler.php';
+		require_once CDW_PLUGIN_DIR . 'includes/abilities/explorer/class-cdw-abilities-table.php';
+		require_once CDW_PLUGIN_DIR . 'includes/abilities/explorer/class-cdw-abilities-admin-page.php';
+		require_once CDW_PLUGIN_DIR . 'includes/abilities/explorer/class-cdw-abilities-explorer.php';
+		CDW_Abilities_Explorer::init();
+
 		if ( is_admin() ) {
 			$this->widgets = new CDW_Widgets();
 			$this->widgets->register();
