@@ -55,6 +55,11 @@ class CDW_Loader {
 
 		// Abilities Explorer admin page.
 		require_once CDW_PLUGIN_DIR . 'includes/abilities/explorer/class-cdw-ability-handler.php';
+		require_once CDW_PLUGIN_DIR . 'includes/abilities/explorer/class-cdw-abilities-url-helper.php';
+		require_once CDW_PLUGIN_DIR . 'includes/abilities/explorer/class-cdw-abilities-error-renderer.php';
+		require_once CDW_PLUGIN_DIR . 'includes/abilities/explorer/class-cdw-abilities-list-renderer.php';
+		require_once CDW_PLUGIN_DIR . 'includes/abilities/explorer/class-cdw-abilities-detail-renderer.php';
+		require_once CDW_PLUGIN_DIR . 'includes/abilities/explorer/class-cdw-abilities-test-renderer.php';
 		require_once CDW_PLUGIN_DIR . 'includes/abilities/explorer/class-cdw-abilities-table.php';
 		require_once CDW_PLUGIN_DIR . 'includes/abilities/explorer/class-cdw-abilities-admin-page.php';
 		require_once CDW_PLUGIN_DIR . 'includes/abilities/explorer/class-cdw-abilities-explorer.php';

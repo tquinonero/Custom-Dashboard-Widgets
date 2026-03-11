@@ -65,6 +65,31 @@ class CDW_Abilities_Explorer {
 			array(),
 			CDW_VERSION
 		);
+
+		wp_enqueue_script(
+			'cdw-explorer',
+			CDW_PLUGIN_URL . 'includes/abilities/explorer/explorer.js',
+			array( 'jquery' ),
+			CDW_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'cdw-explorer',
+			'cdwExplorer',
+			array(
+				'i18n' => array(
+					'validJson'    => __( 'Valid JSON', 'cdw' ),
+					'invalidJson'  => __( 'Invalid JSON:', 'cdw' ),
+					'invoking'     => __( 'Invoking...', 'cdw' ),
+					'result'       => __( 'Result:', 'cdw' ),
+					'error'        => __( 'Error:', 'cdw' ),
+					'unknownError' => __( 'Unknown error', 'cdw' ),
+					'invokeAbility' => __( 'Invoke Ability', 'cdw' ),
+					'copied'       => __( 'Copied to clipboard!', 'cdw' ),
+				),
+			)
+		);
 	}
 
 	/**
