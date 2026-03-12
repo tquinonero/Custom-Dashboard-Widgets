@@ -1,11 +1,11 @@
-# Custom Dashboard Widgets (v3)
+# Custom Dashboard Widgets (v3.0.2)
 
 **Contributors:** toniquinonero
 **Tags:** dashboard, admin, widgets, customization, ai  
 **Requires at least:** 6.9  
-**Requires PHP:** 8.1
-**Tested up to:** 6.9  
-**Stable tag:** 3.0.0  
+**Requires PHP:** 8.0
+**Tested up to:** 6.9.4  
+**Stable tag:** 3.0.2  
 **License:** GPLv3 or later  
 **License URI:** https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -17,10 +17,10 @@ Custom Dashboard Widgets replaces the default WordPress dashboard with a modern,
 
 - **9 Custom Widgets** - Help & Support, Site Statistics, Latest Media, Latest Posts, Tasks, Updates, Quick Links, Command Line, and AI Assistant
 - **React-Powered** - Fast, interactive widgets built with React
-- **Modern Design** - Clean, professional styling that matches WordPress admin
-- **CLI Terminal** - Built-in command line interface for managing plugins, themes, users, and more
+- **Modern Design** - All the widgets have dark theme by default
+- **CLI Terminal** - Fully featured built-in command line interface for managing plugins, themes, users, transients and more
 - **AI Assistant** - Conversational AI that can manage your site using natural language (supports OpenAI, Anthropic, Google Gemini, and any OpenAI-compatible endpoint such as OpenRouter or Groq)
-- **WordPress Abilities API** - All 62 CDW tools registered as native WP Abilities (WP 6.9+), accessible via the `wp-abilities/v1` REST namespace and any compatible MCP adapter
+- **WordPress Abilities API** - All 71 CDW tools registered as native WP Abilities (WP 6.9+), accessible via the `wp-abilities/v1` REST namespace and any compatible MCP adapter
 - **Fully Customizable** - Configure widget appearance with colors and font sizes
 
 ### Widgets
@@ -29,11 +29,12 @@ Custom Dashboard Widgets replaces the default WordPress dashboard with a modern,
 - **Site Statistics** - View post, page, comment, user, and media counts at a glance
 - **Latest Media** - Quick access to recent uploaded files
 - **Latest Posts** - See your most recent published content
-- **Pending Tasks** - Personal todo list (stored per user)
+- **Pending Tasks** - Create tasks, assign them to users and delete them when completed (only admins can manage other user' tasks)
 - **Updates** - View available plugin and theme updates (admin only)
 - **Quick Links** - Fast access to common admin pages (admin only)
+- **Tools and other** - Fast access to all your dashboard menus, including those created by installed plugins
 - **Command Line** - WP-CLI-like terminal for site management (admin only)
-- **AI Assistant** - Chat with an AI to manage plugins, themes, users, posts, and more (admin only)
+- **AI Assistant** - Ask an AI model of your preference and it will manage plugins, themes, users, posts, and more (admin only)
 
 ### Features
 
@@ -43,6 +44,9 @@ Custom Dashboard Widgets replaces the default WordPress dashboard with a modern,
 - Support email and documentation URL settings
 - Enable/disable individual widgets
 - Remove default WordPress widgets option
+- **Page Builder** - AI can build complete pages with sections (hero sections, services sections, bio sections, team sections, footr) using structured JSON
+- **Page Templates** - Set page templates (blank, page, etc.) when creating pages; list available templates from active theme
+- **Universal Block Renderer** - AI can render individual Gutenberg blocks (paragraph, heading, image, cover, buttons, columns, etc.)
 
 ## Installation
 
@@ -79,6 +83,7 @@ Currently, multisite support is limited. The plugin works on individual sites wi
 Yes! Use the **Settings → Dashboard Widgets** page to configure:
 - Enable/disable the Command Line widget
 - Choose whether to remove default WordPress widgets
+You can also show/hide every widget individually via the Screen Options button in your Dashboard (wordpress core functionality)
 
 ### Can I customize the widget appearance?
 
@@ -87,6 +92,8 @@ Absolutely. Go to **Settings → Dashboard Widgets → Widget Appearance** to ad
 - Widget background color
 - Widget header background color
 - Widget header text color
+
+This is currently in beta and needs a bit of work.
 
 ### Where is my data stored?
 
@@ -110,7 +117,7 @@ Yes. Your API key is encrypted with AES-256-CBC before being saved to the databa
 
 ### Does the CLI widget really run WP-CLI commands?
 
-The CLI widget simulates WP-CLI commands through WordPress APIs. It does **not** call `exec()`, `shell_exec()`, or open any shell process. Supported commands:
+The CLI widget works the same as WP-CLI commands, but through custom endpoints in WordPress APIs. It does **not** call `exec()`, `shell_exec()`, or open any shell process and works in hosts without WP CLI support. Supported commands:
 
 ```
 help
@@ -196,23 +203,6 @@ Security notes:
   - `user delete` cannot target your own account
   - `db export` and `db import` are blocked when executed via the AI agentic loop
 
-### ✅ Completed
-
-| Area | Detail |
-|---|---|
-| **PHP unit tests** | 338 tests, 836 assertions — all pass |
-| **JS unit tests** | 96 tests across 7 suites — all passing |
-| **Integration tests** | 24 tests, 67 assertions — all passing |
-| **Static analysis** | PHPCS (WordPress Coding Standards) + PHPStan level 6 — 0 errors |
-| **CI (GitHub Actions)** | PHP unit + JS unit jobs — green on every push |
-| **Build pipeline** | `npm run build` — 0 errors, compiled assets committed to repo |
-| **Internationalization** | All strings wrapped; `languages/cdw.pot` generated (24 strings) |
-| **Security** | Protected option list expanded; `wp-tests-config.php` gitignored; API keys AES-256-CBC encrypted |
-| **Uninstall** | Full cleanup of all plugin data including encrypted AI API keys |
-| **AI Assistant** | Per-user encrypted API keys; OpenAI, Anthropic, Google, custom endpoints; agentic loop with tool calling |
-| **WordPress Abilities API** | 62 CDW tools registered as WP Abilities (WP 6.9+); REST-exposed via `wp-abilities/v1`; MCP opt-in toggle |
-| **Release prep** | `.distignore` created; v3.0.0 tagged and released |
-
 ### 🔲 Future work
 
 - **Accessibility (a11y)** — automated axe-core audit; screen reader keyboard navigation
@@ -226,10 +216,10 @@ Security notes:
 ### Unit Tests (no database required)
 
 ```bash
-# PHP unit tests — 338 tests, 836 assertions
+# PHP unit tests — 424 tests, 1283 assertions
 vendor/bin/phpunit --testsuite=Unit
 
-# JavaScript unit tests — 96 tests
+# JavaScript unit tests — 162 tests
 npm run test:js
 
 # Static analysis
@@ -289,6 +279,15 @@ See [Running Tests](#running-tests) below for the full test setup.
 - New CLI flag `--publish` on `post create <title>` and `page create <title>` to create and immediately publish
 - `page create` is now documented and available in CLI autocomplete
 - Post/page creation via AI routes directly through `wp_insert_post`, bypassing the CLI tokeniser — multi-word content is preserved correctly
+
+**Page Builder & Templates**
+- `cdw/build-page` ability now supports `page_template` parameter to set page templates (works with both Classic and FSE/block themes)
+- New `cdw/list-page-templates` ability returns available templates from the active theme (auto-detects theme type)
+- Enhanced section renderers: cover sections now support `content` and `buttons`; two-column/three-column support `title` and `subtitle` headers; footer supports flexible column formats
+- Added universal block renderer via `"type": "block"` - supports core Gutenberg blocks (paragraph, heading, image, cover, group, columns, buttons, etc.) with nested content via `children` array
+- Backward compatibility: section renderers now accept both `title`/`content` and `heading`/`text` field names
+
+- Over 20 new abilities added.
 
 ### 3.0.0 (released)
 

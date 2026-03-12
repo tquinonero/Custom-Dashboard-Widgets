@@ -73,7 +73,7 @@ Choose ONE vibe. Mix sparingly.
 - **Icon-row**: Horizontal icons with labels (compact, scannable)
 
 ### About Section
-- **50/50**: Text left, image right (classic)
+- **50/50**: Text aligned left horizontally,centered vertically, image right (classic)
 - **Offset**: Image slightly overlapping section (dynamic)
 
 ### Testimonials
@@ -154,7 +154,8 @@ Use only: 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 96
 - Circular for icons/avatars: `border-radius:50%`
 - Rounded for photos: `border-radius:16px`
 - Always include alt text
-
+- images in hero section in the same website must have the same height in all pages
+- Images used on the same section always with the same aspect ratio
 ---
 
 ## 8. Decision Checklist

@@ -104,25 +104,13 @@ class CDW_Meta_Abilities {
 			'cdw/post-meta-set',
 			array(
 				'label'               => __( 'Set Post Meta', 'cdw' ),
-				'description'         => __( 'Sets metadata for a post. For complex values (arrays, objects), provide value_base64 with base64-encoded JSON.', 'cdw' ),
+				'description'         => __( 'Sets metadata for a post. For complex values (arrays, objects), pass them directly in the value field.', 'cdw' ),
 				'category'            => 'cdw-admin-tools',
 				'permission_callback' => $permission_cb,
 				'execute_callback'    => function ( $input = array() ) {
 					$post_id = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
 					$key     = isset( $input['key'] ) ? (string) $input['key'] : '';
-
-					if ( isset( $input['value_base64'] ) && '' !== (string) $input['value_base64'] ) {
-						$decoded = base64_decode( (string) $input['value_base64'], true );
-						if ( false === $decoded ) {
-							return new \WP_Error( 'invalid_base64', 'value_base64 is not valid base64.' );
-						}
-						$value = json_decode( $decoded, true );
-						if ( json_last_error() !== JSON_ERROR_NONE ) {
-							$value = $decoded;
-						}
-					} else {
-						$value = isset( $input['value'] ) ? $input['value'] : '';
-					}
+					$value   = isset( $input['value'] ) ? $input['value'] : '';
 
 					if ( $post_id <= 0 ) {
 						return new \WP_Error( 'invalid_post_id', 'post_id is required and must be a positive integer.' );
@@ -160,11 +148,7 @@ class CDW_Meta_Abilities {
 						),
 						'value'        => array(
 							'type'        => 'mixed',
-							'description' => 'Meta value (string, number, or boolean). For arrays/objects, use value_base64.',
-						),
-						'value_base64' => array(
-							'type'        => 'string',
-							'description' => 'Base64-encoded JSON value for arrays/objects. Provide either value or value_base64, not both.',
+							'description' => 'Meta value (string, number, boolean, or array/object).',
 						),
 					),
 					'required'   => array( 'post_id', 'key' ),
@@ -314,25 +298,13 @@ class CDW_Meta_Abilities {
 			'cdw/user-meta-set',
 			array(
 				'label'               => __( 'Set User Meta', 'cdw' ),
-				'description'         => __( 'Sets metadata for a user. For complex values (arrays, objects), provide value_base64 with base64-encoded JSON.', 'cdw' ),
+				'description'         => __( 'Sets metadata for a user. For complex values (arrays, objects), pass them directly in the value field.', 'cdw' ),
 				'category'            => 'cdw-admin-tools',
 				'permission_callback' => $permission_cb,
 				'execute_callback'    => function ( $input = array() ) {
 					$user_id = isset( $input['user_id'] ) ? (int) $input['user_id'] : 0;
 					$key     = isset( $input['key'] ) ? (string) $input['key'] : '';
-
-					if ( isset( $input['value_base64'] ) && '' !== (string) $input['value_base64'] ) {
-						$decoded = base64_decode( (string) $input['value_base64'], true );
-						if ( false === $decoded ) {
-							return new \WP_Error( 'invalid_base64', 'value_base64 is not valid base64.' );
-						}
-						$value = json_decode( $decoded, true );
-						if ( json_last_error() !== JSON_ERROR_NONE ) {
-							$value = $decoded;
-						}
-					} else {
-						$value = isset( $input['value'] ) ? $input['value'] : '';
-					}
+					$value   = isset( $input['value'] ) ? $input['value'] : '';
 
 					if ( $user_id <= 0 ) {
 						return new \WP_Error( 'invalid_user_id', 'user_id is required and must be a positive integer.' );
@@ -370,11 +342,7 @@ class CDW_Meta_Abilities {
 						),
 						'value'        => array(
 							'type'        => 'mixed',
-							'description' => 'Meta value (string, number, or boolean). For arrays/objects, use value_base64.',
-						),
-						'value_base64' => array(
-							'type'        => 'string',
-							'description' => 'Base64-encoded JSON value for arrays/objects. Provide either value or value_base64, not both.',
+							'description' => 'Meta value (string, number, boolean, or array/object).',
 						),
 					),
 					'required'   => array( 'user_id', 'key' ),
@@ -615,26 +583,14 @@ class CDW_Meta_Abilities {
 			'cdw/term-meta-set',
 			array(
 				'label'               => __( 'Set Term Meta', 'cdw' ),
-				'description'         => __( 'Sets metadata for a term (category, tag, or custom taxonomy). For complex values (arrays, objects), provide value_base64 with base64-encoded JSON.', 'cdw' ),
+				'description'         => __( 'Sets metadata for a term (category, tag, or custom taxonomy). For complex values (arrays, objects), pass them directly in the value field.', 'cdw' ),
 				'category'            => 'cdw-admin-tools',
 				'permission_callback' => $permission_cb,
 				'execute_callback'    => function ( $input = array() ) {
 					$term_id  = isset( $input['term_id'] ) ? (int) $input['term_id'] : 0;
 					$taxonomy = isset( $input['taxonomy'] ) ? (string) $input['taxonomy'] : '';
 					$key      = isset( $input['key'] ) ? (string) $input['key'] : '';
-
-					if ( isset( $input['value_base64'] ) && '' !== (string) $input['value_base64'] ) {
-						$decoded = base64_decode( (string) $input['value_base64'], true );
-						if ( false === $decoded ) {
-							return new \WP_Error( 'invalid_base64', 'value_base64 is not valid base64.' );
-						}
-						$value = json_decode( $decoded, true );
-						if ( json_last_error() !== JSON_ERROR_NONE ) {
-							$value = $decoded;
-						}
-					} else {
-						$value = isset( $input['value'] ) ? $input['value'] : '';
-					}
+					$value    = isset( $input['value'] ) ? $input['value'] : '';
 
 					if ( $term_id <= 0 ) {
 						return new \WP_Error( 'invalid_term_id', 'term_id is required and must be a positive integer.' );
@@ -679,11 +635,7 @@ class CDW_Meta_Abilities {
 						),
 						'value'        => array(
 							'type'        => 'mixed',
-							'description' => 'Meta value (string, number, or boolean). For arrays/objects, use value_base64.',
-						),
-						'value_base64' => array(
-							'type'        => 'string',
-							'description' => 'Base64-encoded JSON value for arrays/objects. Provide either value or value_base64, not both.',
+							'description' => 'Meta value (string, number, boolean, or array/object).',
 						),
 					),
 					'required'   => array( 'term_id', 'key' ),

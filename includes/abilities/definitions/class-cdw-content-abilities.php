@@ -25,21 +25,12 @@ class CDW_Content_Abilities {
 			'cdw/post-set-content',
 			array(
 				'label'               => __( 'Set Post Content', 'cdw' ),
-				'description'         => __( 'Replaces the full post_content of an existing post or page with raw block markup. For design recommendations (colors, spacing, patterns), first use cdw/skill-list to find skills, then cdw/skill-get with skill_name: "gutenberg-design" to get design guidelines. Supply either content (plain string) or content_base64 (base64-encoded string — preferred for block markup because it avoids JSON escaping issues). For large pages: (1) call with content="" to clear, (2) use cdw/post-append-content to push sections.', 'cdw' ),
+				'description'         => __( 'Replaces the full post_content of an existing post or page with raw block markup. For design guidelines, first use cdw/skill-list to find skills, then cdw/skill-get with skill_name: "gutenberg-design" to get design guidelines. For large pages: (1) call with content="" to clear, (2) use cdw/post-append-content to push sections.', 'cdw' ),
 				'category'            => 'cdw-admin-tools',
 				'permission_callback' => $permission_cb,
 				'execute_callback'    => function ( $input = array() ) {
 					$post_id = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
-
-					if ( isset( $input['content_base64'] ) && '' !== (string) $input['content_base64'] ) {
-						// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- base64 decoding with strict mode
-						$content = base64_decode( (string) $input['content_base64'], true );
-						if ( false === $content ) {
-							return new \WP_Error( 'invalid_base64', 'content_base64 is not valid base64.' );
-						}
-					} else {
-						$content = isset( $input['content'] ) ? (string) $input['content'] : '';
-					}
+					$content = isset( $input['content'] ) ? (string) $input['content'] : '';
 
 					if ( $post_id <= 0 ) {
 						return new \WP_Error( 'invalid_post_id', 'post_id is required and must be a positive integer.' );
@@ -75,11 +66,7 @@ class CDW_Content_Abilities {
 						),
 						'content'        => array(
 							'type'        => 'string',
-							'description' => 'Raw block markup to write to post_content. Use for short/plain content.',
-						),
-						'content_base64' => array(
-							'type'        => 'string',
-							'description' => 'Base64-encoded block markup. Preferred over content when the markup contains JSON block attributes (avoids double-escaping). Provide either content or content_base64, not both.',
+							'description' => 'Raw block markup to write to post_content.',
 						),
 					),
 					'required'   => array( 'post_id' ),
@@ -174,21 +161,12 @@ class CDW_Content_Abilities {
 			'cdw/post-append-content',
 			array(
 				'label'               => __( 'Append Post Content', 'cdw' ),
-				'description'         => __( 'Appends a raw block markup chunk to the existing post_content of a post or page. For design recommendations (colors, spacing, patterns), first use cdw/skill-list to find skills, then cdw/skill-get with skill_name: "gutenberg-design" to get design guidelines. Supply either content (plain string) or content_base64 (base64-encoded — preferred for block markup to avoid JSON escaping). Workflow: (1) call cdw/post-set-content with content="" to clear the post, (2) call this ability repeatedly with successive chunks. The response includes the running total byte count so you can confirm each chunk landed.', 'cdw' ),
+				'description'         => __( 'Appends a raw block markup chunk to the existing post_content of a post or page. For design guidelines, first use cdw/skill-list to find skills, then cdw/skill-get with skill_name: "gutenberg-design" to get design guidelines. Workflow: (1) call cdw/post-set-content with content="" to clear the post, (2) call this ability repeatedly with successive chunks. The response includes the running total byte count so you can confirm each chunk landed.', 'cdw' ),
 				'category'            => 'cdw-admin-tools',
 				'permission_callback' => $permission_cb,
 				'execute_callback'    => function ( $input = array() ) {
 					$post_id = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
-
-					if ( isset( $input['content_base64'] ) && '' !== (string) $input['content_base64'] ) {
-						// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- base64 decoding with strict mode
-						$chunk = base64_decode( (string) $input['content_base64'], true );
-						if ( false === $chunk ) {
-							return new \WP_Error( 'invalid_base64', 'content_base64 is not valid base64.' );
-						}
-					} else {
-						$chunk = isset( $input['content'] ) ? (string) $input['content'] : '';
-					}
+					$chunk   = isset( $input['content'] ) ? (string) $input['content'] : '';
 
 					if ( $post_id <= 0 ) {
 						return new \WP_Error( 'invalid_post_id', 'post_id is required and must be a positive integer.' );
@@ -201,7 +179,7 @@ class CDW_Content_Abilities {
 						return new \WP_Error( 'forbidden', 'You do not have permission to edit this post.' );
 					}
 					if ( '' === $chunk ) {
-						return new \WP_Error( 'empty_content', 'content or content_base64 must not be empty.' );
+						return new \WP_Error( 'empty_content', 'content must not be empty.' );
 					}
 
 					$new_content = $post->post_content . $chunk;
@@ -230,11 +208,7 @@ class CDW_Content_Abilities {
 						),
 						'content'        => array(
 							'type'        => 'string',
-							'description' => 'Block markup chunk to append. Use for plain/short content.',
-						),
-						'content_base64' => array(
-							'type'        => 'string',
-							'description' => 'Base64-encoded block markup chunk to append. Preferred over content when the markup contains JSON block attributes (avoids double-escaping). Provide either content or content_base64, not both.',
+							'description' => 'Block markup chunk to append.',
 						),
 					),
 					'required'   => array( 'post_id' ),
@@ -254,13 +228,14 @@ class CDW_Content_Abilities {
 			'cdw/build-page',
 			array(
 				'label'               => __( 'Build Page', 'cdw' ),
-				'description'         => __( 'Creates a new page or updates an existing one with Gutenberg block markup generated from structured JSON. For design recommendations (colors, spacing, patterns), first use cdw/skill-list to find skills, then cdw/skill-get with skill_name: "gutenberg-design" to get design guidelines. Input: {"title": "Page Title", "sections": [{"type": "cover", "title": "Hero", "image": "url"}, {"type": "two-column", "left": {...}, "right": {...}}, {"type": "footer", "columns": [...]}]}. Supported section types: cover, two-column, three-column, footer. Returns post_id, title, and section_count.', 'cdw' ),
+				'description'         => __( 'Creates a new page or updates an existing one with Gutenberg block markup generated from structured JSON. For design guidelines, first use cdw/skill-list to find skills, then cdw/skill-get with skill_name: "gutenberg-design". Use "page_template" to set template (e.g., "default", "blank", "page"). Get available templates with cdw/list-page-templates. Supported section types: cover, two-column, three-column, footer, block. Use "type": "block" for individual Gutenberg blocks. Examples: {"type":"block","block":"core/paragraph","content":"Text","align":"center"}, {"type":"block","block":"core/image","url":"https://...","alt":"Desc"}, {"type":"block","block":"core/cover","url":"https://...","minHeight":500,"children":[{"block":"core/heading","content":"Title"}]}, {"type":"block","block":"core/buttons","buttons":[{"text":"Click","url":"https://...","bgColor":"vivid-red","textColor":"white"}]}, {"type":"block","block":"core/columns","columns":[{"children":[{"block":"core/paragraph","content":"Col 1"}]},{"children":[{"block":"core/paragraph","content":"Col 2"}]}]}. Valid blocks: core/paragraph, core/heading, core/image, core/cover, core/group, core/columns, core/column, core/buttons, core/button, core/spacer, core/separator, core/quote, core/code, core/list, core/video, core/audio, core/file. Returns post_id, title, and section_count.', 'cdw' ),
 				'category'            => 'cdw-admin-tools',
 				'permission_callback' => $permission_cb,
 				'execute_callback'    => function ( $input = array() ) {
-					$title    = isset( $input['title'] ) ? sanitize_text_field( $input['title'] ) : '';
-					$sections = isset( $input['sections'] ) ? (array) $input['sections'] : array();
-					$post_id  = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
+					$title         = isset( $input['title'] ) ? sanitize_text_field( $input['title'] ) : '';
+					$sections      = isset( $input['sections'] ) ? (array) $input['sections'] : array();
+					$post_id       = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
+					$page_template = isset( $input['page_template'] ) ? $input['page_template'] : '';
 
 					if ( empty( $title ) ) {
 						return new \WP_Error( 'missing_title', 'title is required.' );
@@ -287,6 +262,7 @@ class CDW_Content_Abilities {
 							array(
 								'ID'           => $post_id,
 								'post_content' => $content,
+								'page_template' => $page_template,
 							),
 							true
 						);
@@ -310,6 +286,7 @@ class CDW_Content_Abilities {
 							'post_content' => $content,
 							'post_status'  => 'draft',
 							'post_type'    => 'page',
+							'page_template' => $page_template,
 						),
 						true
 					);
@@ -341,6 +318,10 @@ class CDW_Content_Abilities {
 							'type'        => 'integer',
 							'description' => 'Optional. ID of existing page to update. If omitted, creates a new draft page.',
 						),
+						'page_template' => array(
+							'type'        => 'string',
+							'description' => 'Optional. Page template to use. Use "default" for theme default, "blank" for no header/footer, or a template slug (e.g., "page", "footer-only"). Get available templates with cdw/list-page-templates.',
+						),
 					),
 					'required'   => array( 'title', 'sections' ),
 				),
@@ -348,6 +329,61 @@ class CDW_Content_Abilities {
 					'show_in_rest' => true,
 					'readonly'     => false,
 					'idempotent'   => false,
+					'annotations'  => array(
+						'destructive' => false,
+					),
+				),
+			)
+		);
+
+		wp_register_ability(
+			'cdw/list-page-templates',
+			array(
+				'label'               => __( 'List Page Templates', 'cdw' ),
+				'description'         => __( 'Returns a list of available page templates from the active theme. For classic themes, returns get_page_templates(). For FSE/block themes, returns available template slugs. Use cdw/theme-info to check if the active theme is a block theme.', 'cdw' ),
+				'category'            => 'cdw-admin-tools',
+				'permission_callback' => $permission_cb,
+				'execute_callback'    => function ( $input = array() ) {
+					$templates = array();
+
+					if ( wp_is_block_theme() ) {
+						$block_templates = get_block_templates( array( 'post_type' => 'page' ) );
+						foreach ( $block_templates as $template ) {
+							$templates[ $template->slug ] = $template->title;
+						}
+						if ( empty( $templates ) ) {
+							$templates = array(
+								'page'      => 'Page',
+								'page--custom' => 'Page (Custom)',
+								'blank'     => 'Blank',
+								'single'    => 'Single',
+							);
+						}
+					} else {
+						$wp_templates = get_page_templates();
+						foreach ( $wp_templates as $name => $file ) {
+							$templates[ $file ] = $name;
+						}
+					}
+
+					if ( empty( $templates ) ) {
+						$templates = array( 'default' => 'Default Template' );
+					}
+
+					return array(
+						'output'     => 'Available page templates: ' . count( $templates ),
+						'templates'  => $templates,
+						'theme_type' => wp_is_block_theme() ? 'block' : 'classic',
+					);
+				},
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(),
+				),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'readonly'     => true,
+					'idempotent'   => true,
 					'annotations'  => array(
 						'destructive' => false,
 					),
