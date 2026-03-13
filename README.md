@@ -20,12 +20,12 @@ Custom Dashboard Widgets replaces the default WordPress dashboard with a modern,
 - **Modern Design** - All the widgets have dark theme by default
 - **CLI Terminal** - Fully featured built-in command line interface for managing plugins, themes, users, transients and more
 - **AI Assistant** - Conversational AI that can manage your site using natural language (supports OpenAI, Anthropic, Google Gemini, and any OpenAI-compatible endpoint such as OpenRouter or Groq)
-- **WordPress Abilities API** - All 71 CDW tools registered as native WP Abilities (WP 6.9+), accessible via the `wp-abilities/v1` REST namespace and any compatible MCP adapter
+- **WordPress Abilities API** - 80 CDW tools registered as native WP Abilities (WP 6.9+), accessible via the `wp-abilities/v1` REST namespace and any compatible MCP adapter
 - **Fully Customizable** - Configure widget appearance with colors and font sizes
 
 ### Widgets
 
-- **Help & Support** - Display support email and documentation link
+- **Help & Support** - Display support email and documentation link for your clients or teams
 - **Site Statistics** - View post, page, comment, user, and media counts at a glance
 - **Latest Media** - Quick access to recent uploaded files
 - **Latest Posts** - See your most recent published content
@@ -42,11 +42,149 @@ Custom Dashboard Widgets replaces the default WordPress dashboard with a modern,
 - Per-user task management
 - Configurable appearance (colors, fonts)
 - Support email and documentation URL settings
-- Enable/disable individual widgets
+- Enable/disable individual widgets (with Screen Options in the dashboard. Native WordPress.)
 - Remove default WordPress widgets option
-- **Page Builder** - AI can build complete pages with sections (hero sections, services sections, bio sections, team sections, footr) using structured JSON
+- **Page Builder** - (alpha, needs work) AI can build complete pages with sections (hero sections, services sections, bio sections, team sections, footer) using structured JSON
 - **Page Templates** - Set page templates (blank, page, etc.) when creating pages; list available templates from active theme
-- **Universal Block Renderer** - AI can render individual Gutenberg blocks (paragraph, heading, image, cover, buttons, columns, etc.)
+- **Universal Block Renderer** - (alpha, needs work with some blocks) AI can render individual Gutenberg blocks (paragraph, heading, image, cover, buttons, columns, etc.)
+
+## Full list of CDW'S 80 registered abilities
+
+1. **cdw/post-get:** Retrieves the title, content, status, and metadata of a specific WordPress post by its numeric ID.
+2. **cdw/post-create:** Creates a new WordPress post as a draft with the specified title.
+3. **cdw/page-create:** Creates a new WordPress page as a draft with the specified title.
+4. **post-list**: Returns a list of recent posts, optionally filtered by post type (default: post).
+5. **cdw/post-count**: Returns the count of posts by status (publish, draft, pending, trash) for each public post type. Excludes attachments.
+6. **cdw/post-status**: Changes the status of an existing post (e.g. draft, publish, trash).
+7. **cdw/post-delete**: Permanently deletes a WordPress post by its numeric ID.
+
+**Task Management:**
+
+1. **cdw/task-list**: Lists pending tasks for a user. Omit user_id to list tasks for the current user.
+2. **cdw/task-create**: Creates a new pending task. Optionally assigns it to another user by username (assignee_login) or user ID (assignee_id). Assigning to another user requires administrator privileges.
+3. **cdw/task-delete**: Deletes all tasks for a user. Omit user_id to delete tasks for the current user.
+
+**Content Creation**:
+
+1. **cdw/post-set-content:** Replaces the full post_content of an existing post or page with raw block markup. For design guidelines, first use cdw/skill-list to find skills, then cdw/skill-get with skill_name: "gutenberg-design" to get design guidelines. Supply either content (plain string) or content_base64 (base64-encoded string — preferred for block markup because it avoids JSON escaping issues). For large pages: (1) call with content="" to clear, (2) use cdw/post-append-content to push sections.
+2. **cdw/post-get-content**: Retrieves the raw post_content of a WordPress post or page, including all Gutenberg block markup. Use offset and limit for pagination on large content. Use this before editing a page with cdw/post-set-content.
+3. **cdw/post-append-content**: Appends a raw block markup chunk to the existing post_content of a post or page. For design guidelines, first use cdw/skill-list to find skills, then cdw/skill-get with skill_name: "gutenberg-design" to get design guidelines. Supply either content (plain string) or content_base64 (base64-encoded — preferred for block markup to avoid JSON escaping). Workflow: (1) call cdw/post-set-content with content="" to clear the post, (2) call this ability repeatedly with successive chunks. The response includes the running total byte count so you can confirm each chunk landed.
+4. **cdw/build-page**: Creates a new page or updates an existing one with Gutenberg block markup generated from structured JSON. For design guidelines, first use cdw/skill-list to find skills, then cdw/skill-get with skill_name: "gutenberg-design". Input: {"title": "Page Title", "sections": [{"type": "cover", "title": "Hero", "image": "url"}, {"type": "two-column", "left": {...}, "right": {...}}, {"type": "footer", "columns": [...]}]}. Supported section types: cover, two-column, three-column, footer. Returns post_id, title, and section_count.
+
+**Block editor abilities:**
+
+1. **cdw/block-patterns-get**: Returns the raw block markup for a specific block pattern by name. Returns base64-encoded content to preserve special characters. Use this to retrieve a pattern before appending it to a page.
+2. **cdw/block-patterns-list**: Returns all registered block patterns with name, title, and categories. Optionally filter by category slug.
+3. **cdw/custom-patterns-list**: Returns a list of all custom block patterns stored in the cdw/patterns/ folder. Each pattern includes name, title, description, and category.
+4. **cdw/custom-patterns-get**: Returns the raw block markup for a specific custom pattern by name. Searches in cdw/patterns/ folder. Returns base64-encoded content to preserve special characters**.**
+
+**Media Management**:
+
+1. **cdw/media-list**: Lists recent media attachments with ID, filename, MIME type, and upload date.
+
+**Meta abilities**:
+
+1. **cdw/post-meta-get**: Retrieves metadata for a specific post. If key is omitted, returns all meta for the post.
+2. **cdw/post-meta-set**: Sets metadata for a post. For complex values (arrays, objects), provide value_base64 with base64-encoded JSON.
+3. **cdw/post-meta-delete**: Deletes metadata for a specific post by key.
+4. **cdw/user-meta-get**: Retrieves metadata for a specific user. If key is omitted, returns all meta for the user.
+5. **cdw/user-meta-set**: Sets metadata for a user. For complex values (arrays, objects), provide value_base64 with base64-encoded JSON.
+6. **cdw/user-meta-delete**: Deletes metadata for a specific user by key.
+7. **cdw/term-list**: Returns a list of terms (categories, tags, or custom taxonomy) with their IDs, names, and counts. Use this to find term IDs before working with term meta.
+8. **term-meta-get**: Retrieves metadata for a specific term (category, tag, or custom taxonomy). If key is omitted, returns all meta for the term.
+9. **cdw/term-meta-set**: Sets metadata for a term (category, tag, or custom taxonomy). For complex values (arrays, objects), provide value_base64 with base64-encoded JSON.
+10. **cdw/term-meta-delete**: Deletes metadata for a specific term (category, tag, or custom taxonomy) by key.
+
+**Role abilities**:
+
+1. **cdw/role-list**: Returns a list of all WordPress roles with their display names and capabilities. Use this to see what capabilities each role has before creating or updating roles.
+2. **cdw/role-create:** Creates a new WordPress role with specified display name and capabilities. Optionally clone capabilities from an existing role. Cannot override built-in roles (administrator, editor, author, contributor, subscriber).
+3. **cdw/role-update**: Updates a role by adding or removing capabilities. Use add_caps to grant new capabilities, remove_caps to revoke capabilities. Cannot modify built-in roles (administrator, editor, author, contributor, subscriber).
+4. **cdw/role-delete**: Deletes a custom WordPress role. Cannot delete built-in roles (administrator, editor, author, contributor, subscriber). Users currently assigned to the deleted role will be moved to subscriber.
+5. **cdw/user-role**: Changes the role of an existing WordPress user identified by username or user ID.
+
+**Plugin Management**:
+
+1. **cdw/plugin-list**: Returns a list of all installed plugins with their activation status, version, and description.
+2. **cdw/plugin-status**: Returns the activation status and version of a specific plugin identified by its slug.
+3. **cdw/plugin-activate**: Activates an installed plugin by its slug.
+4. '**cdw/plugin-deactivate**: Deactivates an active plugin by its slug.
+5. **cdw/plugin-install**: Downloads and installs a plugin from the [WordPress.org](http://wordpress.org/) repository by slug.
+6. **cdw/plugin-update**: Updates an installed plugin to the latest available version by its slug.
+7. **cdw/plugin-delete**: Permanently deletes an installed plugin by its slug.
+8. **cdw/plugin-update-all**: Updates all installed plugins that have pending updates.
+
+**Theme Management**:
+
+1. **cdw/theme-list**: Returns a list of all installed themes with their activation status and version.
+2. **cdw/theme-activate**: Activates an installed theme by its slug.
+3. **cdw/theme-install**: Downloads and installs a theme from the [WordPress.org](http://wordpress.org/) repository by slug.
+4. **cdw/theme-update**: Updates an installed theme to the latest available version by its slug.
+5. **cdw/theme-info**: Returns details about the currently active theme including name, version, and author.
+6. **cdw/theme-status**: Returns the activation status and version of a specific theme identified by its slug.
+7. **cdw/theme-delete**: Permanently deletes an installed theme by its slug. The theme must not be currently active.
+8. **cdw/theme-update-all**: Updates all installed themes that have pending updates.
+
+**User Management**:
+
+1. **cdw/user-list**: Returns a list of all WordPress users with their IDs, usernames, roles, and email addresses.
+2. **cdw/user-create**: Creates a new WordPress user with the specified username, email address, and role.
+3. **cdw/user-delete**: Permanently deletes a WordPress user identified by their numeric user ID. Provide reassign to transfer authored content or set delete_content to true to remove authored content.
+4. **cdw/user-get**: Retrieves details about a specific WordPress user by their ID, username, or email address.
+
+**Cache Management**:
+
+1. cdw/cache-flush: Flushes the WordPress object cache, clearing all cached data.
+
+**Options Management**:
+
+1. cdw/option-get: Retrieves the current value of a WordPress option from the database by its name.
+2. cdw/option-list: Returns all WordPress options stored in the database with their values.
+3. cdw/option-set: Creates or updates a WordPress option in the database with the given name and value.
+4. cdw/option-delete: Deletes a WordPress option from the database by name. Protected core options cannot be deleted.
+
+**Cron Management**:
+
+1. cdw/cron-list: Returns a list of all scheduled WordPress cron events with their next run time and recurrence interval.
+2. cdw/cron-run: Manually triggers a scheduled WordPress cron hook immediately.
+
+**Site Info**:
+
+1. cdw/site-info: Returns general information about the WordPress site including its name, URL, WordPress version, and active theme.
+2. cdw/core-version: Returns the current WordPress version, PHP version, and whether a core update is available.
+3. cdw/site-status: Returns the current health and configuration status of the WordPress site.
+4. cdw/site-settings: Returns the configured WordPress site settings such as timezone, date format, and reading/writing options.
+
+**Comment Management**:
+
+1. cdw/comment-list: Lists comments filtered by status: pending (default), approved, or spam.
+2. cdw/comment-approve: Approves a comment by ID.
+3. cdw/comment-spam: Marks a comment as spam by ID.
+4. cdw/comment-delete: Permanently deletes a comment by ID. Requires --force.
+
+**Database Management**:
+
+1. cdw/db-size: Returns the total size of the WordPress database in bytes.
+2. cdw/db-tables: Returns a list of all WordPress database tables with their sizes and row counts.
+3. cdw/search-replace: Performs a search and replace across all database tables. Set dry_run to true to preview changes without committing them.
+4. cdw/transient-list: Returns the first 20 WordPress transients currently stored in the database.
+5. cdw/transient-delete: Deletes a specific WordPress transient by name.
+
+**Maintenance mode**:
+
+1. cdw/maintenance-on: Enables WordPress maintenance mode, making the site temporarily unavailable to visitors while showing a maintenance message.
+2. cdw/maintenance-off: Disables WordPress maintenance mode, restoring normal public access to the site.
+3. cdw/maintenance-status: Returns whether WordPress maintenance mode is currently enabled or disabled.
+
+**Rewrite**:
+
+1. cdw/rewrite-flush: Flushes WordPress rewrite rules, equivalent to saving the permalink settings.
+
+**Plugin skill discovery**:
+
+**cdw/skill-list**: Scans all installed plugins for agent skill documentation and returns a list of available skills with their plugin slug and skill name.
+
+**cdw/skill-get**: Returns the contents of a skill documentation file from an installed plugin. Defaults to [SKILL.md](http://skill.md/). Use file to read sub-documents such as instructions/attributes.md.
 
 ## Installation
 
