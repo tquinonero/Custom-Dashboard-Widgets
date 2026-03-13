@@ -574,6 +574,10 @@ class CDW_Section_Renderers {
 			'lock'          => 'lock',
 			'allowedBlocks' => 'allowedBlocks',
 			'templateLock'  => 'templateLock',
+			'verticalAlignment' => 'verticalAlignment',
+			'layout'        => 'layout',
+			'customOverlayColor' => 'customOverlayColor',
+			'isUserOverlayColor' => 'isUserOverlayColor',
 		);
 
 		foreach ( $field_map as $input_key => $attr_key ) {
@@ -653,6 +657,10 @@ class CDW_Section_Renderers {
 			return self::render_list_block( $data );
 		}
 
+		if ( 'core/cover' === $block_name ) {
+			return self::render_cover_block( $data );
+		}
+
 		$attrs = self::map_attributes( $data );
 		unset( $attrs['innerHTML'] );
 
@@ -662,7 +670,9 @@ class CDW_Section_Renderers {
 			$content = implode( "\n", $data['innerContent'] );
 		}
 
-		$markup  = '<!-- wp:' . $block_name;
+		$block_name_display = str_replace( 'core/', '', $block_name );
+
+		$markup  = '<!-- wp:' . $block_name_display;
 		if ( ! empty( $attrs ) ) {
 			$markup .= ' ' . wp_json_encode( $attrs );
 		}
@@ -670,7 +680,7 @@ class CDW_Section_Renderers {
 
 		$markup .= self::render_block_inner( $block_name, $data, $content );
 
-		$markup .= "<!-- /wp:" . $block_name . " -->\n";
+		$markup .= "<!-- /wp:" . $block_name_display . " -->\n";
 
 		return $markup;
 	}
@@ -694,18 +704,37 @@ class CDW_Section_Renderers {
 				return '<' . $tag . self::get_text_class( $data ) . '>' . esc_html( $content ) . '</' . $tag . '>';
 
 			case 'core/image':
-				$url = isset( $data['url'] ) ? $data['url'] : '';
-				$alt = isset( $data['alt'] ) ? $data['alt'] : '';
-				if ( isset( $data['link'] ) && $data['link'] ) {
-					return '<figure class="wp-block-image"><a href="' . esc_url( $data['link'] ) . '"><img src="' . esc_url( $url ) . '" alt="' . esc_attr( $alt ) . '"/></a></figure>';
+				$url             = isset( $data['url'] ) ? $data['url'] : '';
+				$alt             = isset( $data['alt'] ) ? $data['alt'] : '';
+				$link_destination = isset( $data['linkDestination'] ) ? $data['linkDestination'] : 'none';
+				$class_name      = isset( $data['className'] ) ? $data['className'] : 'size-full';
+				$figure_classes  = 'wp-block-image ' . $class_name;
+
+				if ( 'none' !== $link_destination && isset( $data['link'] ) && $data['link'] ) {
+					return '<figure class="' . $figure_classes . '"><a href="' . esc_url( $data['link'] ) . '"><img src="' . esc_url( $url ) . '" alt="' . esc_attr( $alt ) . '"/></a></figure>';
 				}
-				return '<figure class="wp-block-image size-full"><img src="' . esc_url( $url ) . '" alt="' . esc_attr( $alt ) . '"/></figure>';
+				return '<figure class="' . $figure_classes . '"><img src="' . esc_url( $url ) . '" alt="' . esc_attr( $alt ) . '"/></figure>';
 
 			case 'core/cover':
 				return self::render_cover_inner( $data );
 
 			case 'core/group':
-				return '<div class="wp-block-group__inner-container">' . $content . '</div>';
+				$attrs      = self::map_attributes( $data );
+				$class_name = isset( $attrs['className'] ) ? ' ' . $attrs['className'] : '';
+				$align      = isset( $attrs['align'] ) ? ' align' . $attrs['align'] : '';
+				$style      = '';
+				if ( isset( $data['style'] ) && isset( $data['style']['spacing'] ) && isset( $data['style']['spacing']['padding'] ) ) {
+					$padding = $data['style']['spacing']['padding'];
+					$style   = ' style="';
+					if ( isset( $padding['top'] ) ) {
+						$style .= 'padding-top:' . esc_attr( $padding['top'] ) . ';';
+					}
+					if ( isset( $padding['bottom'] ) ) {
+						$style .= 'padding-bottom:' . esc_attr( $padding['bottom'] ) . ';';
+					}
+					$style .= '"';
+				}
+				return '<div class="wp-block-group' . $align . $class_name . '"' . $style . '>' . self::render_children( $data ) . '</div>';
 
 			case 'core/spacer':
 				return '';
@@ -774,6 +803,56 @@ class CDW_Section_Renderers {
 		}
 
 		return ' class="' . implode( ' ', $classes ) . '"';
+	}
+
+	/**
+	 * Render a complete cover block with outer wrapper.
+	 *
+	 * @param array<string, mixed> $data Cover data.
+	 * @return string Complete cover block markup.
+	 */
+	private static function render_cover_block( array $data ): string {
+		$attrs      = self::map_attributes( $data );
+		$block_name = 'cover';
+
+		$url             = isset( $attrs['url'] ) ? $attrs['url'] : '';
+		$align           = isset( $attrs['align'] ) ? ' align' . $attrs['align'] : '';
+		$class_name      = isset( $attrs['className'] ) ? ' ' . $attrs['className'] : '';
+		$size_slug       = isset( $attrs['sizeSlug'] ) ? ' size-' . $attrs['sizeSlug'] : ' size-large';
+		$dim_ratio       = isset( $attrs['dimRatio'] ) ? $attrs['dimRatio'] : 0;
+		$custom_overlay  = isset( $attrs['customOverlayColor'] ) ? $attrs['customOverlayColor'] : '';
+
+		unset( $attrs['innerHTML'] );
+
+		$markup  = '<!-- wp:' . $block_name;
+		if ( ! empty( $attrs ) ) {
+			$markup .= ' ' . wp_json_encode( $attrs );
+		}
+		$markup .= " -->\n";
+
+		$markup .= '<div class="wp-block-cover' . $align . $class_name . '">';
+
+		if ( $url ) {
+			$markup .= '<img class="wp-block-cover__image-background' . $size_slug . '" alt="" src="' . esc_url( $url ) . '" data-object-fit="cover"/>';
+		}
+
+		if ( $custom_overlay ) {
+			$markup .= '<span aria-hidden="true" class="wp-block-cover__background has-background-dim-0 has-background-dim" style="background-color:' . esc_attr( $custom_overlay ) . '"></span>';
+		}
+
+		$markup .= '<div class="wp-block-cover__inner-container">' . "\n";
+
+		if ( isset( $data['children'] ) && is_array( $data['children'] ) ) {
+			foreach ( $data['children'] as $child ) {
+				$markup .= self::render_block( $child );
+			}
+		}
+
+		$markup .= "</div>\n";
+		$markup .= "</div>\n";
+		$markup .= "<!-- /wp:" . $block_name . " -->\n";
+
+		return $markup;
 	}
 
 	/**
@@ -911,7 +990,9 @@ class CDW_Section_Renderers {
 			$markup .= ' ' . wp_json_encode( $attrs );
 		}
 		$markup .= " -->\n";
-		$markup .= '<div class="wp-block-columns">' . "\n";
+
+		$align = isset( $attrs['align'] ) ? ' align' . $attrs['align'] : '';
+		$markup .= '<div class="wp-block-columns' . $align . ' is-not-stacked-on-mobile">' . "\n";
 
 		$columns = isset( $data['columns'] ) ? $data['columns'] : array();
 		if ( isset( $data['children'] ) && is_array( $data['children'] ) ) {
@@ -943,7 +1024,10 @@ class CDW_Section_Renderers {
 			$markup .= ' ' . wp_json_encode( $attrs );
 		}
 		$markup .= " -->\n";
-		$markup .= '<div class="wp-block-column">' . "\n";
+
+		$vertical_align = isset( $attrs['verticalAlignment'] ) ? $attrs['verticalAlignment'] : '';
+		$vert_class     = $vertical_align ? ' is-vertically-aligned-' . $vertical_align : '';
+		$markup .= '<div class="wp-block-column' . $vert_class . '">' . "\n";
 
 		if ( isset( $data['children'] ) && is_array( $data['children'] ) ) {
 			foreach ( $data['children'] as $child ) {
@@ -954,6 +1038,22 @@ class CDW_Section_Renderers {
 		$markup .= "</div>\n";
 		$markup .= "<!-- /wp:column -->\n";
 
+		return $markup;
+	}
+
+	/**
+	 * Render child blocks recursively.
+	 *
+	 * @param array<string, mixed> $data Block data with 'children' key.
+	 * @return string Rendered children HTML.
+	 */
+	private static function render_children( array $data ): string {
+		$markup = '';
+		if ( isset( $data['children'] ) && is_array( $data['children'] ) ) {
+			foreach ( $data['children'] as $child ) {
+				$markup .= self::render_block( $child );
+			}
+		}
 		return $markup;
 	}
 }
