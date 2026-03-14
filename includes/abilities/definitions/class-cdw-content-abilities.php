@@ -378,7 +378,7 @@ class CDW_Content_Abilities {
 				},
 				'input_schema'        => array(
 					'type'       => 'object',
-					'properties' => array(),
+					'properties' => new \stdClass(),
 				),
 				'meta'                => array(
 					'show_in_rest' => true,

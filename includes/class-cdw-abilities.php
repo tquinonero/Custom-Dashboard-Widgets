@@ -159,7 +159,6 @@ class CDW_Abilities {
 			),
 		);
 
-		// Omit input_schema entirely for abilities with no input params.
 		if ( ! empty( $ability['input'] ) ) {
 			$allows_null_input = true;
 			foreach ( $ability['input'] as $field_schema ) {
@@ -173,6 +172,12 @@ class CDW_Abilities {
 				// MCP execute-ability converts empty {} to null; allow null when all fields are optional.
 				'type'       => $allows_null_input ? array( 'object', 'null' ) : 'object',
 				'properties' => $ability['input'],
+			);
+		} else {
+			// Register an explicit empty schema so the MCP adapter returns {} not [] for properties.
+			$args['input_schema'] = array(
+				'type'       => array( 'object', 'null' ),
+				'properties' => new \stdClass(),
 			);
 		}
 

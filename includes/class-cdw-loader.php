@@ -182,23 +182,32 @@ class CDW_Loader {
 			$asset['version']
 		);
 
-		$font_size         = get_option( 'cdw_font_size', '' );
-		$bg_color          = get_option( 'cdw_bg_color', '' );
-		$header_bg_color   = get_option( 'cdw_header_bg_color', '' );
-		$header_text_color = get_option( 'cdw_header_text_color', '' );
+		$font_size          = get_option( 'cdw_font_size', '' );
+		$bg_color           = get_option( 'cdw_bg_color', '' );
+		$header_bg_color    = get_option( 'cdw_header_bg_color', '' );
+		$header_text_color  = get_option( 'cdw_header_text_color', '' );
+		$button_bg_color    = get_option( 'cdw_button_bg_color', '' );
+		$button_text_color  = get_option( 'cdw_button_text_color', '' );
 
 		$css = '';
 		if ( is_numeric( $font_size ) && (int) $font_size > 0 ) {
-			$css .= '.cdw-widget { font-size: ' . (int) $font_size . 'px; }' . "\n";
+			$css .= '.cdw-widget { font-size: ' . (int) $font_size . 'px !important; }' . "\n";
 		}
 		if ( ! empty( $bg_color ) && preg_match( '/^#[0-9a-fA-F]{3,6}$/', $bg_color ) ) {
-			$css .= '.cdw-widget { background-color: ' . esc_attr( $bg_color ) . '; }' . "\n";
+			$css .= '.cdw-widget { background-color: ' . esc_attr( $bg_color ) . ' !important; }' . "\n";
+			$css .= '.cdw-widget .inside { background-color: ' . esc_attr( $bg_color ) . ' !important; }' . "\n";
 		}
 		if ( ! empty( $header_bg_color ) && preg_match( '/^#[0-9a-fA-F]{3,6}$/', $header_bg_color ) ) {
 			$css .= '.cdw-widget .cdw-widget-header, .postbox .hndle { background: ' . esc_attr( $header_bg_color ) . ' !important; background-image: none !important; }' . "\n";
 		}
 		if ( ! empty( $header_text_color ) && preg_match( '/^#[0-9a-fA-F]{3,6}$/', $header_text_color ) ) {
 			$css .= '.cdw-widget .cdw-widget-header, .postbox .hndle { color: ' . esc_attr( $header_text_color ) . ' !important; }' . "\n";
+		}
+		if ( ! empty( $button_bg_color ) && preg_match( '/^#[0-9a-fA-F]{3,6}$/', $button_bg_color ) ) {
+			$css .= '.cdw-widget .button { background: ' . esc_attr( $button_bg_color ) . ' !important; border-color: ' . esc_attr( $button_bg_color ) . ' !important; }' . "\n";
+		}
+		if ( ! empty( $button_text_color ) && preg_match( '/^#[0-9a-fA-F]{3,6}$/', $button_text_color ) ) {
+			$css .= '.cdw-widget .button { color: ' . esc_attr( $button_text_color ) . ' !important; }' . "\n";
 		}
 		if ( ! empty( $css ) ) {
 			wp_add_inline_style( 'cdw-style', $css );

@@ -21,75 +21,113 @@ class CDW_Section_Renderers {
 	 * @return string Block markup.
 	 */
 	public static function render_cover( array $data ): string {
-		$title      = isset( $data['title'] ) ? $data['title'] : '';
-		$subtitle   = isset( $data['subtitle'] ) ? $data['subtitle'] : '';
+		$title      = isset( $data['title'] ) ? $data['title'] : ( isset( $data['heading'] ) ? $data['heading'] : '' );
+		$subtitle   = isset( $data['subtitle'] ) ? $data['subtitle'] : ( isset( $data['subheading'] ) ? $data['subheading'] : '' );
 		$image      = isset( $data['image'] ) ? $data['image'] : '';
+		if ( ! $image && ! empty( $data['image_id'] ) ) {
+			$image = (string) wp_get_attachment_url( (int) $data['image_id'] );
+		}
 		$min_height = isset( $data['minHeight'] ) ? (int) $data['minHeight'] : 600;
 		$content    = isset( $data['content'] ) ? $data['content'] : '';
 		$overlay    = isset( $data['overlay'] ) ? $data['overlay'] : '';
+		if ( ! $overlay && isset( $data['overlay_opacity'] ) ) {
+			$overlay = ( (float) $data['overlay_opacity'] >= 0.6 ) ? 'dark' : 'light';
+		}
 
-		$attributes = array(
-			'url'       => $image,
-			'alt'       => $title,
-			'align'     => 'full',
-			'minHeight' => $min_height,
-		);
+		$image_id  = ! empty( $data['image_id'] ) ? (int) $data['image_id'] : 0;
 
-		$dim_class = 'has-background-dim-40';
-		if ( 'dark' === $overlay ) {
-			$dim_class = 'has-background-dim-80';
+		$dim_ratio = 50;
+		if ( isset( $data['overlay_opacity'] ) ) {
+			$dim_ratio = (int) round( (float) $data['overlay_opacity'] * 100 );
+		} elseif ( 'dark' === $overlay ) {
+			$dim_ratio = 70;
+		} elseif ( 'light' === $overlay ) {
+			$dim_ratio = 30;
+		}
+		$dim_step  = (int) ( round( $dim_ratio / 10 ) * 10 );
+		$dim_step  = max( 0, min( 100, $dim_step ) );
+
+		if ( $image_id ) {
+			$attributes = array(
+				'url'                => $image,
+				'id'                 => $image_id,
+				'dimRatio'           => $dim_ratio,
+				'overlayColor'       => 'black',
+				'isUserOverlayColor' => true,
+				'minHeight'          => $min_height,
+				'align'              => 'full',
+			);
+		} else {
+			$attributes = array(
+				'url'                => $image,
+				'dimRatio'           => $dim_ratio,
+				'overlayColor'       => 'black',
+				'isUserOverlayColor' => true,
+				'minHeight'          => $min_height,
+				'align'              => 'full',
+			);
 		}
 
 		$markup  = '<!-- wp:cover ' . wp_json_encode( $attributes ) . " -->\n";
-		$markup .= '<div class="wp-block-cover alignfull" style="min-height:' . $min_height . 'px">' . "\n";
-		$markup .= '<span aria-hidden="true" class="wp-block-cover__background ' . $dim_class . ' has-background-dim"></span>' . "\n";
+		$markup .= '<div class="wp-block-cover alignfull" style="min-height:' . $min_height . 'px">';
 
 		if ( $image ) {
-			$markup .= '<img class="wp-block-cover__image-background" alt="' . esc_attr( $title ) . '" src="' . esc_url( $image ) . '" data-object-fit="cover"/>' . "\n";
+			$img_cls = 'wp-block-cover__image-background' . ( $image_id ? ' wp-image-' . $image_id : '' );
+			$markup .= '<img class="' . esc_attr( $img_cls ) . '" alt="" src="' . esc_url( $image ) . '" data-object-fit="cover"/>';
 		}
+
+		$markup .= '<span aria-hidden="true" class="wp-block-cover__background has-black-background-color has-background-dim-' . $dim_step . ' has-background-dim"></span>';
 
 		$markup .= '<div class="wp-block-cover__inner-container">' . "\n";
 
-		if ( $title ) {
-			$markup .= "<!-- wp:heading {\"textAlign\":\"center\",\"level\":1,\"textColor\":\"white\",\"fontSize\":\"extra-large\"} -->\n";
-			$markup .= '<h1 class="has-text-align-center has-white-color has-text-color has-extra-large-font-size">' . esc_html( $title ) . '</h1>' . "\n";
-			$markup .= "<!-- /wp:heading -->\n";
-		}
-
-		if ( $subtitle ) {
-			$markup .= "<!-- wp:paragraph {\"align\":\"center\",\"textColor\":\"white\"} -->\n";
-			$markup .= '<p class="has-text-align-center has-white-color has-text-color">' . esc_html( $subtitle ) . '</p>' . "\n";
-			$markup .= "<!-- /wp:paragraph -->\n";
-		}
-
-		if ( $content ) {
-			$markup .= "<!-- wp:paragraph {\"align\":\"center\",\"textColor\":\"white\",\"fontSize\":\"large\"} -->\n";
-			$markup .= '<p class="has-text-align-center has-white-color has-text-color has-large-font-size">' . esc_html( $content ) . '</p>' . "\n";
-			$markup .= "<!-- /wp:paragraph -->\n";
-		}
-
-		if ( isset( $data['buttons'] ) && is_array( $data['buttons'] ) ) {
-			$markup .= "<!-- wp:buttons {\"layout\":{\"type\":\"flex\",\"justifyContent\":\"center\"}} -->\n";
-			$markup .= '<div class="wp-block-buttons">' . "\n";
-			foreach ( $data['buttons'] as $btn ) {
-				$btn_text   = isset( $btn['text'] ) ? $btn['text'] : 'Button';
-				$btn_url    = isset( $btn['url'] ) ? $btn['url'] : '#';
-				$btn_style  = isset( $btn['style'] ) ? $btn['style'] : 'primary';
-
-				$btn_classes = 'wp-block-button__link';
-				if ( 'outline' === $btn_style ) {
-					$btn_classes .= ' is-style-outline';
-				} else {
-					$btn_classes .= ' has-vivid-cyan-blue-background-color has-background';
-				}
-				$btn_classes .= ' has-white-color has-text-color';
-
-				$markup .= "<!-- wp:button -->\n";
-				$markup .= '<div class="wp-block-button"><a class="' . esc_attr( $btn_classes ) . '" href="' . esc_url( $btn_url ) . '">' . esc_html( $btn_text ) . '</a></div>' . "\n";
-				$markup .= "<!-- /wp:button -->\n";
+		// Handle nested blocks array - render as INNER content (no block comments, just HTML)
+		if ( isset( $data['blocks'] ) && is_array( $data['blocks'] ) ) {
+			foreach ( $data['blocks'] as $block ) {
+				$markup .= self::render_inner_block( $block );
 			}
-			$markup .= "</div>\n";
-			$markup .= "<!-- /wp:buttons -->\n";
+		} else {
+			// Fallback to legacy title/subtitle/content/buttons
+			if ( $title ) {
+				$markup .= "<!-- wp:heading {\"textAlign\":\"center\",\"level\":1,\"textColor\":\"white\",\"fontSize\":\"extra-large\"} -->\n";
+				$markup .= '<h1 class="wp-block-heading has-text-align-center has-white-color has-text-color has-extra-large-font-size">' . esc_html( $title ) . '</h1>' . "\n";
+				$markup .= "<!-- /wp:heading -->\n";
+			}
+
+			if ( $subtitle ) {
+				$markup .= "<!-- wp:paragraph {\"align\":\"center\",\"textColor\":\"white\"} -->\n";
+				$markup .= '<p class="has-text-align-center has-white-color has-text-color">' . esc_html( $subtitle ) . '</p>' . "\n";
+				$markup .= "<!-- /wp:paragraph -->\n";
+			}
+
+			if ( $content ) {
+				$markup .= "<!-- wp:paragraph {\"align\":\"center\",\"textColor\":\"white\",\"fontSize\":\"large\"} -->\n";
+				$markup .= '<p class="has-text-align-center has-white-color has-text-color has-large-font-size">' . esc_html( $content ) . '</p>' . "\n";
+				$markup .= "<!-- /wp:paragraph -->\n";
+			}
+
+			if ( isset( $data['buttons'] ) && is_array( $data['buttons'] ) ) {
+				$markup .= "<!-- wp:buttons {\"layout\":{\"type\":\"flex\",\"justifyContent\":\"center\"}} -->\n";
+				$markup .= '<div class="wp-block-buttons">' . "\n";
+				foreach ( $data['buttons'] as $btn ) {
+					$btn_text   = isset( $btn['text'] ) ? $btn['text'] : 'Button';
+					$btn_url    = isset( $btn['url'] ) ? $btn['url'] : '#';
+					$btn_style  = isset( $btn['style'] ) ? $btn['style'] : 'primary';
+
+					$btn_classes = 'wp-block-button__link';
+					if ( 'outline' === $btn_style ) {
+						$btn_classes .= ' is-style-outline';
+					} else {
+						$btn_classes .= ' has-vivid-cyan-blue-background-color has-background';
+					}
+					$btn_classes .= ' has-white-color has-text-color';
+
+					$markup .= "<!-- wp:button -->\n";
+					$markup .= '<div class="wp-block-button"><a class="' . esc_attr( $btn_classes ) . '" href="' . esc_url( $btn_url ) . '">' . esc_html( $btn_text ) . '</a></div>' . "\n";
+					$markup .= "<!-- /wp:button -->\n";
+				}
+				$markup .= "</div>\n";
+				$markup .= "<!-- /wp:buttons -->\n";
+			}
 		}
 
 		$markup .= "</div>\n";
@@ -100,17 +138,77 @@ class CDW_Section_Renderers {
 	}
 
 	/**
+	 * Render inner block content WITHOUT block comments (for nested blocks).
+	 *
+	 * @param array<string, mixed> $data Block data.
+	 * @return string Inner HTML only.
+	 */
+	private static function render_inner_block( array $data ): string {
+		$block_name = isset( $data['block'] ) ? $data['block'] : ( isset( $data['blockName'] ) ? $data['blockName'] : '' );
+
+		if ( empty( $block_name ) ) {
+			return '';
+		}
+
+		$block_name_display = str_replace( 'core/', '', $block_name );
+		$content = isset( $data['content'] ) ? $data['content'] : '';
+
+		// Use the same rendering logic as render_block_inner but without block comments
+		switch ( $block_name ) {
+			case 'core/paragraph':
+				$align = isset( $data['align'] ) ? ' has-text-align-' . $data['align'] : '';
+				return '<p class="' . trim( $align ) . '">' . esc_html( $content ) . '</p>' . "\n";
+
+			case 'core/heading':
+				$level = isset( $data['level'] ) ? (int) $data['level'] : 2;
+				$align = isset( $data['align'] ) ? ' has-text-align-' . $data['align'] : '';
+				$tag = 'h' . $level;
+				return '<' . $tag . ' class="' . trim( $align ) . '">' . esc_html( $content ) . '</' . $tag . '>' . "\n";
+
+			case 'core/buttons':
+				$markup = '<div class="wp-block-buttons">' . "\n";
+				$items = isset( $data['items'] ) ? $data['items'] : array();
+				foreach ( $items as $btn ) {
+					$text = isset( $btn['text'] ) ? $btn['text'] : 'Button';
+					$url = isset( $btn['url'] ) ? $btn['url'] : '#';
+					$variant = isset( $btn['variant'] ) && $btn['variant'] === 'outline' ? ' is-style-outline' : '';
+					$markup .= '<div class="wp-block-button' . $variant . '"><a class="wp-block-button__link wp-element-button" href="' . esc_attr( $url ) . '">' . esc_html( $text ) . '</a></div>' . "\n";
+				}
+				$markup .= "</div>\n";
+				return $markup;
+
+			case 'core/image':
+				$url = isset( $data['url'] ) ? $data['url'] : '';
+				$alt = isset( $data['alt'] ) ? $data['alt'] : '';
+				return '<figure class="wp-block-image size-full"><img src="' . esc_url( $url ) . '" alt="' . esc_attr( $alt ) . '"/></figure>' . "\n";
+
+			default:
+				return $content;
+		}
+	}
+
+	/**
 	 * Render a two-column section.
 	 *
 	 * @param array<string, mixed> $data Section data.
 	 * @return string Block markup.
 	 */
 	public static function render_two_column( array $data ): string {
-		$left    = isset( $data['left'] ) ? $data['left'] : array();
-		$right   = isset( $data['right'] ) ? $data['right'] : array();
+		$left    = isset( $data['left'] ) && is_array( $data['left'] ) ? $data['left'] : array();
+		$right   = isset( $data['right'] ) && is_array( $data['right'] ) ? $data['right'] : array();
 		$reverse = isset( $data['reverse'] ) && $data['reverse'];
 		$title    = isset( $data['title'] ) ? $data['title'] : '';
 		$subtitle = isset( $data['subtitle'] ) ? $data['subtitle'] : '';
+
+		// Extract blocks from left and right
+		$left_blocks  = isset( $left['blocks'] ) && is_array( $left['blocks'] ) ? $left['blocks'] : array();
+		$right_blocks = isset( $right['blocks'] ) && is_array( $right['blocks'] ) ? $right['blocks'] : array();
+
+		// If no blocks found in left/right, check for blocks at root level
+		if ( empty( $left_blocks ) && isset( $data['blocks'] ) && is_array( $data['blocks'] ) ) {
+			$left_blocks = array_slice( $data['blocks'], 0, 1 );
+			$right_blocks = array_slice( $data['blocks'], 1 );
+		}
 
 		$attributes = array(
 			'align'           => 'full',
@@ -128,7 +226,7 @@ class CDW_Section_Renderers {
 		);
 
 		$markup  = '<!-- wp:columns ' . wp_json_encode( $attributes ) . " -->\n";
-		$markup .= '<div class="wp-block-columns alignfull has-white-background-color has-background" style="padding-top:80px;padding-bottom:80px;padding-left:40px;padding-right:40px">' . "\n";
+		$markup .= '<div class="wp-block-columns alignfull has-white-background-color has-background" style="padding-top:80px;padding-right:40px;padding-bottom:80px;padding-left:40px">' . "\n";
 
 		if ( $title || $subtitle ) {
 			$markup .= "<!-- wp:columns {\"align\":\"full\"} -->\n";
@@ -142,7 +240,7 @@ class CDW_Section_Renderers {
 			}
 			if ( $title ) {
 				$markup .= "<!-- wp:heading {\"textAlign\":\"left\",\"level\":2} -->\n";
-				$markup .= '<h2 class="has-text-align-left">' . esc_html( $title ) . '</h2>' . "\n";
+				$markup .= '<h2 class="wp-block-heading has-text-align-left">' . esc_html( $title ) . '</h2>' . "\n";
 				$markup .= "<!-- /wp:heading -->\n";
 			}
 			$markup .= "</div>\n";
@@ -152,11 +250,11 @@ class CDW_Section_Renderers {
 		}
 
 		if ( $reverse ) {
-			$markup .= self::render_text_column( $right );
-			$markup .= self::render_image_column( $left );
+			$markup .= self::render_text_column( $right, $right_blocks );
+			$markup .= self::render_image_column( $left, $left_blocks );
 		} else {
-			$markup .= self::render_image_column( $left );
-			$markup .= self::render_text_column( $right );
+			$markup .= self::render_image_column( $left, $left_blocks );
+			$markup .= self::render_text_column( $right, $right_blocks );
 		}
 
 		$markup .= "</div>\n";
@@ -169,10 +267,26 @@ class CDW_Section_Renderers {
 	 * Render an image column.
 	 *
 	 * @param array{src?: string, image?: string, alt?: string} $data Column data.
+	 * @param array $blocks Optional blocks to render.
 	 * @return string Block markup.
 	 */
-	private static function render_image_column( array $data ): string {
+	private static function render_image_column( array $data, array $blocks = array() ): string {
+		// If blocks array provided, render them instead
+		if ( ! empty( $blocks ) ) {
+			$markup  = "<!-- wp:column -->\n";
+			$markup .= '<div class="wp-block-column">' . "\n";
+			foreach ( $blocks as $block ) {
+				$markup .= self::render_inner_block( $block );
+			}
+			$markup .= "</div>\n";
+			$markup .= "<!-- /wp:column -->\n";
+			return $markup;
+		}
+
 		$src = isset( $data['src'] ) ? $data['src'] : ( isset( $data['image'] ) ? $data['image'] : '' );
+		if ( ! $src && ! empty( $data['image_id'] ) ) {
+			$src = (string) wp_get_attachment_url( (int) $data['image_id'] );
+		}
 		$alt = isset( $data['alt'] ) ? $data['alt'] : 'Image';
 
 		if ( ! $src ) {
@@ -194,9 +308,22 @@ class CDW_Section_Renderers {
 	 * Render a text column.
 	 *
 	 * @param array<string, mixed> $data Column data.
+	 * @param array $blocks Optional blocks to render.
 	 * @return string Block markup.
 	 */
-	private static function render_text_column( array $data ): string {
+	private static function render_text_column( array $data, array $blocks = array() ): string {
+		// If blocks array provided, render them instead - use inner_block to avoid Gutenberg comments
+		if ( ! empty( $blocks ) ) {
+			$markup  = "<!-- wp:column {\"verticalAlignment\":\"center\"} -->\n";
+			$markup .= '<div class="wp-block-column is-vertically-aligned-center">' . "\n";
+			foreach ( $blocks as $block ) {
+				$markup .= self::render_inner_block( $block );
+			}
+			$markup .= "</div>\n";
+			$markup .= "<!-- /wp:column -->\n";
+			return $markup;
+		}
+
 		$heading    = isset( $data['heading'] ) ? $data['heading'] : ( isset( $data['title'] ) ? $data['title'] : '' );
 		$text       = isset( $data['text'] ) ? $data['text'] : ( isset( $data['content'] ) ? $data['content'] : '' );
 		$paragraphs = isset( $data['paragraphs'] ) ? $data['paragraphs'] : array();
@@ -205,8 +332,8 @@ class CDW_Section_Renderers {
 		$markup .= '<div class="wp-block-column is-vertically-aligned-center">' . "\n";
 
 		if ( $heading ) {
-			$markup .= "<!-- wp:heading {\"level\":2} -->\n";
-			$markup .= '<h2>' . esc_html( $heading ) . '</h2>' . "\n";
+			$markup .= "<!-- wp:heading -->\n";
+			$markup .= '<h2 class="wp-block-heading">' . esc_html( $heading ) . '</h2>' . "\n";
 			$markup .= "<!-- /wp:heading -->\n";
 		}
 
@@ -235,7 +362,11 @@ class CDW_Section_Renderers {
 	 * @return string Block markup.
 	 */
 	public static function render_three_column( array $data ): string {
+		// Support both 'columns' and 'items' keys
 		$columns = isset( $data['columns'] ) ? $data['columns'] : array();
+		if ( empty( $columns ) && isset( $data['items'] ) && is_array( $data['items'] ) ) {
+			$columns = $data['items'];
+		}
 		$title    = isset( $data['title'] ) ? $data['title'] : '';
 		$subtitle = isset( $data['subtitle'] ) ? $data['subtitle'] : '';
 
@@ -255,22 +386,31 @@ class CDW_Section_Renderers {
 		);
 
 		$markup  = '<!-- wp:columns ' . wp_json_encode( $attributes ) . " -->\n";
-		$markup .= '<div class="wp-block-columns alignfull has-white-background-color has-background" style="padding-top:80px;padding-bottom:40px;padding-left:40px;padding-right:40px">' . "\n";
+		$markup .= '<div class="wp-block-columns alignfull has-white-background-color has-background" style="padding-top:80px;padding-right:40px;padding-bottom:40px;padding-left:40px">' . "\n";
 
 		if ( $title || $subtitle ) {
 			$markup .= "<!-- wp:column -->\n";
 			$markup .= '<div class="wp-block-column">' . "\n";
-			$markup .= "<!-- wp:paragraph {\"align\":\"center\",\"textColor\":\"black\",\"fontSize\":\"small\"} -->\n";
-			$markup .= '<p class="has-text-align-center has-black-color has-text-color has-small-font-size">' . esc_html( $subtitle ) . '</p>' . "\n";
-			$markup .= "<!-- /wp:paragraph -->\n";
-			$markup .= "<!-- wp:heading {\"textAlign\":\"center\",\"level\":2} -->\n";
-			$markup .= '<h2 class="has-text-align-center">' . esc_html( $title ) . '</h2>' . "\n";
-			$markup .= "<!-- /wp:heading -->\n";
+			if ( $subtitle ) {
+				$markup .= "<!-- wp:paragraph {\"align\":\"center\",\"textColor\":\"black\",\"fontSize\":\"small\"} -->\n";
+				$markup .= '<p class="has-text-align-center has-black-color has-text-color has-small-font-size">' . esc_html( $subtitle ) . '</p>' . "\n";
+				$markup .= "<!-- /wp:paragraph -->\n";
+			}
+			if ( $title ) {
+				$markup .= "<!-- wp:heading {\"textAlign\":\"center\",\"level\":2} -->\n";
+				$markup .= '<h2 class="wp-block-heading has-text-align-center">' . esc_html( $title ) . '</h2>' . "\n";
+				$markup .= "<!-- /wp:heading -->\n";
+			}
 			$markup .= "</div>\n";
 			$markup .= "<!-- /wp:column -->\n";
 		}
 
-		for ( $i = 0; $i < 3; $i++ ) {
+		// Render up to 3 columns from items/columns array
+		$num_columns = count( $columns );
+		if ( $num_columns > 3 ) {
+			$num_columns = 3;
+		}
+		for ( $i = 0; $i < $num_columns; $i++ ) {
 			$col     = isset( $columns[ $i ] ) ? $columns[ $i ] : array();
 			$markup .= self::render_feature_column( $col );
 		}
@@ -295,22 +435,30 @@ class CDW_Section_Renderers {
 		$markup  = "<!-- wp:column -->\n";
 		$markup .= '<div class="wp-block-column">' . "\n";
 
-		if ( $icon ) {
-			$markup .= "<!-- wp:paragraph {\"align\":\"center\",\"fontSize\":\"extra-large\"} -->\n";
-			$markup .= '<p class="has-text-align-center has-extra-large-font-size">' . esc_html( $icon ) . '</p>' . "\n";
-			$markup .= "<!-- /wp:paragraph -->\n";
-		}
+		// Handle nested blocks array in column - use inner_block to avoid Gutenberg comments
+		if ( isset( $data['blocks'] ) && is_array( $data['blocks'] ) ) {
+			foreach ( $data['blocks'] as $block ) {
+				$markup .= self::render_inner_block( $block );
+			}
+		} else {
+			// Fallback to legacy heading/text/icon
+			if ( $icon ) {
+				$markup .= "<!-- wp:paragraph {\"align\":\"center\",\"fontSize\":\"extra-large\"} -->\n";
+				$markup .= '<p class="has-text-align-center has-extra-large-font-size">' . esc_html( $icon ) . '</p>' . "\n";
+				$markup .= "<!-- /wp:paragraph -->\n";
+			}
 
-		if ( $heading ) {
-			$markup .= "<!-- wp:heading {\"textAlign\":\"center\",\"level\":3} -->\n";
-			$markup .= '<h3 class="has-text-align-center">' . esc_html( $heading ) . '</h3>' . "\n";
-			$markup .= "<!-- /wp:heading -->\n";
-		}
+			if ( $heading ) {
+				$markup .= "<!-- wp:heading {\"textAlign\":\"center\",\"level\":3} -->\n";
+				$markup .= '<h3 class="wp-block-heading has-text-align-center">' . esc_html( $heading ) . '</h3>' . "\n";
+				$markup .= "<!-- /wp:heading -->\n";
+			}
 
-		if ( $text ) {
-			$markup .= "<!-- wp:paragraph {\"align\":\"center\"} -->\n";
-			$markup .= '<p class="has-text-align-center">' . esc_html( $text ) . '</p>' . "\n";
-			$markup .= "<!-- /wp:paragraph -->\n";
+			if ( $text ) {
+				$markup .= "<!-- wp:paragraph {\"align\":\"center\"} -->\n";
+				$markup .= '<p class="has-text-align-center">' . esc_html( $text ) . '</p>' . "\n";
+				$markup .= "<!-- /wp:paragraph -->\n";
+			}
 		}
 
 		$markup .= "</div>\n";
@@ -329,7 +477,7 @@ class CDW_Section_Renderers {
 		$columns = isset( $data['columns'] ) ? $data['columns'] : array();
 
 		$markup  = "<!-- wp:group {\"tagName\":\"footer\",\"align\":\"full\",\"style\":{\"spacing\":{\"padding\":{\"top\":\"60px\",\"bottom\":\"40px\",\"left\":\"40px\",\"right\":\"40px\"}},\"color\":{\"background\":\"#FDF6E3\",\"text\":\"#5D4E37\"}}} -->\n";
-		$markup .= '<footer class="wp-block-group alignfull has-text-color has-background" style="background-color:#FDF6E3;color:#5D4E37;padding-top:60px;padding-bottom:40px;padding-left:40px;padding-right:40px;text-align:center">' . "\n";
+		$markup .= '<footer class="wp-block-group alignfull has-text-color has-background" style="color:#5D4E37;background-color:#FDF6E3;padding-top:60px;padding-right:40px;padding-bottom:40px;padding-left:40px">' . "\n";
 
 		$col_attrs = array(
 			'align' => 'full',
@@ -346,7 +494,7 @@ class CDW_Section_Renderers {
 		);
 
 		$markup .= '<!-- wp:columns ' . wp_json_encode( $col_attrs ) . " -->\n";
-		$markup .= '<div class="wp-block-columns alignfull has-background-dim-0 has-background-dim" style="column-gap:40px;row-gap:40px;padding-left:40px;padding-right:40px;text-align:center">' . "\n";
+		$markup .= '<div class="wp-block-columns alignfull" style="padding-right:40px;padding-left:40px">' . "\n";
 
 		$col_count = count( $columns );
 		if ( $col_count < 1 ) {
@@ -379,11 +527,11 @@ class CDW_Section_Renderers {
 		$markup .= "</div>\n";
 		$markup .= "<!-- /wp:columns -->\n";
 
-		$markup .= "<!-- wp:separator {\"align\":\"full\",\"color\":\"#E8DCC8\"} -->\n";
-		$markup .= '<hr class="wp-block-separator has-text-color has-background has-background-color has-text-color has-background"/>' . "\n";
+		$markup .= "<!-- wp:separator {\"align\":\"full\",\"style\":{\"color\":{\"background\":\"#E8DCC8\"}}} -->\n";
+		$markup .= '<hr class="wp-block-separator alignfull has-text-color has-alpha-channel-opacity has-background" style="background-color:#E8DCC8;color:#E8DCC8"/>' . "\n";
 		$markup .= "<!-- /wp:separator -->\n";
 
-		$markup .= "<!-- wp:paragraph {\"align\":\"center\",\"textColor\":\"#8B7355\"} -->\n";
+		$markup .= "<!-- wp:paragraph {\"align\":\"center\",\"style\":{\"color\":{\"text\":\"#8B7355\"}}} -->\n";
 		$markup .= '<p class="has-text-align-center has-text-color" style="color:#8B7355">© ' . gmdate( 'Y' ) . ' Company Name. All rights reserved.</p>' . "\n";
 		$markup .= "<!-- /wp:paragraph -->\n";
 
@@ -405,21 +553,28 @@ class CDW_Section_Renderers {
 		$markup  = "<!-- wp:column -->\n";
 		$markup .= '<div class="wp-block-column">' . "\n";
 
-		if ( isset( $data['title'] ) && isset( $data['content'] ) && empty( $type ) ) {
-			$markup .= "<!-- wp:heading {\"textAlign\":\"center\",\"level\":3,\"textColor\":\"#8B7355\"} -->\n";
-			$markup .= '<h3 class="has-text-align-center has-text-color" style="color:#8B7355">' . esc_html( $data['title'] ) . '</h3>' . "\n";
-			$markup .= "<!-- /wp:heading -->\n";
-			$markup .= "<!-- wp:paragraph {\"align\":\"center\",\"textColor\":\"#5D4E37\"} -->\n";
-			$markup .= '<p class="has-text-align-center has-text-color" style="color:#5D4E37">' . nl2br( esc_html( $data['content'] ) ) . '</p>' . "\n";
-			$markup .= "<!-- /wp:paragraph -->\n";
+		$structured_types = array( 'about', 'links', 'social', 'contact' );
+		if ( ! in_array( $type, $structured_types, true ) ) {
+			$col_heading = isset( $data['heading'] ) ? $data['heading'] : ( isset( $data['title'] ) ? $data['title'] : '' );
+			$col_text    = isset( $data['content'] ) ? $data['content'] : ( isset( $data['text'] ) ? $data['text'] : '' );
+			if ( $col_heading ) {
+				$markup .= "<!-- wp:heading {\"textAlign\":\"center\",\"level\":3,\"style\":{\"color\":{\"text\":\"#8B7355\"}}} -->\n";
+				$markup .= '<h3 class="wp-block-heading has-text-align-center has-text-color" style="color:#8B7355">' . esc_html( $col_heading ) . '</h3>' . "\n";
+				$markup .= "<!-- /wp:heading -->\n";
+			}
+			if ( $col_text ) {
+				$markup .= "<!-- wp:paragraph {\"align\":\"center\",\"style\":{\"color\":{\"text\":\"#5D4E37\"}}} -->\n";
+				$markup .= '<p class="has-text-align-center has-text-color" style="color:#5D4E37">' . nl2br( esc_html( $col_text ) ) . '</p>' . "\n";
+				$markup .= "<!-- /wp:paragraph -->\n";
+			}
 		} else {
 			switch ( $type ) {
 				case 'about':
 					$text    = isset( $data['text'] ) ? $data['text'] : 'Company description.';
-					$markup .= "<!-- wp:heading {\"textAlign\":\"center\",\"level\":3,\"textColor\":\"#8B7355\"} -->\n";
-					$markup .= '<h3 class="has-text-align-center has-text-color" style="color:#8B7355">About</h3>' . "\n";
+					$markup .= "<!-- wp:heading {\"textAlign\":\"center\",\"level\":3,\"style\":{\"color\":{\"text\":\"#8B7355\"}}} -->\n";
+					$markup .= '<h3 class="wp-block-heading has-text-align-center has-text-color" style="color:#8B7355">About</h3>' . "\n";
 					$markup .= "<!-- /wp:heading -->\n";
-					$markup .= "<!-- wp:paragraph {\"align\":\"center\",\"textColor\":\"#5D4E37\"} -->\n";
+					$markup .= "<!-- wp:paragraph {\"align\":\"center\",\"style\":{\"color\":{\"text\":\"#5D4E37\"}}} -->\n";
 					$markup .= '<p class="has-text-align-center has-text-color" style="color:#5D4E37">' . esc_html( $text ) . '</p>' . "\n";
 					$markup .= "<!-- /wp:paragraph -->\n";
 					break;
@@ -428,10 +583,10 @@ class CDW_Section_Renderers {
 					$items   = isset( $data['items'] ) ? $data['items'] : array();
 					$links   = isset( $data['links'] ) ? $data['links'] : array();
 					$col_title = isset( $data['title'] ) ? $data['title'] : 'Quick Links';
-					$markup .= "<!-- wp:heading {\"textAlign\":\"center\",\"level\":3,\"textColor\":\"#8B7355\"} -->\n";
-					$markup .= '<h3 class="has-text-align-center has-text-color" style="color:#8B7355">' . esc_html( $col_title ) . '</h3>' . "\n";
+					$markup .= "<!-- wp:heading {\"textAlign\":\"center\",\"level\":3,\"style\":{\"color\":{\"text\":\"#8B7355\"}}} -->\n";
+					$markup .= '<h3 class="wp-block-heading has-text-align-center has-text-color" style="color:#8B7355">' . esc_html( $col_title ) . '</h3>' . "\n";
 					$markup .= "<!-- /wp:heading -->\n";
-					$markup .= "<!-- wp:list {\"align\":\"center\",\"textColor\":\"#5D4E37\"} -->\n";
+					$markup .= "<!-- wp:list {\"style\":{\"color\":{\"text\":\"#5D4E37\"}}} -->\n";
 					$markup .= '<ul class="has-text-align-center has-text-color" style="color:#5D4E37">';
 					foreach ( $items as $i => $item ) {
 						$link = isset( $links[ $i ] ) ? $links[ $i ] : '#';
@@ -445,10 +600,10 @@ class CDW_Section_Renderers {
 					$networks = isset( $data['networks'] ) ? $data['networks'] : array();
 					$urls     = isset( $data['urls'] ) ? $data['urls'] : array();
 					$col_title = isset( $data['title'] ) ? $data['title'] : 'Connect';
-					$markup  .= "<!-- wp:heading {\"textAlign\":\"center\",\"level\":3,\"textColor\":\"#8B7355\"} -->\n";
-					$markup  .= '<h3 class="has-text-align-center has-text-color" style="color:#8B7355">' . esc_html( $col_title ) . '</h3>' . "\n";
+					$markup  .= "<!-- wp:heading {\"textAlign\":\"center\",\"level\":3,\"style\":{\"color\":{\"text\":\"#8B7355\"}}} -->\n";
+					$markup  .= '<h3 class="wp-block-heading has-text-align-center has-text-color" style="color:#8B7355">' . esc_html( $col_title ) . '</h3>' . "\n";
 					$markup  .= "<!-- /wp:heading -->\n";
-					$markup  .= "<!-- wp:list {\"align\":\"center\",\"textColor\":\"#5D4E37\"} -->\n";
+					$markup  .= "<!-- wp:list {\"style\":{\"color\":{\"text\":\"#5D4E37\"}}} -->\n";
 					$markup  .= '<ul class="has-text-align-center has-text-color" style="color:#5D4E37">';
 					foreach ( $networks as $i => $network ) {
 						$url = isset( $urls[ $i ] ) ? $urls[ $i ] : '#';
@@ -461,10 +616,10 @@ class CDW_Section_Renderers {
 				case 'contact':
 					$email        = isset( $data['email'] ) ? $data['email'] : '';
 					$phone        = isset( $data['phone'] ) ? $data['phone'] : '';
-					$markup      .= "<!-- wp:heading {\"textAlign\":\"center\",\"level\":3,\"textColor\":\"#8B7355\"} -->\n";
-					$markup      .= '<h3 class="has-text-align-center has-text-color" style="color:#8B7355">Contact</h3>' . "\n";
+					$markup      .= "<!-- wp:heading {\"textAlign\":\"center\",\"level\":3,\"style\":{\"color\":{\"text\":\"#8B7355\"}}} -->\n";
+					$markup      .= '<h3 class="wp-block-heading has-text-align-center has-text-color" style="color:#8B7355">Contact</h3>' . "\n";
 					$markup      .= "<!-- /wp:heading -->\n";
-					$markup      .= "<!-- wp:paragraph {\"align\":\"center\",\"textColor\":\"#5D4E37\"} -->\n";
+					$markup      .= "<!-- wp:paragraph {\"align\":\"center\",\"style\":{\"color\":{\"text\":\"#5D4E37\"}}} -->\n";
 					$contact_text = '';
 					if ( $email ) {
 						$contact_text .= '<a href="mailto:' . esc_attr( $email ) . '">' . esc_html( $email ) . '</a>';
@@ -480,9 +635,10 @@ class CDW_Section_Renderers {
 					break;
 
 				default:
-					$text = isset( $data['text'] ) ? $data['text'] : '';
+					// Fallback: render any text/content key that may be present.
+					$text = isset( $data['text'] ) ? $data['text'] : ( isset( $data['content'] ) ? $data['content'] : '' );
 					if ( $text ) {
-						$markup .= "<!-- wp:paragraph {\"align\":\"center\",\"textColor\":\"#5D4E37\"} -->\n";
+						$markup .= "<!-- wp:paragraph {\"align\":\"center\",\"style\":{\"color\":{\"text\":\"#5D4E37\"}}} -->\n";
 						$markup .= '<p class="has-text-align-center has-text-color" style="color:#5D4E37">' . nl2br( esc_html( $text ) ) . '</p>' . "\n";
 						$markup .= "<!-- /wp:paragraph -->\n";
 					}
@@ -523,6 +679,21 @@ class CDW_Section_Renderers {
 				case 'block':
 					$markup .= self::render_block( $section );
 					break;
+				default:
+					// If no type specified but has blocks array, render each block
+					if ( isset( $section['blocks'] ) && is_array( $section['blocks'] ) ) {
+						foreach ( $section['blocks'] as $block ) {
+							$markup .= self::render_block( $block );
+						}
+					} elseif ( isset( $section['block'] ) ) {
+						// Has block key - treat as single block section
+						$markup .= self::render_block( $section );
+					} elseif ( isset( $section['items'] ) && is_array( $section['items'] ) ) {
+						// Has items array - render each as block
+						foreach ( $section['items'] as $block ) {
+							$markup .= self::render_block( $block );
+						}
+					}
 			}
 		}
 
@@ -596,7 +767,8 @@ class CDW_Section_Renderers {
 	 * @return string Block markup.
 	 */
 	public static function render_block( array $data ): string {
-		$block_name = isset( $data['block'] ) ? $data['block'] : '';
+		// Handle both "block" and "blockName" keys for block type specification
+		$block_name = isset( $data['block'] ) ? $data['block'] : ( isset( $data['blockName'] ) ? $data['blockName'] : '' );
 
 		if ( empty( $block_name ) ) {
 			return '<!-- wp:paragraph --><p>Error: block name is required</p><!-- /wp:paragraph -->';
@@ -641,28 +813,61 @@ class CDW_Section_Renderers {
 			return '<!-- wp:paragraph --><p>Error: Unknown block "' . esc_html( $block_name ) . '". Valid blocks: ' . implode( ', ', $valid_blocks ) . '</p><!-- /wp:paragraph -->';
 		}
 
+		// Handle buttons block with items array
 		if ( 'core/buttons' === $block_name ) {
 			return self::render_buttons_block( $data );
 		}
 
+		// Handle columns block
 		if ( 'core/columns' === $block_name ) {
 			return self::render_columns_block( $data );
 		}
 
+		// Handle single button
 		if ( 'core/button' === $block_name ) {
 			return self::render_single_button( $data );
 		}
 
+		// Handle list block
 		if ( 'core/list' === $block_name ) {
 			return self::render_list_block( $data );
 		}
 
+		// Handle cover block
 		if ( 'core/cover' === $block_name ) {
 			return self::render_cover_block( $data );
 		}
 
+		// Handle separator block (needs specific JSON attrs for default style)
+		if ( 'core/separator' === $block_name ) {
+			if ( isset( $data['style']['color']['background'] ) ) {
+				$bg      = $data['style']['color']['background'];
+				$sep_attrs = array( 'align' => 'full', 'style' => array( 'color' => array( 'background' => $bg ) ) );
+				$markup  = '<!-- wp:separator ' . wp_json_encode( $sep_attrs ) . " -->\n";
+				$markup .= '<hr class="wp-block-separator alignfull has-text-color has-alpha-channel-opacity has-background" style="background-color:' . esc_attr( $bg ) . ';color:' . esc_attr( $bg ) . '"/>' . "\n";
+				$markup .= "<!-- /wp:separator -->\n";
+			} else {
+				$sep_attrs = array( 'opacity' => 'css', 'className' => 'has-text-color has-background has-gray-background-color' );
+				$markup    = '<!-- wp:separator ' . wp_json_encode( $sep_attrs ) . " -->\n";
+				$markup   .= '<hr class="wp-block-separator has-css-opacity has-text-color has-background has-gray-background-color"/>' . "\n";
+				$markup   .= "<!-- /wp:separator -->\n";
+			}
+			return $markup;
+		}
+
 		$attrs = self::map_attributes( $data );
 		unset( $attrs['innerHTML'] );
+
+		// For headings: remap text-alignment 'align' to 'textAlign', drop default level.
+		if ( 'core/heading' === $block_name ) {
+			if ( isset( $attrs['align'] ) && ! in_array( $attrs['align'], array( 'wide', 'full' ), true ) ) {
+				$attrs['textAlign'] = $attrs['align'];
+				unset( $attrs['align'] );
+			}
+			if ( isset( $attrs['level'] ) && 2 === $attrs['level'] ) {
+				unset( $attrs['level'] );
+			}
+		}
 
 		$content = isset( $data['content'] ) ? $data['content'] : '';
 
@@ -699,9 +904,21 @@ class CDW_Section_Renderers {
 				return '<p' . self::get_text_class( $data ) . '>' . esc_html( $content ) . '</p>';
 
 			case 'core/heading':
-				$level = isset( $data['level'] ) ? (int) $data['level'] : 2;
-				$tag   = 'h' . $level;
-				return '<' . $tag . self::get_text_class( $data ) . '>' . esc_html( $content ) . '</' . $tag . '>';
+				$level   = isset( $data['level'] ) ? (int) $data['level'] : 2;
+				$tag     = 'h' . $level;
+				$classes = array( 'wp-block-heading' );
+				$align   = ! empty( $data['align'] ) ? $data['align'] : ( ! empty( $data['textAlign'] ) ? $data['textAlign'] : '' );
+				if ( $align ) {
+					$classes[] = 'has-text-align-' . $align;
+				}
+				if ( ! empty( $data['textColor'] ) ) {
+					$classes[] = 'has-' . $data['textColor'] . '-color';
+					$classes[] = 'has-text-color';
+				}
+				if ( ! empty( $data['fontSize'] ) ) {
+					$classes[] = 'has-' . $data['fontSize'] . '-font-size';
+				}
+				return '<' . $tag . ' class="' . implode( ' ', $classes ) . '">' . esc_html( $content ) . '</' . $tag . '>';
 
 			case 'core/image':
 				$url             = isset( $data['url'] ) ? $data['url'] : '';
@@ -737,7 +954,8 @@ class CDW_Section_Renderers {
 				return '<div class="wp-block-group' . $align . $class_name . '"' . $style . '>' . self::render_children( $data ) . '</div>';
 
 			case 'core/spacer':
-				return '';
+				$height = isset( $data['height'] ) ? $data['height'] : '100px';
+				return "\n" . '<div style="height:' . esc_attr( $height ) . '" aria-hidden="true" class="wp-block-spacer"></div>' . "\n";
 
 			case 'core/separator':
 				$style = '';
@@ -747,8 +965,8 @@ class CDW_Section_Renderers {
 				return '<hr class="wp-block-separator has-text-color has-background has-' . esc_attr( isset( $data['color'] ) ? $data['color'] : 'gray' ) . '-background-color"' . $style . '/>';
 
 			case 'core/quote':
-				$cite = isset( $data['cite'] ) ? $data['cite'] : '';
-				return '<blockquote class="wp-block-quote"><p>' . esc_html( $content ) . '</p>' . ( $cite ? '<cite>' . esc_html( $cite ) . '</cite>' : '' ) . '</blockquote>';
+				$cite = isset( $data['cite'] ) ? $data['cite'] : ( isset( $data['citation'] ) ? $data['citation'] : '' );
+				return '<blockquote class="wp-block-quote"><!-- wp:paragraph -->' . "\n" . '<p>' . esc_html( $content ) . '</p>' . "\n" . '<!-- /wp:paragraph -->' . ( $cite ? '<cite>' . esc_html( $cite ) . '</cite>' : '' ) . '</blockquote>';
 
 			case 'core/code':
 				return '<code class="wp-block-code">' . esc_html( $content ) . '</code>';
@@ -885,7 +1103,7 @@ class CDW_Section_Renderers {
 	 * @param array<string, mixed> $data Buttons data.
 	 * @return string Buttons block markup.
 	 */
-	private static function render_buttons_block( array $data ): string {
+	public static function render_buttons_block( array $data ): string {
 		$attrs = self::map_attributes( $data );
 		unset( $attrs['innerHTML'] );
 
@@ -896,14 +1114,26 @@ class CDW_Section_Renderers {
 		$markup .= " -->\n";
 		$markup .= '<div class="wp-block-buttons">' . "\n";
 
+		// Support "buttons" array, "items" array, or "children" array
 		$buttons = isset( $data['buttons'] ) ? $data['buttons'] : array();
-		if ( empty( $buttons ) && isset( $data['children'] ) ) {
+		if ( empty( $buttons ) && isset( $data['items'] ) && is_array( $data['items'] ) ) {
+			$buttons = $data['items'];
+		}
+		if ( empty( $buttons ) && isset( $data['children'] ) && is_array( $data['children'] ) ) {
 			$buttons = $data['children'];
 		}
 
 		foreach ( $buttons as $btn ) {
-			$btn['block'] = 'core/button';
-			$markup      .= self::render_block( $btn );
+			// Normalize button data - ensure it has block name
+			if ( is_array( $btn ) ) {
+				$btn['block'] = isset( $btn['block'] ) ? $btn['block'] : 'core/button';
+				$markup      .= self::render_block( $btn );
+			} else {
+				// String button text
+				$markup .= "<!-- wp:button -->\n";
+				$markup .= '<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="#">' . esc_html( $btn ) . '</a></div>' . "\n";
+				$markup .= "<!-- /wp:button -->\n";
+			}
 		}
 
 		$markup .= "</div>\n";
@@ -922,11 +1152,12 @@ class CDW_Section_Renderers {
 		$attrs = self::map_attributes( $data );
 		unset( $attrs['innerHTML'] );
 
-		$url    = isset( $data['url'] ) ? $data['url'] : ( isset( $data['link'] ) ? $data['link'] : '' );
-		$text   = isset( $data['text'] ) ? $data['text'] : 'Button';
-		$target = isset( $data['newTab'] ) && $data['newTab'] ? ' target="_blank" rel="noopener"' : '';
+		$url     = isset( $data['url'] ) ? $data['url'] : ( isset( $data['link'] ) ? $data['link'] : '' );
+		$text    = isset( $data['text'] ) ? $data['text'] : 'Button';
+		$target  = isset( $data['newTab'] ) && $data['newTab'] ? ' target="_blank" rel="noopener"' : '';
+		$variant = isset( $data['variant'] ) ? $data['variant'] : '';
 
-		$classes = array( 'wp-block-button__link' );
+		$classes = array( 'wp-block-button__link', 'wp-element-button' );
 		if ( isset( $data['bgColor'] ) ) {
 			$classes[] = 'has-' . $data['bgColor'] . '-background-color';
 			$classes[] = 'has-background';
@@ -938,9 +1169,12 @@ class CDW_Section_Renderers {
 			$classes[] = $data['className'];
 		}
 
-		$class_str = implode( ' ', $classes );
+		$class_str    = implode( ' ', $classes );
+		$is_outline   = ( 'outline' === $variant );
+		$wrapper_attr = $is_outline ? ' {"className":"is-style-outline"}' : '';
+		$wrapper_cls  = $is_outline ? ' is-style-outline' : '';
 
-		$markup  = '<!-- wp:button --><div class="wp-block-button">' . "\n";
+		$markup  = '<!-- wp:button' . $wrapper_attr . ' --><div class="wp-block-button' . $wrapper_cls . '">' . "\n";
 		$markup .= '<a class="' . esc_attr( $class_str ) . '" href="' . esc_url( $url ) . '"' . $target . '>' . esc_html( $text ) . '</a>' . "\n";
 		$markup .= "</div><!-- /wp:button -->\n";
 

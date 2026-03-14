@@ -69,6 +69,8 @@ export default function SettingsPanel() {
         bg_color: '',
         header_bg_color: '',
         header_text_color: '',
+        button_bg_color: '',
+        button_text_color: '',
         cli_enabled: true,
         floating_enabled: true,
         remove_default_widgets: true,
@@ -122,6 +124,8 @@ export default function SettingsPanel() {
                 bg_color: settings.bg_color || '',
                 header_bg_color: settings.header_bg_color || '',
                 header_text_color: settings.header_text_color || '',
+                button_bg_color: settings.button_bg_color || '',
+                button_text_color: settings.button_text_color || '',
                 cli_enabled: settings.cli_enabled !== false,
                 remove_default_widgets: settings.remove_default_widgets !== false,
                 delete_on_uninstall: settings.delete_on_uninstall !== false,
@@ -421,6 +425,40 @@ export default function SettingsPanel() {
                         />
                         <span className="description">
                             Hex color for widget header text. Leave empty for default.
+                        </span>
+                    </div>
+
+                    <div className="cdw-field">
+                        <label htmlFor="button_bg_color">Button Background Color</label>
+                        <input
+                            type="text"
+                            id="button_bg_color"
+                            name="button_bg_color"
+                            value={formData.button_bg_color}
+                            onChange={handleChange}
+                            placeholder="#3a3a3a"
+                            pattern="^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+                            title="Enter a valid hex color (e.g. #ffffff or #fff), or leave empty for default"
+                        />
+                        <span className="description">
+                            Hex color for widget buttons background. Leave empty for default.
+                        </span>
+                    </div>
+
+                    <div className="cdw-field">
+                        <label htmlFor="button_text_color">Button Text Color</label>
+                        <input
+                            type="text"
+                            id="button_text_color"
+                            name="button_text_color"
+                            value={formData.button_text_color}
+                            onChange={handleChange}
+                            placeholder="#ffffff"
+                            pattern="^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+                            title="Enter a valid hex color (e.g. #ffffff or #fff), or leave empty for default"
+                        />
+                        <span className="description">
+                            Hex color for widget button text. Leave empty for default.
                         </span>
                     </div>
                 </div>

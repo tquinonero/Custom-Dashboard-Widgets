@@ -40,12 +40,6 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'save_settings' ),
 				'permission_callback' => array( $this, 'check_admin_permission' ),
-				'args'                => array(
-					'settings' => array(
-						'type'     => 'array',
-						'required' => true,
-					),
-				),
 			)
 		);
 	}
@@ -62,6 +56,8 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 		$bg_color                = get_option( 'cdw_bg_color', get_option( 'custom_dashboard_widget_background_color', '' ) );
 		$header_bg_color         = get_option( 'cdw_header_bg_color', get_option( 'custom_dashboard_widget_header_background_color', '' ) );
 		$header_text_color       = get_option( 'cdw_header_text_color', get_option( 'custom_dashboard_widget_header_text_color', '' ) );
+		$button_bg_color         = get_option( 'cdw_button_bg_color', '' );
+		$button_text_color       = get_option( 'cdw_button_text_color', '' );
 		$cli_enabled             = get_option( 'cdw_cli_enabled', true );
 		$floating_enabled        = get_option( 'cdw_floating_enabled', true );
 		$remove_default_widgets  = get_option( 'cdw_remove_default_widgets', true );
@@ -79,8 +75,8 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 				'font_size'               => $font_size,
 				'bg_color'                => $bg_color,
 				'header_bg_color'         => $header_bg_color,
-				'header_text_color'       => $header_text_color,
-				'cli_enabled'             => $cli_enabled,
+				'header_text_color'       => $header_text_color,			'button_bg_color'         => $button_bg_color,
+			'button_text_color'       => $button_text_color,				'cli_enabled'             => $cli_enabled,
 				'floating_enabled'        => $floating_enabled,
 				'remove_default_widgets'  => $remove_default_widgets,
 				'delete_on_uninstall'     => $delete_on_uninstall,
@@ -152,6 +148,16 @@ class CDW_Settings_Controller extends CDW_Base_Controller {
 			$color = sanitize_hex_color( $settings['header_text_color'] );
 			update_option( 'cdw_header_text_color', $color, false );
 			update_option( 'custom_dashboard_widget_header_text_color', $color );
+		}
+
+		if ( isset( $settings['button_bg_color'] ) ) {
+			$color = sanitize_hex_color( $settings['button_bg_color'] );
+			update_option( 'cdw_button_bg_color', $color, false );
+		}
+
+		if ( isset( $settings['button_text_color'] ) ) {
+			$color = sanitize_hex_color( $settings['button_text_color'] );
+			update_option( 'cdw_button_text_color', $color, false );
 		}
 
 		if ( isset( $settings['cli_enabled'] ) ) {

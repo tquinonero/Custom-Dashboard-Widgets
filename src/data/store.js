@@ -37,6 +37,8 @@ const DEFAULT_STATE = {
         bg_color: '',
         header_bg_color: '',
         header_text_color: '',
+        button_bg_color: '',
+        button_text_color: '',
         cli_enabled: true,
         remove_default_widgets: true,
         delete_on_uninstall: true,
