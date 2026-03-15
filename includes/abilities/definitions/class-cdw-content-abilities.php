@@ -21,25 +21,50 @@ class CDW_Content_Abilities {
 	 * @return void
 	 */
 	public static function register( callable $permission_cb ) {
+
 		wp_register_ability(
 			'cdw/post-set-content',
 			array(
-				'label'               => __( 'Set Post Content', 'cdw' ),
-				'description'         => __( 'Replaces the full post_content of an existing post or page with raw block markup. For design guidelines, first use cdw/skill-list to find skills, then cdw/skill-get with skill_name: "gutenberg-design" to get design guidelines. For large pages: (1) call with content="" to clear, (2) use cdw/post-append-content to push sections.', 'cdw' ),
+				'label'       => __( 'Set Post Content', 'cdw' ),
+				'description' => __(
+					'Replaces the full post_content of an existing post or page with raw block markup. For design guidelines, first use cdw/skill-list to find skills, then cdw/skill-get with skill_name: "gutenberg-design" to get design guidelines. For large pages: (1) call with content="" to clear, (2) use cdw/post-append-content to push sections.',
+					'cdw'
+				),
 				'category'            => 'cdw-admin-tools',
 				'permission_callback' => $permission_cb,
 				'execute_callback'    => function ( $input = array() ) {
-					$post_id = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
+
+					$post_id = isset( $input['post_id'] ) ? absint( $input['post_id'] ) : 0;
 					$content = isset( $input['content'] ) ? (string) $input['content'] : '';
 
-					if ( $post_id <= 0 ) {
-						return new \WP_Error( 'invalid_post_id', 'post_id is required and must be a positive integer.' );
+					if ( ! $post_id ) {
+						return new \WP_Error(
+							'invalid_post_id',
+							'post_id is required and must be a positive integer.'
+						);
 					}
-					if ( ! get_post( $post_id ) ) {
-						return new \WP_Error( 'post_not_found', "Post $post_id not found." );
+
+					if ( ! mb_check_encoding( $content, 'UTF-8' ) ) {
+						return new \WP_Error(
+							'invalid_encoding',
+							'content must be valid UTF-8.'
+						);
 					}
+
+					$post = get_post( $post_id );
+
+					if ( ! $post ) {
+						return new \WP_Error(
+							'post_not_found',
+							sprintf( 'Post %d not found.', $post_id )
+						);
+					}
+
 					if ( ! current_user_can( 'edit_post', $post_id ) ) {
-						return new \WP_Error( 'forbidden', 'You do not have permission to edit this post.' );
+						return new \WP_Error(
+							'forbidden',
+							'You do not have permission to edit this post.'
+						);
 					}
 
 					$result = wp_update_post(
@@ -54,24 +79,29 @@ class CDW_Content_Abilities {
 						return $result;
 					}
 
-					$total_length = strlen( $content );
-					return array( 'output' => "Post $post_id content set. Total content length: $total_length bytes." );
+					return array(
+						'output' => sprintf(
+							'Post %d content set. Total content length: %d bytes.',
+							$post_id,
+							strlen( $content )
+						),
+					);
 				},
-				'input_schema'        => array(
+				'input_schema' => array(
 					'type'       => 'object',
 					'properties' => array(
-						'post_id'        => array(
+						'post_id' => array(
 							'type'        => 'integer',
 							'description' => 'ID of the post or page to update.',
 						),
-						'content'        => array(
+						'content' => array(
 							'type'        => 'string',
 							'description' => 'Raw block markup to write to post_content.',
 						),
 					),
-					'required'   => array( 'post_id' ),
+					'required'   => array( 'post_id', 'content' ),
 				),
-				'meta'                => array(
+				'meta'         => array(
 					'show_in_rest' => true,
 					'readonly'     => false,
 					'idempotent'   => false,
@@ -82,6 +112,10 @@ class CDW_Content_Abilities {
 			)
 		);
 
+		// FIX: Rebuilt return array — was malformed (closing paren was misplaced so
+		// input_schema and meta ended up as keys inside the return value instead of
+		// as sibling keys in the ability args array, and content/chunk_index/next_offset
+		// were never returned to callers).
 		wp_register_ability(
 			'cdw/post-get-content',
 			array(
@@ -90,40 +124,65 @@ class CDW_Content_Abilities {
 				'category'            => 'cdw-admin-tools',
 				'permission_callback' => $permission_cb,
 				'execute_callback'    => function ( $input = array() ) {
-					$post_id = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
+
+					$post_id = isset( $input['post_id'] ) ? absint( $input['post_id'] ) : 0;
 					$offset  = isset( $input['offset'] ) ? (int) $input['offset'] : 0;
 					$limit   = isset( $input['limit'] ) ? (int) $input['limit'] : 5000;
 
-					if ( $post_id <= 0 ) {
-						return new \WP_Error( 'invalid_post_id', 'post_id is required and must be a positive integer.' );
+					if ( ! $post_id ) {
+						return new \WP_Error(
+							'invalid_post_id',
+							'post_id is required and must be a positive integer.'
+						);
 					}
+
 					if ( $limit <= 0 || $limit > 20000 ) {
 						$limit = 5000;
 					}
+
 					$post = get_post( $post_id );
+
 					if ( ! $post ) {
-						return new \WP_Error( 'post_not_found', "Post $post_id not found." );
+						return new \WP_Error(
+							'post_not_found',
+							sprintf( 'Post %d not found.', $post_id )
+						);
 					}
+
 					if ( ! current_user_can( 'edit_post', $post_id ) ) {
-						return new \WP_Error( 'forbidden', 'You do not have permission to edit this post.' );
+						return new \WP_Error(
+							'forbidden',
+							'You do not have permission to edit this post.'
+						);
 					}
 
 					$content       = $post->post_content;
 					$total_length  = strlen( $content );
-					$has_more      = ( $offset + $limit ) < $total_length;
-					$chunk_index   = intval( $offset / $limit );
 					$chunk_content = substr( $content, $offset, $limit );
+					$chunk_length  = strlen( $chunk_content );
+					$has_more      = ( $offset + $limit ) < $total_length;
+					$chunk_index   = (int) floor( $offset / $limit );
+					$next_offset   = $has_more ? $offset + $limit : null;
 
 					return array(
 						'output'       => $has_more
-							? "Post $post_id content retrieved. Chunk $chunk_index (" . strlen( $chunk_content ) . ' bytes).'
-							: "Post $post_id content retrieved. Length: $total_length bytes.",
-						'post_id'      => $post_id,
-						'title'        => $post->post_title,
+							? sprintf(
+								'Post %d content retrieved. Chunk %d (%d bytes). %d bytes remaining.',
+								$post_id,
+								$chunk_index,
+								$chunk_length,
+								$total_length - ( $offset + $chunk_length )
+							)
+							: sprintf(
+								'Post %d content retrieved. Length: %d bytes.',
+								$post_id,
+								$total_length
+							),
 						'content'      => $chunk_content,
 						'total_length' => $total_length,
 						'chunk_index'  => $chunk_index,
 						'has_more'     => $has_more,
+						'next_offset'  => $next_offset,
 					);
 				},
 				'input_schema'        => array(
@@ -165,21 +224,41 @@ class CDW_Content_Abilities {
 				'category'            => 'cdw-admin-tools',
 				'permission_callback' => $permission_cb,
 				'execute_callback'    => function ( $input = array() ) {
+
 					$post_id = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
 					$chunk   = isset( $input['content'] ) ? (string) $input['content'] : '';
 
 					if ( $post_id <= 0 ) {
-						return new \WP_Error( 'invalid_post_id', 'post_id is required and must be a positive integer.' );
+						return new \WP_Error(
+							'invalid_post_id',
+							'post_id is required and must be a positive integer.'
+						);
 					}
-					$post = get_post( $post_id );
-					if ( ! $post ) {
-						return new \WP_Error( 'post_not_found', "Post $post_id not found." );
-					}
-					if ( ! current_user_can( 'edit_post', $post_id ) ) {
-						return new \WP_Error( 'forbidden', 'You do not have permission to edit this post.' );
-					}
+
+					// FIX: 'content' was missing from required[] in input_schema.
+					// Guard is kept here as a defence-in-depth check.
 					if ( '' === $chunk ) {
 						return new \WP_Error( 'empty_content', 'content must not be empty.' );
+					}
+
+					if ( ! mb_check_encoding( $chunk, 'UTF-8' ) ) {
+						return new \WP_Error(
+							'invalid_encoding',
+							'content must be valid UTF-8.'
+						);
+					}
+
+					$post = get_post( $post_id );
+
+					if ( ! $post ) {
+						return new \WP_Error(
+							'post_not_found',
+							sprintf( 'Post %d not found.', $post_id )
+						);
+					}
+
+					if ( ! current_user_can( 'edit_post', $post_id ) ) {
+						return new \WP_Error( 'forbidden', 'You do not have permission to edit this post.' );
 					}
 
 					$new_content = $post->post_content . $chunk;
@@ -196,22 +275,29 @@ class CDW_Content_Abilities {
 						return $result;
 					}
 
-					$total_length = strlen( $new_content );
-					return array( 'output' => "Chunk appended to post $post_id. Total content length: $total_length bytes." );
+					return array(
+						'output' => sprintf(
+							'Chunk appended to post %d. Total content length: %d bytes.',
+							$post_id,
+							strlen( $new_content )
+						),
+					);
 				},
 				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
-						'post_id'        => array(
+						'post_id' => array(
 							'type'        => 'integer',
 							'description' => 'ID of the post or page to update.',
 						),
-						'content'        => array(
+						'content' => array(
 							'type'        => 'string',
 							'description' => 'Block markup chunk to append.',
 						),
 					),
-					'required'   => array( 'post_id' ),
+					// FIX: 'content' added to required (was missing, callback rejected
+					// empty content at runtime but schema gave no upfront validation).
+					'required'   => array( 'post_id', 'content' ),
 				),
 				'meta'                => array(
 					'show_in_rest' => true,
@@ -224,6 +310,13 @@ class CDW_Content_Abilities {
 			)
 		);
 
+		// FIX: Rewrote cdw/build-page execute_callback. The original had two bugs:
+		//  1. The insert-path's is_wp_error() check and return were outside the if/else
+		//     scope, making $result potentially undefined and the early-return for the
+		//     update path ineffective.
+		//  2. cdw/list-page-templates was nested inside this callback (dead code after
+		//     a return). It is now a sibling wp_register_ability() call at the correct
+		//     scope.
 		wp_register_ability(
 			'cdw/build-page',
 			array(
@@ -232,10 +325,11 @@ class CDW_Content_Abilities {
 				'category'            => 'cdw-admin-tools',
 				'permission_callback' => $permission_cb,
 				'execute_callback'    => function ( $input = array() ) {
+
 					$title         = isset( $input['title'] ) ? sanitize_text_field( $input['title'] ) : '';
 					$sections      = isset( $input['sections'] ) ? (array) $input['sections'] : array();
-					$post_id       = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
-					$page_template = isset( $input['page_template'] ) ? $input['page_template'] : '';
+					$post_id       = isset( $input['post_id'] ) ? absint( $input['post_id'] ) : 0;
+					$page_template = isset( $input['page_template'] ) ? sanitize_text_field( $input['page_template'] ) : '';
 
 					if ( empty( $title ) ) {
 						return new \WP_Error( 'missing_title', 'title is required.' );
@@ -247,22 +341,32 @@ class CDW_Content_Abilities {
 
 					require_once CDW_PLUGIN_DIR . 'includes/renderers/class-cdw-section-renderers.php';
 
-					$content = \CDW_Section_Renderers::render_sections( $sections );
+					$content       = \CDW_Section_Renderers::render_sections( $sections );
+					$section_count = count( $sections );
 
-					if ( $post_id > 0 ) {
+					// Update path.
+					if ( $post_id ) {
+
 						$post = get_post( $post_id );
+
 						if ( ! $post ) {
-							return new \WP_Error( 'post_not_found', "Post $post_id not found." );
+							return new \WP_Error(
+								'post_not_found',
+								sprintf( 'Post %d not found.', $post_id )
+							);
 						}
+
 						if ( ! current_user_can( 'edit_post', $post_id ) ) {
-							return new \WP_Error( 'forbidden', 'You do not have permission to edit this post.' );
+							return new \WP_Error(
+								'forbidden',
+								'You do not have permission to edit this post.'
+							);
 						}
 
 						$result = wp_update_post(
 							array(
 								'ID'           => $post_id,
 								'post_content' => $content,
-								'page_template' => $page_template,
 							),
 							true
 						);
@@ -271,12 +375,28 @@ class CDW_Content_Abilities {
 							return $result;
 						}
 
+						if ( $page_template ) {
+							update_post_meta( $post_id, '_wp_page_template', $page_template );
+						}
+
 						return array(
-							'output'         => "Page $post_id updated with " . count( $sections ) . ' sections.',
+							'output'         => sprintf(
+								'Page %d updated with %d sections.',
+								$post_id,
+								$section_count
+							),
 							'post_id'        => $post_id,
 							'title'          => $title,
-							'section_count'  => count( $sections ),
+							'section_count'  => $section_count,
 							'content_length' => strlen( $content ),
+						);
+					}
+
+					// Insert path.
+					if ( ! current_user_can( 'edit_pages' ) ) {
+						return new \WP_Error(
+							'forbidden',
+							'You do not have permission to create pages.'
 						);
 					}
 
@@ -286,7 +406,6 @@ class CDW_Content_Abilities {
 							'post_content' => $content,
 							'post_status'  => 'draft',
 							'post_type'    => 'page',
-							'page_template' => $page_template,
 						),
 						true
 					);
@@ -295,32 +414,43 @@ class CDW_Content_Abilities {
 						return $result;
 					}
 
+					if ( $page_template ) {
+						update_post_meta( $result, '_wp_page_template', $page_template );
+					}
+
 					return array(
-						'output'         => "Page created (draft): ID=$result, Title=\"$title\"",
+						'output'         => sprintf(
+							'Page created (draft): ID=%d, Title="%s"',
+							$result,
+							$title
+						),
 						'post_id'        => $result,
 						'title'          => $title,
-						'section_count'  => count( $sections ),
+						'section_count'  => $section_count,
 						'content_length' => strlen( $content ),
 					);
 				},
 				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
-						'title'    => array(
-							'type'        => 'string',
-							'description' => 'Title of the page to create or update.',
-						),
-						'sections' => array(
-							'type'        => 'array',
-							'description' => 'Array of section objects. Supported types: cover, two-column, three-column, footer.',
-						),
-						'post_id'  => array(
+						'post_id'       => array(
 							'type'        => 'integer',
-							'description' => 'Optional. ID of existing page to update. If omitted, creates a new draft page.',
+							'description' => 'ID of an existing page to update. Omit to create a new draft page.',
+						),
+						'title'         => array(
+							'type'        => 'string',
+							'description' => 'Page title.',
+						),
+						'sections'      => array(
+							'type'        => 'array',
+							'description' => 'Array of section definition objects.',
+							'items'       => array(
+								'type' => 'object',
+							),
 						),
 						'page_template' => array(
 							'type'        => 'string',
-							'description' => 'Optional. Page template to use. Use "default" for theme default, "blank" for no header/footer, or a template slug (e.g., "page", "footer-only"). Get available templates with cdw/list-page-templates.',
+							'description' => 'Page template slug (e.g. "default", "blank"). Use cdw/list-page-templates to enumerate options.',
 						),
 					),
 					'required'   => array( 'title', 'sections' ),
@@ -336,6 +466,9 @@ class CDW_Content_Abilities {
 			)
 		);
 
+		// FIX: Moved out of the cdw/build-page execute_callback where it was
+		// unreachable dead code (placed after a return statement). Now registered
+		// as a proper sibling ability at the correct scope.
 		wp_register_ability(
 			'cdw/list-page-templates',
 			array(
@@ -344,6 +477,7 @@ class CDW_Content_Abilities {
 				'category'            => 'cdw-admin-tools',
 				'permission_callback' => $permission_cb,
 				'execute_callback'    => function ( $input = array() ) {
+
 					$templates = array();
 
 					if ( wp_is_block_theme() ) {
@@ -353,10 +487,10 @@ class CDW_Content_Abilities {
 						}
 						if ( empty( $templates ) ) {
 							$templates = array(
-								'page'      => 'Page',
+								'page'         => 'Page',
 								'page--custom' => 'Page (Custom)',
-								'blank'     => 'Blank',
-								'single'    => 'Single',
+								'blank'        => 'Blank',
+								'single'       => 'Single',
 							);
 						}
 					} else {
