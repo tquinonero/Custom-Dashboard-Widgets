@@ -27,7 +27,7 @@ class CDW_Content_Abilities {
 			array(
 				'label'       => __( 'Set Post Content', 'cdw' ),
 				'description' => __(
-					'Replaces the full post_content of an existing post or page with raw block markup. For design guidelines, first use cdw/skill-list to find skills, then cdw/skill-get with skill_name: "gutenberg-design" to get design guidelines. For large pages: (1) call with content="" to clear, (2) use cdw/post-append-content to push sections.',
+					'Replaces the full post_content of an existing post or page with raw block markup. For design guidelines use cdw/skill-get with skill_name: "gutenberg-design". For exact block attributes and validation rules use cdw/skill-get with skill_name: "block-schemas". For large pages: (1) call with content="" to clear, (2) use cdw/post-append-content to push sections.',
 					'cdw'
 				),
 				'category'            => 'cdw-admin-tools',
@@ -112,10 +112,6 @@ class CDW_Content_Abilities {
 			)
 		);
 
-		// FIX: Rebuilt return array — was malformed (closing paren was misplaced so
-		// input_schema and meta ended up as keys inside the return value instead of
-		// as sibling keys in the ability args array, and content/chunk_index/next_offset
-		// were never returned to callers).
 		wp_register_ability(
 			'cdw/post-get-content',
 			array(
@@ -220,7 +216,7 @@ class CDW_Content_Abilities {
 			'cdw/post-append-content',
 			array(
 				'label'               => __( 'Append Post Content', 'cdw' ),
-				'description'         => __( 'Appends a raw block markup chunk to the existing post_content of a post or page. For design guidelines, first use cdw/skill-list to find skills, then cdw/skill-get with skill_name: "gutenberg-design" to get design guidelines. Workflow: (1) call cdw/post-set-content with content="" to clear the post, (2) call this ability repeatedly with successive chunks. The response includes the running total byte count so you can confirm each chunk landed.', 'cdw' ),
+				'description'         => __( 'Appends a raw block markup chunk to the existing post_content of a post or page. For design guidelines use cdw/skill-get with skill_name: "gutenberg-design". For exact block attributes and validation rules use cdw/skill-get with skill_name: "block-schemas". Workflow: (1) call cdw/post-set-content with content="" to clear the post, (2) call this ability repeatedly with successive chunks. The response includes the running total byte count so you can confirm each chunk landed.', 'cdw' ),
 				'category'            => 'cdw-admin-tools',
 				'permission_callback' => $permission_cb,
 				'execute_callback'    => function ( $input = array() ) {
@@ -235,8 +231,6 @@ class CDW_Content_Abilities {
 						);
 					}
 
-					// FIX: 'content' was missing from required[] in input_schema.
-					// Guard is kept here as a defence-in-depth check.
 					if ( '' === $chunk ) {
 						return new \WP_Error( 'empty_content', 'content must not be empty.' );
 					}
@@ -295,8 +289,6 @@ class CDW_Content_Abilities {
 							'description' => 'Block markup chunk to append.',
 						),
 					),
-					// FIX: 'content' added to required (was missing, callback rejected
-					// empty content at runtime but schema gave no upfront validation).
 					'required'   => array( 'post_id', 'content' ),
 				),
 				'meta'                => array(
@@ -310,18 +302,14 @@ class CDW_Content_Abilities {
 			)
 		);
 
-		// FIX: Rewrote cdw/build-page execute_callback. The original had two bugs:
-		//  1. The insert-path's is_wp_error() check and return were outside the if/else
-		//     scope, making $result potentially undefined and the early-return for the
-		//     update path ineffective.
-		//  2. cdw/list-page-templates was nested inside this callback (dead code after
-		//     a return). It is now a sibling wp_register_ability() call at the correct
-		//     scope.
 		wp_register_ability(
 			'cdw/build-page',
 			array(
 				'label'               => __( 'Build Page', 'cdw' ),
-				'description'         => __( 'Creates a new page or updates an existing one with Gutenberg block markup generated from structured JSON. First use cdw/skill-list to find skills, then cdw/skill-get with skill_name: "gutenberg-design". Use "page_template" to set template (e.g., "default", "blank", "page"). Get available templates with cdw/list-page-templates. Supported section types: cover, two-column, three-column, footer, block. Use "type": "block" for individual Gutenberg blocks. Examples: {"type":"block","block":"core/paragraph","content":"Text","align":"center"}, {"type":"block","block":"core/image","url":"https://...","alt":"Desc"} . Valid blocks: core/paragraph, core/heading, core/image, core/cover, core/group, core/columns, core/column, core/buttons, core/button, core/spacer, core/separator, core/quote, core/code, core/list, core/video, core/audio, core/file. Returns post_id, title, and section_count.', 'cdw' ),
+				'description'         => __(
+					'Creates a new page or updates an existing one with Gutenberg block markup generated from structured JSON. Before building, always fetch both skills in order: (1) cdw/skill-get with skill_name: "gutenberg-design" — design decisions, personality vibe, section structure patterns, and colour rules. (2) cdw/skill-get with skill_name: "block-schemas" — exact block attributes, defaults, and validation rules for each block type. Use "page_template" to set template (e.g. "default", "blank"). Get available templates with cdw/list-page-templates. Section types: cover, two-column, three-column, footer, block. Use "type": "block" for individual Gutenberg blocks. Returns post_id, title, and section_count.',
+					'cdw'
+				),
 				'category'            => 'cdw-admin-tools',
 				'permission_callback' => $permission_cb,
 				'execute_callback'    => function ( $input = array() ) {
@@ -466,9 +454,6 @@ class CDW_Content_Abilities {
 			)
 		);
 
-		// FIX: Moved out of the cdw/build-page execute_callback where it was
-		// unreachable dead code (placed after a return statement). Now registered
-		// as a proper sibling ability at the correct scope.
 		wp_register_ability(
 			'cdw/list-page-templates',
 			array(
